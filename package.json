@@ -11,5 +11,8 @@
     "dotenv": "^8.0.0",
     "neo4j-driver": "^1.7.5",
     "typescript": "^3.5.3"
+  },
+  "devDependencies": {
+    "tslint": "^5.18.0"
   }
 }

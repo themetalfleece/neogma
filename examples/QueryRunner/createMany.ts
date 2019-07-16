@@ -1,6 +1,8 @@
 import { connect } from '../../src/Driver';
-import { acquireSession } from '../../src/Sessions/Sessions';
 import { createMany } from '../../src/QueryRunner/QueryRunner';
+import { acquireSession } from '../../src/Sessions/Sessions';
+
+// tslint:disable: no-console
 
 const createManyExample = async () => {
     // connect to the database
@@ -8,7 +10,7 @@ const createManyExample = async () => {
     // create a session
     await acquireSession(null, async (session) => {
         // create the nodes
-        await createMany(session, `John`, [{
+        await createMany(session, `Test Label`, [{
             booleanField: true,
             stringField: 'String',
             numberField: 38,
@@ -16,6 +18,10 @@ const createManyExample = async () => {
         console.log(`success`);
         process.exit(0);
     });
-}
+};
 
-createManyExample();
+createManyExample()
+    .catch((err) => {
+        console.error(err);
+        process.exit(-1);
+    });

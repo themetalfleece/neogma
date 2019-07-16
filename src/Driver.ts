@@ -1,5 +1,5 @@
+import * as dotenv from 'dotenv';
 import * as neo4j_driver from 'neo4j-driver';
-import * as dotenv from "dotenv";
 const neo4j = neo4j_driver.v1;
 
 let driver: neo4j_driver.v1.Driver;
@@ -8,7 +8,7 @@ dotenv.config();
 
 export const getDriver = () => {
     return driver;
-}
+};
 
 export const connect = () => {
     try {
@@ -21,4 +21,4 @@ export const connect = () => {
         console.error(err);
         process.exit(-1);
     }
-}
+};
