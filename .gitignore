@@ -1,1 +1,4 @@
+# node modules
 node_modules
+# built js directory
+dist
