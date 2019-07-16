@@ -1,0 +1,13 @@
+{
+  "name": "neo4j-jay",
+  "version": "1.0.0",
+  "description": "Neo4j framework, built in TypeScript, for easy actions like object-to-node creation",
+  "main": "index.js",
+  "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^12.6.4",
+    "neo4j-driver": "^1.7.5",
+    "typescript": "^3.5.3"
+  }
+}
