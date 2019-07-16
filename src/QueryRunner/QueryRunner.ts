@@ -4,7 +4,12 @@ const equalsOrIn = (param: string | string[]) => {
     return param instanceof Array ? 'IN' : '=';
 };
 
-export const createMany = async <T>(session: Session, label: string, options: T[]): Promise<StatementResult> => {
+/** surrounds the label with backticks to also allow spaces */
+const getLabel = (label: string) => '`' + label + '`';
+
+export const createMany = async <T>(session: Session, _label: string, options: T[]): Promise<StatementResult> => {
+
+    const label = getLabel(_label);
 
     const statement = `
         UNWIND {options} as ${label}
@@ -17,7 +22,9 @@ export const createMany = async <T>(session: Session, label: string, options: T[
 
 };
 
-export const editMany = async <T>(session: Session, label: string, _ids: string[], options: Partial<T>): Promise<StatementResult> => {
+export const editMany = async <T>(session: Session, _label: string, _ids: string[], options: Partial<T>): Promise<StatementResult> => {
+
+    const label = getLabel(_label);
 
     const statement = `
         MATCH (${label}: ${label})
@@ -30,7 +37,9 @@ export const editMany = async <T>(session: Session, label: string, _ids: string[
 
 };
 
-export const deleteMany = async (session: Session, label: string, _ids: string[]): Promise<StatementResult> => {
+export const deleteMany = async (session: Session, _label: string, _ids: string[]): Promise<StatementResult> => {
+
+    const label = getLabel(_label);
 
     const statement = `
         MATCH (${label}: ${label})
@@ -63,9 +72,9 @@ export const createRelationship = async (session: Session, params: CreateRelatio
     const { a, b, relationship } = params;
 
     const statement = `
-        MATCH (a:${a.label}), (b:${b.label})
+        MATCH (a:${getLabel(a.label)}), (b:${getLabel(b.label)})
         WHERE a._id ${equalsOrIn(a._id)} {a_id} and b._id ${equalsOrIn(b._id)} {b_id}
-        CREATE (a)${relationship.direction === 'a<-b' ? '<-' : '-'}[:${relationship.label}]${relationship.direction === 'a->b' ? '->' : '-'}(b)
+        CREATE (a)${relationship.direction === 'a<-b' ? '<-' : '-'}[:${getLabel(relationship.label)}]${relationship.direction === 'a->b' ? '->' : '-'}(b)
     `;
 
     return session.run(statement,
