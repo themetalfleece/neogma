@@ -10,11 +10,24 @@ export const getDriver = () => {
     return driver;
 };
 
-export const connect = () => {
+interface IConnectParams {
+    url: string;
+    username: string;
+    password: string;
+}
+/**
+ * 
+ * @param {IConnectParams} params - the connection params. If specified, they will be used. Else, the connection params will be taken from the environmental variables
+ */
+export const connect = (params?: IConnectParams) => {
+    const url = params ? params.url : process.env.NEO4J_URL;
+    const username = params ? params.username : process.env.NEO4J_USERNAME;
+    const password = params ? params.password : process.env.NEO4J_PASSWORD;
+
     try {
         driver = neo4j.driver(
-            process.env.NEO4J_URL,
-            neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD),
+            url,
+            neo4j.auth.basic(username, password),
         );
     } catch (err) {
         console.error(`Error while connecting to the neo4j database`);
