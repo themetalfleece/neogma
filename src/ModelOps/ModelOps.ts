@@ -1,5 +1,6 @@
 import { Session, StatementResult } from 'neo4j-driver/types/v1';
 import * as QueryRunner from '../QueryRunner/QueryRunner';
+import { getWhere } from '../QueryRunner/Where';
 import { acquireSession } from '../Sessions/Sessions';
 
 const getResultsArray = <T>(result: StatementResult, label: string): T[] => {
@@ -118,8 +119,14 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             configuration = configuration || {};
 
+            const where = getWhere({
+                label: {
+                    _id,
+                },
+            });
+
             return acquireSession(configuration.session, async (session) => {
-                const res = await QueryRunner.editMany(session, label, [_id], data);
+                const res = await QueryRunner.editMany(session, label, where, data);
                 return getResultArrayFromEdit<Attributes>(res, label)[0];
             });
         }
@@ -139,8 +146,14 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             configuration = configuration || {};
 
+            const where = getWhere({
+                label: {
+                    _id: { in: _ids },
+                },
+            });
+
             return acquireSession(configuration.session, async (session) => {
-                const res = await QueryRunner.editMany(session, label, _ids, data);
+                const res = await QueryRunner.editMany(session, label, where, data);
                 return getResultArrayFromEdit<Attributes>(res, label);
             });
         }
@@ -158,8 +171,18 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             configuration = configuration || {};
 
+            const where = getWhere({
+                label: {
+                    _id,
+                },
+            });
+
             return acquireSession(configuration.session, async (session) => {
-                const res = await QueryRunner.deleteMany(session, label, [_id]);
+                const res = await QueryRunner.deleteMany(
+                    session,
+                    label,
+                    where,
+                );
                 return getNodesDeleted(res) === 1;
             });
         }
@@ -177,8 +200,18 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             configuration = configuration || {};
 
+            const where = getWhere({
+                label: {
+                    _id: { in: _ids },
+                },
+            });
+
             return acquireSession(configuration.session, async (session) => {
-                const res = await QueryRunner.deleteMany(session, label, _ids);
+                const res = await QueryRunner.deleteMany(
+                    session,
+                    label,
+                    where,
+                );
                 return getNodesDeleted(res);
             });
         }
@@ -220,7 +253,8 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                 // if the field is not set, continue to the next relationship
                 if (!data[field]) { continue; }
 
-                const relationshipMap: {
+                /** maps the relationship direction from the friendly format to the QueryRunner one */
+                const directionMap: {
                     [key in IRelationships<Attributes>[0]['direction']]: QueryRunner.CreateRelationshipParamsI['relationship']['direction']
                 } = {
                     'this->other': 'a->b',
@@ -228,7 +262,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                     'this<-other': 'a<-b',
                 };
 
-                const createRelationship = (_id: string | string[]) => this.createRelationship(
+                const createRelationship = (targetId: string | string[]) => this.createRelationship(
                     {
                         a: {
                             label: this.getLabel(),
@@ -236,12 +270,20 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                         },
                         b: {
                             label: typeof model === 'string' ? model : model.getLabel(),
-                            _id,
+                            _id: targetId,
                         },
                         relationship: {
-                            direction: relationshipMap[direction],
+                            direction: directionMap[direction],
                             label,
                         },
+                        where: getWhere({
+                            a: {
+                                _id: createdObjectId,
+                            },
+                            b: {
+                                _id: targetId,
+                            },
+                        }),
                     },
                     {
                         session,
