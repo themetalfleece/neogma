@@ -26,7 +26,7 @@ export type IRelationships<T> = Array<{
     /** the label for the relationship */
     label: QueryRunner.CreateRelationshipParamsI['relationship']['label'],
     /** the direction of the relationship */
-    direction: QueryRunner.CreateRelationshipParamsI['relationship']['direction'],
+    direction: 'this->other' | 'this<-other' | 'this-other',
 }>;
 
 /**
@@ -220,6 +220,14 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                 // if the field is not set, continue to the next relationship
                 if (!data[field]) { continue; }
 
+                const relationshipMap: {
+                    [key in IRelationships<Attributes>[0]['direction']]: QueryRunner.CreateRelationshipParamsI['relationship']['direction']
+                } = {
+                    'this->other': 'a->b',
+                    'this-other': 'a-b',
+                    'this<-other': 'a<-b',
+                };
+
                 const createRelationship = (_id: string | string[]) => this.createRelationship(
                     {
                         a: {
@@ -231,7 +239,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                             _id,
                         },
                         relationship: {
-                            direction,
+                            direction: relationshipMap[direction],
                             label,
                         },
                     },
