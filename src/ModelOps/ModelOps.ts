@@ -25,9 +25,10 @@ export type IRelationships<T> = Array<{
     /** the field for the reference. It can be a string, array of strings or array of objects */
     field: keyof T;
     /** the label for the relationship */
-    label: QueryRunner.CreateRelationshipParamsI['relationship']['label'],
+    label: QueryRunner.CreateRelationshipParamsI['relationship']['label'];
     /** the direction of the relationship */
-    direction: 'this->other' | 'this<-other' | 'this-other',
+    direction: 'this->other' | 'this<-other' | 'this-other';
+    /** in case the field values is an array of objects, */
 }>;
 
 /**
@@ -38,7 +39,8 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
     relationships?: IRelationships<Attributes>,
 }) => {
 
-    const { label, relationships } = params;
+    const { label } = params;
+    const relationships = params.relationships || [];
 
     abstract class ModelOpsAbstract {
 
@@ -48,7 +50,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
         public static getLabel() { return label; }
 
         /**
-         * 
+         * creates the node, also creating its children nodes and relationships
          * @param {Attributes} data - the data to create
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Attributes} - the created data
@@ -62,7 +64,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             return acquireSession(configuration.session, async (session) => {
                 // create the object, without creating data with fields in `relationships`
-                const relationshipFields = new Set(relationships ? relationships.map(({ field }) => field) : []);
+                const relationshipFields = new Set(relationships.map(({ field }) => field));
                 // keep only the fields which are not used for relationships
                 const dataToCreate: Partial<Attributes> = {};
                 for (const key in data) {
@@ -86,7 +88,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
         }
 
         /**
-         * 
+         * creates many nodes. May create them 1-by-1 if there are relationships
          * @param {Attributes[]} data - the data to create
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Attributes[]} - the created data
@@ -95,12 +97,22 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
             data: Attributes[],
             configuration?: GenericConfiguration
         ): Promise<Attributes[]> {
-
             configuration = configuration || {};
 
             return acquireSession(configuration.session, async (session) => {
-                const res = await QueryRunner.createMany(session, label, data);
-                return getResultsArray<Attributes>(res, label);
+                if (!relationships.length) {
+                    // if there are no relationships, bulk create them
+                    const res = await QueryRunner.createMany(session, label, data);
+                    return getResultsArray<Attributes>(res, label);
+                } else {
+                    // else, create them 1-by-1 so the relationships and children are properly created
+                    const createdNodes: Attributes[] = [];
+                    for (const nodeData of data) {
+                        const createdNode = await this.createOne(nodeData, { session });
+                        createdNodes.push(createdNode);
+                    }
+                    return createdNodes;
+                }
             });
         }
 
@@ -244,7 +256,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
             createdNodeId: string;
             session?: Session;
         }) {
-            if (!relationships || !relationships.length) { return; }
+            if (!relationships.length) { return; }
 
             const { data, session, createdNodeId: createdObjectId } = params;
             for (const relationship of relationships) {
@@ -296,15 +308,16 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                     // if it's a string, it's the id, so just create the relationship with that id
                     await createRelationship(fieldValue);
                 } else if (fieldValue instanceof Array) {
-                    // TODO bulk create if the model doesn't have any relationships
                     // also create the children nodes if specified as objects
-                    for (const valueData of fieldValue) {
-                        if (valueData instanceof Object) {
-                            if (typeof model === 'string') {
-                                throw new Error(`Cannot create objects of a string-type model`);
-                            }
-                            await model.createOne(valueData, { session });
+                    const fieldValueObjects: any[] = fieldValue.filter((value) => value instanceof Object);
+
+                    if (fieldValueObjects.length) {
+                        if (typeof model === 'string') {
+                            throw new Error(`Cannot create objects of a string-type model`);
                         }
+
+                        await model.createMany(fieldValueObjects, { session });
+
                     }
 
                     // if it's an array, it's an array of objects or an array or ids, so get the id of each object or use the id

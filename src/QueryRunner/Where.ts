@@ -14,7 +14,7 @@ const isWhereIn = (value: WhereAttributesI): value is WhereInI => {
     return (value as any).in;
 };
 
-type WhereAttributesI = string | number | boolean | any[] | WhereInI;
+type WhereAttributesI = string | number | boolean | Array<string | number> | WhereInI;
 
 interface WhereParamsI {
     /** the labels to use */
@@ -24,7 +24,7 @@ interface WhereParamsI {
     };
 }
 
-/** for the param name generation, so they are all unique */
+/** for the param name generation, so they are all unique TODO string generation */
 let currentUniqueNameValue = 0;
 const getUniqueNameValue = () => {
     currentUniqueNameValue++;
