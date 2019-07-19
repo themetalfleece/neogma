@@ -1,3 +1,5 @@
+import { StringSequence } from '../utils/StringSequence';
+
 export interface WhereStatementI {
     /** the where statent string to be used in the query  */
     statement: string;
@@ -24,19 +26,14 @@ interface WhereParamsI {
     };
 }
 
-/** for the param name generation, so they are all unique TODO string generation */
-let currentUniqueNameValue = 0;
+/** for the param name generation, so they are all unique. This has the benefic of being able to combine many different `getWhere` results into the same query */
+const stringSequence = new StringSequence('a', 'zzzzzz', 6);
 const getUniqueNameValue = () => {
-    currentUniqueNameValue++;
-    // if the current unique name value has reached its limit, reset to 0
-    if (!Number.isSafeInteger(currentUniqueNameValue)) {
-        currentUniqueNameValue = 0;
-    }
-    return currentUniqueNameValue;
+    return stringSequence.getNextString();
 };
 
 export const getWhere = (options: WhereParamsI): WhereStatementI => {
-    let statement: WhereStatementI['statement'] = ``;
+    let statement: WhereStatementI['statement'] = '';
     const params: any = {};
 
     /** generates a variable name, adds the value to the params under this name and returns it */
