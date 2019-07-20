@@ -1,3 +1,4 @@
+import { validate } from 'class-validator';
 import { Session, StatementResult } from 'neo4j-driver/types/v1';
 import * as QueryRunner from '../QueryRunner/QueryRunner';
 import { getWhere } from '../QueryRunner/Where';
@@ -21,7 +22,7 @@ interface GenericConfiguration {
 
 export type IRelationships<T> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
-    model: ReturnType<typeof ModelOps> | 'self',
+    model: ReturnType<typeof ModelFactory> | 'self',
     /** the field for the reference. It can be a string, array of strings or array of objects */
     field: keyof T;
     /** the label for the relationship */
@@ -34,17 +35,31 @@ export type IRelationships<T> = Array<{
 /**
  * a function which returns a class with the model operation functions for the given Attributes
  */
-export const ModelOps = <Attributes>(params: {
+export const ModelFactory = <Attributes>(params: {
     /** the id key of this model */
     primaryKeyField: string;
+    /** the label of the nodes */
     label: string,
-    relationships?: IRelationships<Attributes>,
+    /** relationships with other models or itself */
+    relationships?: IRelationships<Attributes>;
+    /** the model class to be extended */
+    modelClass: new (...args: any[]) => any;
 }) => {
 
     const { label, primaryKeyField } = params;
     const relationships = params.relationships || [];
 
-    abstract class ModelOpsAbstract {
+    class Model extends params.modelClass {
+
+        constructor(data: Attributes) {
+            super();
+            /** to get around TS2322 */
+            const obj = this as any;
+            for (const key in data) {
+                if (!data.hasOwnProperty(key)) { continue; }
+                obj[key] = data[key];
+            }
+        }
 
         /**
          * @returns {String} - the label of this Model
@@ -58,6 +73,17 @@ export const ModelOps = <Attributes>(params: {
         public static getPrimaryKeyField() { return primaryKeyField; }
 
         /**
+         * validates the given data
+         * @throws Error with the ValidationError[] description
+         */
+        public async validate() {
+            const validationErrors = await validate(this, { whitelist: true });
+            if (validationErrors.length) {
+                throw new Error(JSON.stringify(validationErrors));
+            }
+        }
+
+        /**
          * creates the node, also creating its children nodes and relationships
          * @param {Attributes} data - the data to create
          * @param {GenericConfiguration} configuration - query configuration
@@ -66,17 +92,21 @@ export const ModelOps = <Attributes>(params: {
         public static async createOne(
             data: Attributes,
             configuration?: GenericConfiguration
-        ): Promise<Attributes> {
+        ): Promise<Model> {
 
             configuration = configuration || {};
+
+            const instance = new Model(data);
+            await instance.validate();
 
             return acquireSession(configuration.session, async (session) => {
                 // create the object, without creating data with fields in `relationships`
                 const relationshipFields = new Set(relationships.map(({ field }) => field));
                 // keep only the fields which are not used for relationships
                 const dataToCreate: Partial<Attributes> = {};
-                for (const key in data) {
-                    if (!relationshipFields.has(key)) {
+                for (const key in instance) {
+                    if (!instance.hasOwnProperty(key)) { continue; }
+                    if (!relationshipFields.has(key as keyof Attributes)) {
                         dataToCreate[key] = data[key];
                     }
                 }
@@ -86,11 +116,13 @@ export const ModelOps = <Attributes>(params: {
                 // create the relationships if specified
                 await this.createRelationshipsAndChildren({
                     data,
-                    createdNodeId: createdNode[primaryKeyField],
+                    createdNodeId: createdNode[primaryKeyField] as unknown as string,
                     session,
                 });
 
-                return createdNode;
+                // TODO: push children into the instance under a new field, which should be defined in the Attributes or Model. Its name must be defined in the relationship
+
+                return instance;
             });
 
         }
@@ -104,17 +136,23 @@ export const ModelOps = <Attributes>(params: {
         public static async createMany(
             data: Attributes[],
             configuration?: GenericConfiguration
-        ): Promise<Attributes[]> {
+        ): Promise<Model[]> {
             configuration = configuration || {};
 
             return acquireSession(configuration.session, async (session) => {
                 if (!relationships.length) {
                     // if there are no relationships, bulk create them
-                    const res = await QueryRunner.createMany(session, label, data);
-                    return getResultsArray<Attributes>(res, label);
+                    // create and validate the instances
+                    const instances = data.map((value) => new Model(value));
+                    for (const instance of instances) {
+                        await instance.validate();
+                    }
+                    const res = await QueryRunner.createMany(session, label, instances);
+                    const createdNodes = getResultsArray<Attributes>(res, label); // createdNodes may be used in case of fields generated by the database
+                    return instances;
                 } else {
                     // else, create them 1-by-1 so the relationships and children are properly created
-                    const createdNodes: Attributes[] = [];
+                    const createdNodes: Model[] = [];
                     for (const nodeData of data) {
                         const createdNode = await this.createOne(nodeData, { session });
                         createdNodes.push(createdNode);
@@ -341,5 +379,5 @@ export const ModelOps = <Attributes>(params: {
 
     }
 
-    return ModelOpsAbstract;
+    return Model;
 };
