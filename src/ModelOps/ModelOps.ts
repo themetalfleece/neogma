@@ -48,6 +48,7 @@ export const ModelFactory = <Attributes>(params: {
 
     const { label, primaryKeyField } = params;
     const relationships = params.relationships || [];
+    const relationshipFields = new Set(relationships.map(({ field }) => field));
 
     class Model extends params.modelClass {
 
@@ -73,13 +74,31 @@ export const ModelFactory = <Attributes>(params: {
         public static getPrimaryKeyField() { return primaryKeyField; }
 
         /**
-         * validates the given data
+         * validates the given instance, not with the children models
+         * @param {Boolean} params.deep - also validate the children modules
          * @throws Error with the ValidationError[] description
          */
-        public async validate() {
+        public async validate(params?: { deep: boolean }) {
             const validationErrors = await validate(this, { whitelist: true });
             if (validationErrors.length) {
                 throw new Error(JSON.stringify(validationErrors));
+            }
+
+            // also validate the children, by iterating the relationships
+            if (params && params.deep) {
+                for (const relationship of relationships) {
+                    const { field, model: relationshipModel } = relationship;
+                    const fieldValue = this[field as string];
+
+                    if (!fieldValue || !(fieldValue instanceof Array)) { continue; }
+
+                    const fieldValueObjects: any[] = fieldValue.filter((value) => value instanceof Object);
+
+                    const modelToUse = relationshipModel === 'self' ? Model : relationshipModel;
+                    for (const data of fieldValueObjects) {
+                        await new modelToUse(data).validate();
+                    }
+                }
             }
         }
 
@@ -101,7 +120,6 @@ export const ModelFactory = <Attributes>(params: {
 
             return acquireSession(configuration.session, async (session) => {
                 // create the object, without creating data with fields in `relationships`
-                const relationshipFields = new Set(relationships.map(({ field }) => field));
                 // keep only the fields which are not used for relationships
                 const dataToCreate: Partial<Attributes> = {};
                 for (const key in instance) {
@@ -307,7 +325,7 @@ export const ModelFactory = <Attributes>(params: {
             const { data, session, createdNodeId: createdObjectId } = params;
             for (const relationship of relationships) {
 
-                const { field, direction, model, label } = relationship;
+                const { field, direction, model: relationshipModel, label } = relationship;
                 // if the field is not set, continue to the next relationship
                 if (!data[field]) { continue; }
 
@@ -322,8 +340,8 @@ export const ModelFactory = <Attributes>(params: {
 
                 const createRelationship = (targetId: string | string[]) => {
                     /** the label and primary key of the `b` Model */
-                    const otherLabel = model === 'self' ? label : model.getLabel();
-                    const otherPrimaryKeyField = model === 'self' ? primaryKeyField : model.getPrimaryKeyField();
+                    const otherLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
+                    const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
                     return this.createRelationship(
                         {
                             a: {
@@ -361,17 +379,17 @@ export const ModelFactory = <Attributes>(params: {
                     const fieldValueObjects: any[] = fieldValue.filter((value) => value instanceof Object);
 
                     if (fieldValueObjects.length) {
-                        if (model === 'self') {
+                        if (relationshipModel === 'self') {
                             /** if it references itself, create nodes of this model */
                             await this.createMany(fieldValueObjects, { session });
                         } else {
                             /** else, create nodes of the model it references */
-                            await model.createMany(fieldValueObjects, { session });
+                            await relationshipModel.createMany(fieldValueObjects, { session });
                         }
                     }
 
                     // if it's an array, it's an array of objects or an array or ids, so get the id of each object or use the id
-                    const primaryKeyField = model === 'self' ? label : model.getLabel();
+                    const primaryKeyField = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     await createRelationship(fieldValue.map((value) => typeof value === 'string' ? value : value[primaryKeyField]));
                 }
             }
