@@ -132,7 +132,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
             configuration = configuration || {};
 
             const where = getWhere({
-                label: {
+                [label]: {
                     _id,
                 },
             });
@@ -159,7 +159,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
             configuration = configuration || {};
 
             const where = getWhere({
-                label: {
+                [label]: {
                     _id: { in: _ids },
                 },
             });
@@ -184,7 +184,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
             configuration = configuration || {};
 
             const where = getWhere({
-                label: {
+                [label]: {
                     _id,
                 },
             });
@@ -213,7 +213,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
             configuration = configuration || {};
 
             const where = getWhere({
-                label: {
+                [label]: {
                     _id: { in: _ids },
                 },
             });
