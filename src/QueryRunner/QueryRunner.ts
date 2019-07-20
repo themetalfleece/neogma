@@ -71,11 +71,9 @@ export const deleteMany = async (session: Session, nodesLabel: string, where: Wh
 export interface CreateRelationshipParamsI {
     a: {
         label: string;
-        _id: string | string[];
     };
     b: {
         label: string;
-        _id: string | string[];
     };
     relationship: {
         label: string;

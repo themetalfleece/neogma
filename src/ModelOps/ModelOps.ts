@@ -21,7 +21,7 @@ interface GenericConfiguration {
 
 export type IRelationships<T> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
-    model: ReturnType<typeof ModelOps> | string,
+    model: ReturnType<typeof ModelOps> | 'self',
     /** the field for the reference. It can be a string, array of strings or array of objects */
     field: keyof T;
     /** the label for the relationship */
@@ -34,20 +34,28 @@ export type IRelationships<T> = Array<{
 /**
  * a function which returns a class with the model operation functions for the given Attributes
  */
-export const ModelOps = <Attributes extends { _id: string }>(params: {
+export const ModelOps = <Attributes>(params: {
+    /** the id key of this model */
+    primaryKeyField: string;
     label: string,
     relationships?: IRelationships<Attributes>,
 }) => {
 
-    const { label } = params;
+    const { label, primaryKeyField } = params;
     const relationships = params.relationships || [];
 
     abstract class ModelOpsAbstract {
 
         /**
-         * @returns {String} -  the label of this Model
+         * @returns {String} - the label of this Model
          */
         public static getLabel() { return label; }
+
+        /**
+         * 
+         * @returns {String} - the primary key field of this Model
+         */
+        public static getPrimaryKeyField() { return primaryKeyField; }
 
         /**
          * creates the node, also creating its children nodes and relationships
@@ -78,7 +86,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                 // create the relationships if specified
                 await this.createRelationshipsAndChildren({
                     data,
-                    createdNodeId: createdNode._id,
+                    createdNodeId: createdNode[primaryKeyField],
                     session,
                 });
 
@@ -118,13 +126,13 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
         /**
          * 
-         * @param {String} _id - the id of the node to edit
+         * @param {String} id - the id of the node to edit
          * @param {Partial<Attributes>} data - the new data for edit
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Attributes} - the new data of the edited node
          */
         public static async editOne(
-            _id: string,
+            id: string,
             data: Partial<Attributes>,
             configuration?: GenericConfiguration
         ): Promise<Attributes> {
@@ -133,7 +141,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             const where = getWhere({
                 [label]: {
-                    _id,
+                    [primaryKeyField]: id,
                 },
             });
 
@@ -145,13 +153,13 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
         /**
          * 
-         * @param {String[]} _ids - the ids of the nodes to edit
+         * @param {String[]} ids - the ids of the nodes to edit
          * @param {Partial<Attributes>} data - the new data for edit
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Attributes[]} - the new data of the edited nodes
          */
         public static async editMany(
-            _ids: string[],
+            ids: string[],
             data: Partial<Attributes>,
             configuration?: GenericConfiguration
         ): Promise<Attributes[]> {
@@ -160,7 +168,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             const where = getWhere({
                 [label]: {
-                    _id: { in: _ids },
+                    [primaryKeyField]: { in: ids },
                 },
             });
 
@@ -172,12 +180,12 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
         /**
          * 
-         * @param {String} _id - the id of the node to delete
+         * @param {String} id - the id of the node to delete
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Boolean} - whether the node was successfully deleted
          */
         public static async deleteOne(
-            _id: string,
+            id: string,
             configuration?: GenericConfiguration
         ): Promise<boolean> {
 
@@ -185,7 +193,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             const where = getWhere({
                 [label]: {
-                    _id,
+                    [primaryKeyField]: id,
                 },
             });
 
@@ -201,12 +209,12 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
         /**
          * 
-         * @param {String[]} _ids - the ids of the nodes to delete
+         * @param {String[]} ids - the ids of the nodes to delete
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Number} - the number of deleted nodes
          */
         public static async deleteMany(
-            _ids: string[],
+            ids: string[],
             configuration?: GenericConfiguration
         ): Promise<number> {
 
@@ -214,7 +222,7 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
 
             const where = getWhere({
                 [label]: {
-                    _id: { in: _ids },
+                    [primaryKeyField]: { in: ids },
                 },
             });
 
@@ -274,33 +282,36 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                     'this<-other': 'a<-b',
                 };
 
-                const createRelationship = (targetId: string | string[]) => this.createRelationship(
-                    {
-                        a: {
-                            label: this.getLabel(),
-                            _id: createdObjectId,
-                        },
-                        b: {
-                            label: typeof model === 'string' ? model : model.getLabel(),
-                            _id: targetId,
-                        },
-                        relationship: {
-                            direction: directionMap[direction],
-                            label,
-                        },
-                        where: getWhere({
+                const createRelationship = (targetId: string | string[]) => {
+                    /** the label and primary key of the `b` Model */
+                    const otherLabel = model === 'self' ? label : model.getLabel();
+                    const otherPrimaryKeyField = model === 'self' ? primaryKeyField : model.getPrimaryKeyField();
+                    return this.createRelationship(
+                        {
                             a: {
-                                _id: createdObjectId,
+                                label: this.getLabel(),
                             },
                             b: {
-                                _id: targetId,
+                                label: otherLabel,
                             },
-                        }),
-                    },
-                    {
-                        session,
-                    }
-                );
+                            relationship: {
+                                direction: directionMap[direction],
+                                label,
+                            },
+                            where: getWhere({
+                                a: {
+                                    [primaryKeyField]: createdObjectId,
+                                },
+                                b: {
+                                    [otherPrimaryKeyField]: targetId,
+                                },
+                            }),
+                        },
+                        {
+                            session,
+                        }
+                    );
+                };
 
                 const fieldValue = data[field];
 
@@ -312,16 +323,18 @@ export const ModelOps = <Attributes extends { _id: string }>(params: {
                     const fieldValueObjects: any[] = fieldValue.filter((value) => value instanceof Object);
 
                     if (fieldValueObjects.length) {
-                        if (typeof model === 'string') {
-                            throw new Error(`Cannot create objects of a string-type model`);
+                        if (model === 'self') {
+                            /** if it references itself, create nodes of this model */
+                            await this.createMany(fieldValueObjects, { session });
+                        } else {
+                            /** else, create nodes of the model it references */
+                            await model.createMany(fieldValueObjects, { session });
                         }
-
-                        await model.createMany(fieldValueObjects, { session });
-
                     }
 
                     // if it's an array, it's an array of objects or an array or ids, so get the id of each object or use the id
-                    await createRelationship(fieldValue.map((value) => typeof value === 'string' ? value : value._id));
+                    const primaryKeyField = model === 'self' ? label : model.getLabel();
+                    await createRelationship(fieldValue.map((value) => typeof value === 'string' ? value : value[primaryKeyField]));
                 }
             }
         }
