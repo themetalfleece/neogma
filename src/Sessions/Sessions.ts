@@ -12,6 +12,7 @@ export const acquireSession = async <T>(runInSession: Session, callback: (s: Ses
         return callback(runInSession);
     }
     const session = getDriver().session();
-    await callback(session);
+    const result = await callback(session);
     session.close();
+    return result;
 };
