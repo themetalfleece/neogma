@@ -20,6 +20,28 @@ interface GenericConfiguration {
     session?: Session;
 }
 
+/** the type of the relationship, with regard to the `field` */
+type IRelationshipAnyType = {
+    /** `field` corresponds to an array of objects, which comply to the associated model Attributes */
+    type: 'array of objects';
+    /** whether to create the nodes of this relationship */
+    childrenCreation?: {
+        enabled: false;
+    } | {
+        enabled: true;
+        /** fields of the `field` values which will be properties of the relationship and not the children nodes */
+        relationshipFields?: string[];
+        /** whether  */
+        spreadRelationshipFieldValues?: boolean;
+    };
+} | {
+    /** `field` correspond to a string value, which is the id of the associated node */
+    type: 'id';
+} | {
+    /** `field` correspond to an array of strings, which are the ids of the associated nodes */
+    type: 'array of ids';
+};
+
 export type IRelationships<T> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
     model: ReturnType<typeof ModelFactory> | 'self',
@@ -29,8 +51,7 @@ export type IRelationships<T> = Array<{
     label: QueryRunner.CreateRelationshipParamsI['relationship']['label'];
     /** the direction of the relationship */
     direction: 'this->other' | 'this<-other' | 'this-other';
-    /** in case the field values is an array of objects, */
-}>;
+} & IRelationshipAnyType>;
 
 /**
  * a function which returns a class with the model operation functions for the given Attributes
@@ -371,26 +392,38 @@ export const ModelFactory = <Attributes>(params: {
 
                 const fieldValue = data[field];
 
-                if (typeof fieldValue === 'string') {
-                    // if it's a string, it's the id, so just create the relationship with that id
-                    await createRelationship(fieldValue);
-                } else if (fieldValue instanceof Array) {
-                    // also create the children nodes if specified as objects
-                    const fieldValueObjects: any[] = fieldValue.filter((value) => value instanceof Object);
-
-                    if (fieldValueObjects.length) {
-                        if (relationshipModel === 'self') {
-                            /** if it references itself, create nodes of this model */
-                            await this.createMany(fieldValueObjects, { session });
-                        } else {
-                            /** else, create nodes of the model it references */
-                            await relationshipModel.createMany(fieldValueObjects, { session });
-                        }
+                if (relationship.type === 'id') {
+                    if (typeof fieldValue !== 'string') {
+                        throw new Error('Field value must be a string');
                     }
 
-                    // if it's an array, it's an array of objects or an array or ids, so get the id of each object or use the id
+                    await createRelationship(fieldValue);
+                } else if (relationship.type === 'array of ids') {
+                    if (!(fieldValue instanceof Array)) {
+                        throw new Error('Field value must be an array');
+                    }
+
+                    const nonStringValue = fieldValue.find((value) => typeof value !== 'string');
+                    if (nonStringValue) {
+                        throw new Error('Field value must be an array of strings');
+                    }
+
+                    await createRelationship(fieldValue);
+                } else {
+                    if (!(fieldValue instanceof Array)) {
+                        throw new Error('Field value must be an array');
+                    }
+
+                    if (relationshipModel === 'self') {
+                        /** if it references itself, create nodes of this model */
+                        await this.createMany(fieldValue, { session });
+                    } else {
+                        /** else, create nodes of the model it references */
+                        await relationshipModel.createMany(fieldValue, { session });
+                    }
+
                     const primaryKeyField = relationshipModel === 'self' ? label : relationshipModel.getLabel();
-                    await createRelationship(fieldValue.map((value) => typeof value === 'string' ? value : value[primaryKeyField]));
+                    await createRelationship(fieldValue.map((value) => value[primaryKeyField]));
                 }
             }
         }
