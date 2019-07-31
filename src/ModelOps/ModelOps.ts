@@ -24,23 +24,41 @@ interface GenericConfiguration {
 type IRelationshipAnyType = {
     /** `field` corresponds to an array of objects, which comply to the associated model Attributes */
     type: 'array of objects';
-    /** whether to create the nodes of this relationship */
-    childrenCreation?: {
-        enabled: false;
-    } | {
-        enabled: true;
-        /** fields of the `field` values which will be properties of the relationship and not the children nodes */
-        relationshipFields?: string[];
-        /** whether  */
-        spreadRelationshipFieldValues?: boolean;
-    };
+
+    /** fields of the `field` values which will be properties of the relationship and not the children nodes */
+    relationshipFields?: string[];
+    /** 
+     * whether the field values should be spreaded, and not used for their actual value 
+     * example without spread:
+     * { since: 1994, status: 'active' }
+     * example with spread:
+     * { _relationshipValues: { since: 1994, status: 'active' } }
+     * both cases will have the same effect
+     */
+    spreadRelationshipFieldValues?: boolean;
 } | {
     /** `field` correspond to a string value, which is the id of the associated node */
     type: 'id';
+
+    /** fields of the `field` values which will be properties of the relationship and not the "parent" (this) node */
+    relationshipFields?: string[];
+    spreadRelationshipFieldValues?: boolean;
 } | {
-    /** `field` correspond to an array of strings, which are the ids of the associated nodes */
+    /** `field` correspond to an array of strings, which are the ids of the associated nodes. No relationship values can be created */
     type: 'array of ids';
+} | {
+    /** 
+     * `field` corresponds to an array whose entries are object with an id field, and an optional relationship values field
+     * They need to have have an array of objects, with an `id` property, and optionally a `relationshipValues` property
+     * They must comply to the `IArrayOfIdObjects` type
+     */
+    type: 'array of id objects',
 };
+
+export type IArrayOfIdObjects = Array<{
+    id: string;
+    relationshipValues?: object;
+}>;
 
 export type IRelationships<T> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
@@ -409,7 +427,7 @@ export const ModelFactory = <Attributes>(params: {
                     }
 
                     await createRelationship(fieldValue);
-                } else {
+                } else if (relationship.type === 'array of objects') {
                     if (!(fieldValue instanceof Array)) {
                         throw new Error('Field value must be an array');
                     }
@@ -424,6 +442,14 @@ export const ModelFactory = <Attributes>(params: {
 
                     const primaryKeyField = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     await createRelationship(fieldValue.map((value) => value[primaryKeyField]));
+                } else if (relationship.type === 'array of id objects') {
+                    if (!(fieldValue instanceof Array)) {
+                        throw new Error('Field value must be an array');
+                    }
+
+                    // TODO: validation
+
+                    await createRelationship(fieldValue.map((value) => value.id));
                 }
             }
         }
