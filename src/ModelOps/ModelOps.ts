@@ -22,7 +22,10 @@ interface GenericConfiguration {
 
 /** the type of the relationship, with regard to the `field` */
 type IRelationshipAnyType = {
-    /** `field` corresponds to an array of objects, which comply to the associated model Attributes */
+    /** 
+     * `field` corresponds to an array of objects, which comply to the associated model Attributes 
+     * children objects will be created
+     */
     type: 'array of objects';
 
     /** fields of the `field` values which will be properties of the relationship and not the children nodes */
@@ -447,7 +450,11 @@ export const ModelFactory = <Attributes>(params: {
                         throw new Error('Field value must be an array');
                     }
 
-                    // TODO: validation
+                    for (const value of fieldValue) {
+                        if (typeof value.id !== 'string') {
+                            throw new Error(`Unspecified id, or not a string`);
+                        }
+                    }
 
                     await createRelationship(fieldValue.map((value) => value.id));
                 }
