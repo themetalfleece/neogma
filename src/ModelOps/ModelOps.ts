@@ -20,6 +20,26 @@ interface GenericConfiguration {
     session?: Session;
 }
 
+type IRelationshipFields = Array<{
+    /** fields of the `field` values to be affected. Each type has its own usage */
+    key: string;
+    /** 
+     * whether the field values should be spreaded, and not used for their actual value. They must have unique field names 
+     * example without spread:
+     * { since: 1994, status: 'active' }
+     * example with spread:
+     * { _relationshipValues: { since: 1994, status: 'active' } }
+     * both cases will have the same effect
+     */
+    // spread?: boolean;
+} & ({
+    spread: true;
+} | {
+    spread: false;
+    /** the name of the relationship value to be created */
+    name: string;
+})>;
+
 /** the type of the relationship, with regard to the `field` */
 type IRelationshipAnyType = {
     /** 
@@ -27,25 +47,14 @@ type IRelationshipAnyType = {
      * children objects will be created
      */
     type: 'array of objects';
-
-    /** fields of the `field` values which will be properties of the relationship and not the children nodes */
-    relationshipFields?: string[];
-    /** 
-     * whether the field values should be spreaded, and not used for their actual value 
-     * example without spread:
-     * { since: 1994, status: 'active' }
-     * example with spread:
-     * { _relationshipValues: { since: 1994, status: 'active' } }
-     * both cases will have the same effect
-     */
-    spreadRelationshipFieldValues?: boolean;
+    /** key refers to the fields of the `field` values which will be properties of the relationship and not the children nodes */
+    relationshipFields?: IRelationshipFields;
 } | {
     /** `field` correspond to a string value, which is the id of the associated node */
     type: 'id';
 
-    /** fields of the `field` values which will be properties of the relationship and not the "parent" (this) node */
-    relationshipFields?: string[];
-    spreadRelationshipFieldValues?: boolean;
+    /** key refers to the fields of the `field` values which will be properties of the relationship and not the "parent" (this) node */
+    relationshipFields?: IRelationshipFields;
 } | {
     /** `field` correspond to an array of strings, which are the ids of the associated nodes. No relationship values can be created */
     type: 'array of ids';
@@ -90,7 +99,20 @@ export const ModelFactory = <Attributes>(params: {
 
     const { label, primaryKeyField } = params;
     const relationships = params.relationships || [];
-    const relationshipFields = new Set(relationships.map(({ field }) => field));
+    /** the name of the fields of this node to not create, because they're related to associated objects */
+    const relationshipFieldNamesToSkipCreating = new Set(relationships.reduce(
+        (keysArray, relationship) => {
+            // push the field name affected in each relationship
+            if (relationship.field) {
+                keysArray.push(relationship.field);
+            }
+            // only for relationship type id, the relationshipFields refer this node so they should be skipped
+            if (relationship.type === 'id' && relationship.relationshipFields) {
+                keysArray.push(...relationship.relationshipFields.map(({ key }) => key));
+            }
+            return keysArray;
+        }, [],
+    ));
 
     class Model extends params.modelClass {
 
@@ -166,7 +188,7 @@ export const ModelFactory = <Attributes>(params: {
                 const dataToCreate: Partial<Attributes> = {};
                 for (const key in instance) {
                     if (!instance.hasOwnProperty(key)) { continue; }
-                    if (!relationshipFields.has(key as keyof Attributes)) {
+                    if (!relationshipFieldNamesToSkipCreating.has(key as keyof Attributes)) {
                         dataToCreate[key] = data[key];
                     }
                 }
@@ -419,7 +441,26 @@ export const ModelFactory = <Attributes>(params: {
                         throw new Error('Field value must be a string');
                     }
 
-                    await createRelationship(fieldValue);
+                    // get any potential relationship values by looking at the relationshipFields
+                    const relationshipValues = {};
+                    if (relationship.relationshipFields) {
+                        for (const relationshipField of relationship.relationshipFields) {
+                            const relationshipFieldData = data[relationshipField.key];
+                            if (!relationshipFieldData) { continue; }
+
+                            if (relationshipField.spread === true) {
+                                // use the names inside the field
+                                for (const keyInSpread in relationshipFieldData) {
+                                    if (!relationshipFieldData.hasOwnProperty(keyInSpread)) { continue; }
+                                    relationshipValues[keyInSpread] = relationshipFieldData[keyInSpread];
+                                }
+                            } else {
+                                relationshipValues[relationshipField.name] = relationshipFieldData;
+                            }
+                        }
+                    }
+
+                    await createRelationship(fieldValue, relationshipValues);
                 } else if (relationship.type === 'array of ids') {
                     if (!(fieldValue instanceof Array)) {
                         throw new Error('Field value must be an array');
@@ -436,16 +477,29 @@ export const ModelFactory = <Attributes>(params: {
                         throw new Error('Field value must be an array');
                     }
 
-                    if (relationshipModel === 'self') {
-                        /** if it references itself, create nodes of this model */
-                        await this.createMany(fieldValue, { session });
-                    } else {
-                        /** else, create nodes of the model it references */
-                        await relationshipModel.createMany(fieldValue, { session });
-                    }
-
                     const primaryKeyField = relationshipModel === 'self' ? label : relationshipModel.getLabel();
-                    await createRelationship(fieldValue.map((value) => value[primaryKeyField]));
+
+                    // TODO: do not create the key of each relationshipFields at the children nodes
+                    // TODO: set both of these fields, depending on whether they have values in their relationship fields or not, in order to bulk or single create them
+                    const withRelationshipValueNodes: any[] = [];
+                    if (withRelationshipValueNodes.length) {
+                        for (const nodeData of withRelationshipValueNodes) {
+                            // TODO: create single node, and relationship with values
+                        }
+                    }
+                    // TODO: createMany those without any relationship fields
+                    const noRelationshipValueNodes: any[] = fieldValue;
+                    if (noRelationshipValueNodes) {
+                        if (relationshipModel === 'self') {
+                            /** if it references itself, create nodes of this model */
+                            await this.createMany(fieldValue, { session });
+                        } else {
+                            /** else, create nodes of the model it references */
+                            await relationshipModel.createMany(fieldValue, { session });
+                        }
+
+                        await createRelationship(fieldValue.map((value) => value[primaryKeyField]));
+                    }
                 } else if (relationship.type === 'array of id objects') {
                     if (!(fieldValue instanceof Array)) {
                         throw new Error('Field value must be an array');
@@ -456,6 +510,8 @@ export const ModelFactory = <Attributes>(params: {
                             throw new Error(`Unspecified id, or not a string`);
                         }
                     }
+
+                    // TODO: also set the relationship values, in a similar manner with 'array of objects'. Bulk create those without relationship values, and single create those with relationship values
 
                     await createRelationship(fieldValue.map((value) => value.id));
                 }
