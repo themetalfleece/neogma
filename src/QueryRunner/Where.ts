@@ -1,7 +1,7 @@
 import { StringSequence } from '../utils/StringSequence';
 
 export interface WhereStatementI {
-    /** the where statent string to be used in the query  */
+    /** the where statent string to be used in the query */
     statement: string;
     /** the params of the values associated with the statement, to be used as query parameters */
     params: object;
@@ -38,7 +38,7 @@ export const getWhere = (options: WhereParamsI): WhereStatementI => {
 
     /** generates a variable name, adds the value to the params under this name and returns it */
     const getNameAndAddToParams = (value: any) => {
-        const name = `a${getUniqueNameValue()}`;
+        const name = getUniqueNameValue();
         params[name] = value;
         return `{${name}}`;
     };

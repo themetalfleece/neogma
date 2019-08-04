@@ -78,6 +78,8 @@ export interface CreateRelationshipParamsI {
     relationship: {
         label: string;
         direction: 'a->b' | 'a-b' | 'a<-b',
+        /** values to be set as relationship attributes */
+        values?: object;
     };
     /** can access query labels by `a` and `b` */
     where: WhereStatementI;
@@ -87,14 +89,35 @@ export const createRelationship = async (session: Session, params: CreateRelatio
 
     const { a, b, relationship, where } = params;
 
-    /** string in the format -[Label]-> */
-    const directionString = `${relationship.direction === 'a<-b' ? '<-' : '-'}[:${getLabel(relationship.label)}]${relationship.direction === 'a->b' ? '->' : '-'}`;
+    /** 
+     * string in the format -[Label]->
+     * relationship has the alias `r`
+     */
+    const directionString = `${relationship.direction === 'a<-b' ? '<-' : '-'}[r:${getLabel(relationship.label)}]${relationship.direction === 'a->b' ? '->' : '-'}`;
+
+    /** the params of the relationship value, with a new string to avoid conflicts */
+    const relationshipAttributesParams = {};
+    /** the values to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
+    const relationshipValues: string[] = [];
+    if (relationship.values) {
+        for (const key in relationship.values) {
+            if (!relationship.values.hasOwnProperty(key)) { continue; }
+
+            const paramName = '__relationship_value__' + key;
+            relationshipAttributesParams[paramName] = relationship.values[key];
+            relationshipValues.push(`r.${key} = {${paramName}}`);
+        }
+    }
+
+    /** the relationship values statement to be inserted into the final statement string */
+    const relationshipValuesStatement = relationshipValues.length ? 'SET ' + relationshipValues.join(', ') : '';
 
     const statement = `
         MATCH (a:${getLabel(a.label)}), (b:${getLabel(b.label)})
         WHERE ${where.statement}
         CREATE (a)${directionString}(b)
+        ${relationshipValuesStatement}
     `;
 
-    return session.run(statement, { ...where.params });
+    return session.run(statement, { ...where.params, ...relationshipAttributesParams });
 };

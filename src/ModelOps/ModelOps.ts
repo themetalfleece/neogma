@@ -380,7 +380,7 @@ export const ModelFactory = <Attributes>(params: {
                     'this<-other': 'a<-b',
                 };
 
-                const createRelationship = (targetId: string | string[]) => {
+                const createRelationship = (targetId: string | string[], values?: QueryRunner.CreateRelationshipParamsI['relationship']['values']) => {
                     /** the label and primary key of the `b` Model */
                     const otherLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
@@ -395,6 +395,7 @@ export const ModelFactory = <Attributes>(params: {
                             relationship: {
                                 direction: directionMap[direction],
                                 label,
+                                values,
                             },
                             where: getWhere({
                                 a: {
