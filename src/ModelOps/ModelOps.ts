@@ -31,7 +31,7 @@ type IRelationshipFields = Array<{
      * { _relationshipValues: { since: 1994, status: 'active' } }
      * both cases will have the same effect
      */
-    // spread?: boolean;
+    spread?: boolean;
 } & ({
     spread: true;
 } | {
@@ -47,7 +47,7 @@ type IRelationshipAnyType = {
      * children objects will be created
      */
     type: 'array of objects';
-    /** key refers to the fields of the `field` values which will be properties of the relationship and not the children nodes */
+    /** `key` refers to the fields of the `field` values (= children nodes) which will be properties of the relationship and not the children nodes. So, which children node attributes will be on the relationship and not on the actual nodes */
     relationshipFields?: IRelationshipFields;
 } | {
     /** `field` correspond to a string value, which is the id of the associated node */
@@ -477,28 +477,56 @@ export const ModelFactory = <Attributes>(params: {
                         throw new Error('Field value must be an array');
                     }
 
-                    const primaryKeyField = relationshipModel === 'self' ? label : relationshipModel.getLabel();
+                    /** the primary key field of the target relationship model */
+                    const primaryKeyField = relationshipModel === 'self' ? this.getPrimaryKeyField() : relationshipModel.getPrimaryKeyField();
 
-                    // TODO: do not create the key of each relationshipFields at the children nodes
-                    // TODO: set both of these fields, depending on whether they have values in their relationship fields or not, in order to bulk or single create them
-                    const withRelationshipValueNodes: any[] = [];
-                    if (withRelationshipValueNodes.length) {
+                    // TODO: set both of these variables (withRelationshipValueNodes, noRelationshipValueNodes) properly, depending on whether they have values in their relationship fields or not, in order to bulk or single create them. So, remove the following condition and use the length of those variables as the source of truth
+                    if (relationship.relationshipFields) {
+                        const withRelationshipValueNodes: any[] = fieldValue;
                         for (const nodeData of withRelationshipValueNodes) {
-                            // TODO: create single node, and relationship with values
+                            // create single node, and relationship with values
+
+                            const nodeDataToCreate = { ...nodeData };
+                            const relationshipValues = {};
+
+                            for (const relationshipField of relationship.relationshipFields) {
+                                const { key } = relationshipField;
+                                if (!nodeDataToCreate[key]) { continue; }
+                                // do not create the key of each relationshipFields at the children nodes
+                                if (relationshipField.spread === false) {
+                                    relationshipValues[relationshipField.name] = nodeDataToCreate[key];
+                                } else {
+                                    const nodeKeyData = nodeDataToCreate[key];
+                                    for (const fieldKey in nodeKeyData) {
+                                        if (!nodeKeyData.hasOwnProperty(fieldKey)) { continue; }
+                                        relationshipValues[fieldKey] = nodeKeyData[fieldKey];
+                                    }
+                                }
+                                delete nodeDataToCreate[key];
+                            }
+
+                            if (relationshipModel === 'self') {
+                                /** if it references itself, create nodes of this model */
+                                await this.createOne(nodeDataToCreate, { session });
+                            } else {
+                                /** else, create nodes of the model it references */
+                                await relationshipModel.createOne(nodeDataToCreate, { session });
+                            }
+
+                            await createRelationship(nodeDataToCreate[primaryKeyField], relationshipValues);
                         }
-                    }
-                    // TODO: createMany those without any relationship fields
-                    const noRelationshipValueNodes: any[] = fieldValue;
-                    if (noRelationshipValueNodes) {
+                    } else {
+                        // createMany without any relationship fields
+                        const noRelationshipValueNodes: any[] = fieldValue;
                         if (relationshipModel === 'self') {
                             /** if it references itself, create nodes of this model */
-                            await this.createMany(fieldValue, { session });
+                            await this.createMany(noRelationshipValueNodes, { session });
                         } else {
                             /** else, create nodes of the model it references */
-                            await relationshipModel.createMany(fieldValue, { session });
+                            await relationshipModel.createMany(noRelationshipValueNodes, { session });
                         }
 
-                        await createRelationship(fieldValue.map((value) => value[primaryKeyField]));
+                        await createRelationship(noRelationshipValueNodes.map((value) => value[primaryKeyField]));
                     }
                 } else if (relationship.type === 'array of id objects') {
                     if (!(fieldValue instanceof Array)) {
