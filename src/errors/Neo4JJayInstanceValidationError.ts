@@ -1,5 +1,5 @@
 import { ValidationError } from 'class-validator';
-import { Neo4JJayModel } from 'ModelOps/ModelOps';
+import { Neo4JJayModel } from 'ModelOps';
 import { Neo4JJayError } from './Neo4JJayError';
 
 /** Error from validating an instance */

@@ -1,4 +1,3 @@
-import { Neo4JJayModel } from 'ModelOps/ModelOps';
 import { Neo4JJayError } from './Neo4JJayError';
 
 /** General constraint error */

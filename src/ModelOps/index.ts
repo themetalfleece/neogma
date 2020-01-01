@@ -78,7 +78,7 @@ export type IArrayOfIdObjects = Array<{
 
 export type IRelationships<T> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
-    model: Neo4JJayModel | 'self',
+    model: ReturnType<typeof ModelFactory> | 'self',
     /** the field for the reference. It can be a string, array of strings or array of objects */
     field: keyof T;
     /** the label for the relationship */
