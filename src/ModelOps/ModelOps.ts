@@ -84,7 +84,7 @@ export type IRelationships<T> = Array<{
     /** the label for the relationship */
     label: QueryRunner.CreateRelationshipParamsI['relationship']['label'];
     /** the direction of the relationship */
-    direction: 'this->other' | 'this<-other' | 'this-other';
+    direction: 'out' | 'in' | 'none';
 } & IRelationshipAnyType>;
 
 /**
@@ -404,9 +404,9 @@ export const ModelFactory = <Attributes>(params: {
                 const directionMap: {
                     [key in IRelationships<Attributes>[0]['direction']]: QueryRunner.CreateRelationshipParamsI['relationship']['direction']
                 } = {
-                    'this->other': 'a->b',
-                    'this-other': 'a-b',
-                    'this<-other': 'a<-b',
+                    out: 'a->b',
+                    none: 'a-b',
+                    in: 'a<-b',
                 };
 
                 const createRelationship = (targetId: string | string[], values?: QueryRunner.CreateRelationshipParamsI['relationship']['values']) => {
