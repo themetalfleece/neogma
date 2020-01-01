@@ -1,8 +1,12 @@
 import { validate } from 'class-validator';
+import { Neo4JJayConstraintError } from 'errors/Neo4JJayConstraintError';
+import { Neo4JJayInstanceValidationError } from 'errors/Neo4JJayInstanceValidationError';
 import { Session, StatementResult } from 'neo4j-driver/types/v1';
 import * as QueryRunner from '../QueryRunner/QueryRunner';
 import { getWhere } from '../QueryRunner/Where';
 import { acquireSession } from '../Sessions/Sessions';
+
+export type Neo4JJayModel = ReturnType<typeof ModelFactory>;
 
 const getResultsArray = <T>(result: StatementResult, label: string): T[] => {
     return result.records.map((v) => v.get(label));
@@ -74,7 +78,7 @@ export type IArrayOfIdObjects = Array<{
 
 export type IRelationships<T> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
-    model: ReturnType<typeof ModelFactory> | 'self',
+    model: Neo4JJayModel | 'self',
     /** the field for the reference. It can be a string, array of strings or array of objects */
     field: keyof T;
     /** the label for the relationship */
@@ -140,12 +144,15 @@ export const ModelFactory = <Attributes>(params: {
         /**
          * validates the given instance, not with the children models
          * @param {Boolean} params.deep - also validate the children modules
-         * @throws Error with the ValidationError[] description
+         * @throws Neo4JJayValidationError
          */
         public async validate(params?: { deep: boolean }) {
             const validationErrors = await validate(this, { whitelist: true });
             if (validationErrors.length) {
-                throw new Error(JSON.stringify(validationErrors));
+                throw new Neo4JJayInstanceValidationError(null, {
+                    model: Model,
+                    errors: validationErrors,
+                });
             }
 
             // also validate the children, by iterating the relationships
@@ -438,7 +445,11 @@ export const ModelFactory = <Attributes>(params: {
 
                 if (relationship.type === 'id') {
                     if (typeof fieldValue !== 'string') {
-                        throw new Error('Field value must be a string');
+                        throw new Neo4JJayConstraintError('Field value must be a string', {
+                            description: field,
+                            actual: fieldValue,
+                            expected: 'string',
+                        });
                     }
 
                     // get any potential relationship values by looking at the relationshipFields
@@ -462,19 +473,24 @@ export const ModelFactory = <Attributes>(params: {
 
                     await createRelationship(fieldValue, relationshipValues);
                 } else if (relationship.type === 'array of ids') {
-                    if (!(fieldValue instanceof Array)) {
-                        throw new Error('Field value must be an array');
-                    }
-
-                    const nonStringValue = fieldValue.find((value) => typeof value !== 'string');
-                    if (nonStringValue) {
-                        throw new Error('Field value must be an array of strings');
+                    /** see if it's an invalid array */
+                    if (!(fieldValue instanceof Array) || fieldValue.find((value) => typeof value !== 'string')) {
+                        throw new Neo4JJayConstraintError('Field value must be an array of strings', {
+                            description: field,
+                            actual: fieldValue,
+                            expected: 'string[]',
+                        });
                     }
 
                     await createRelationship(fieldValue);
+
                 } else if (relationship.type === 'array of objects') {
                     if (!(fieldValue instanceof Array)) {
-                        throw new Error('Field value must be an array');
+                        throw new Neo4JJayConstraintError('Field value must be an array of objects', {
+                            description: field,
+                            actual: fieldValue,
+                            expected: 'object[]',
+                        });
                     }
 
                     /** the primary key field of the target relationship model */
@@ -530,12 +546,20 @@ export const ModelFactory = <Attributes>(params: {
                     }
                 } else if (relationship.type === 'array of id objects') {
                     if (!(fieldValue instanceof Array)) {
-                        throw new Error('Field value must be an array');
+                        throw new Neo4JJayConstraintError('Field value must be an array of objects with id as a field', {
+                            description: field,
+                            actual: fieldValue,
+                            expected: 'object[]',
+                        });
                     }
 
                     for (const value of fieldValue) {
                         if (typeof value.id !== 'string') {
-                            throw new Error(`Unspecified id, or not a string`);
+                            throw new Neo4JJayConstraintError('Unspecified id, or not a string', {
+                                description: field,
+                                actual: value,
+                                expected: '{ id: string }',
+                            });
                         }
                     }
 
