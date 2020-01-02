@@ -2,9 +2,11 @@ import { validate } from 'class-validator';
 import { Session, StatementResult } from 'neo4j-driver/types/v1';
 import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
 import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
+import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
 import * as QueryRunner from '../QueryRunner';
 import { getWhere } from '../QueryRunner';
 import { acquireSession } from '../Sessions/Sessions';
+import { isEmptyObject } from '../utils/object';
 
 export type Neo4JJayModel = ReturnType<typeof ModelFactory>;
 
@@ -20,103 +22,88 @@ const getNodesDeleted = (result: StatementResult): number => {
     return result.summary.counters.nodesDeleted();
 };
 
+/** the type of the values to be added to a relationship */
+export type RelationshipValuesI = Record<string, string | boolean | number>;
+
+export const RelatedNodesToCreate = Symbol('RelatedNodesToCreate');
+export const RelationshipValuesToCreate = Symbol('RelationshipValuesToCreate');
+
+/**
+ * to get around a typescript bug (TS2538)
+ * https://github.com/microsoft/TypeScript/issues/1863
+ * https://github.com/Microsoft/TypeScript/issues/24587 
+ */
+const getSymbolValue = (obj: any, symbol: 'RelatedNodesToCreateSymbol' | 'RelationshipValuesToCreateSymbol') => {
+    if (symbol === 'RelatedNodesToCreateSymbol') {
+        return obj[RelatedNodesToCreate];
+    } else if (symbol === 'RelationshipValuesToCreateSymbol') {
+        return obj[RelationshipValuesToCreate];
+    }
+};
+
 interface GenericConfiguration {
     session?: Session;
 }
 
-type IRelationshipFields = Array<{
-    /** fields of the `field` values to be affected. Each type has its own usage */
-    key: string;
-    /** 
-     * whether the field values should be spreaded, and not used for their actual value. They must have unique field names 
-     * example without spread:
-     * { since: 1994, status: 'active' }
-     * example with spread:
-     * { _relationshipValues: { since: 1994, status: 'active' } }
-     * both cases will have the same effect
-     */
-    spread?: boolean;
-} & ({
-    spread: true;
-} | {
-    spread: false;
-    /** the name of the relationship value to be created */
-    name: string;
-})>;
-
-/** the type of the relationship, with regard to the `field` */
-type IRelationshipAnyType = {
-    /** 
-     * `field` corresponds to an array of objects, which comply to the associated model Attributes 
-     * children objects will be created
-     */
-    type: 'array of objects';
-    /** `key` refers to the fields of the `field` values (= children nodes) which will be properties of the relationship and not the children nodes. So, which children node attributes will be on the relationship and not on the actual nodes */
-    relationshipFields?: IRelationshipFields;
-} | {
-    /** `field` correspond to a string value, which is the id of the associated node */
-    type: 'id';
-
-    /** key refers to the fields of the `field` values which will be properties of the relationship and not the "parent" (this) node */
-    relationshipFields?: IRelationshipFields;
-} | {
-    /** `field` correspond to an array of strings, which are the ids of the associated nodes. No relationship values can be created */
-    type: 'array of ids';
-} | {
-    /** 
-     * `field` corresponds to an array whose entries are object with an id field, and an optional relationship values field
-     * They need to have have an array of objects, with an `id` property, and optionally a `relationshipValues` property
-     * They must comply to the `IArrayOfIdObjects` type
-     */
-    type: 'array of id objects',
+/** used for defining the type of the RelatedNodesToCreate interface, to be passed as the second generic to ModelFactory */
+export type RelatedNodesI<RelatedModel extends Neo4JJayModel, RelationshipValues extends RelationshipValuesI> = Parameters<RelatedModel['createOne']>[0] & {
+    [RelationshipValuesToCreate]?: RelationshipValues
 };
 
-export type IArrayOfIdObjects = Array<{
-    id: string;
-    relationshipValues?: object;
-}>;
+/** to be used in create functions where the related nodes can be passed for creation */
+export type RelatedNodesCreationParamI<RelatedNodesToCreateI> = {
+    [key in keyof Partial<RelatedNodesToCreateI>]: RelationshipAnyTypeI<RelatedNodesToCreateI[key]>;
+};
 
-export type IRelationships<T> = Array<{
+/** the type of the relationship along with the values, so the proper relationship and/or nodes can be created */
+type RelationshipAnyTypeI<Attributes extends {
+    [RelationshipValuesToCreate]?: RelationshipValuesI;
+}> = {
+    type: 'array of objects';
+    values: Attributes[];
+} | {
+    type: 'id';
+    value: string;
+    [RelationshipValuesToCreate]?: Attributes[typeof RelationshipValuesToCreate];
+} | {
+    type: 'array of ids';
+    values: string[];
+} | {
+    type: 'array of id objects',
+    values: Array<{
+        id: string;
+        [RelationshipValuesToCreate]?: Attributes[typeof RelationshipValuesToCreate];
+    }>;
+};
+
+/** the type for the Relationship configuration of a Model */
+export type RelationshipsI<RelatedNodesToCreateI> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
     model: ReturnType<typeof ModelFactory> | 'self',
-    /** the field for the reference. It can be a string, array of strings or array of objects */
-    field: keyof T;
     /** the label for the relationship */
     label: QueryRunner.CreateRelationshipParamsI['relationship']['label'];
     /** the direction of the relationship */
     direction: 'out' | 'in' | 'none';
-} & IRelationshipAnyType>;
+    alias: keyof RelatedNodesToCreateI;
+}>;
 
 /**
  * a function which returns a class with the model operation functions for the given Attributes
+ * RelatedNodesToCreateI are the corresponding Nodes for Relationships
  */
-export const ModelFactory = <Attributes>(params: {
+export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
     /** the id key of this model */
     primaryKeyField: string;
     /** the label of the nodes */
     label: string,
     /** relationships with other models or itself */
-    relationships?: IRelationships<Attributes>;
+    relationships?: RelationshipsI<RelatedNodesToCreateI>;
     /** the model class to be extended */
     modelClass: new (...args: any[]) => any;
 }) => {
 
     const { label, primaryKeyField } = params;
     const relationships = params.relationships || [];
-    /** the name of the fields of this node to not create, because they're related to associated objects */
-    const relationshipFieldNamesToSkipCreating = new Set(relationships.reduce(
-        (keysArray, relationship) => {
-            // push the field name affected in each relationship
-            if (relationship.field) {
-                keysArray.push(relationship.field);
-            }
-            // only for relationship type id, the relationshipFields refer this node so they should be skipped
-            if (relationship.type === 'id' && relationship.relationshipFields) {
-                keysArray.push(...relationship.relationshipFields.map(({ key }) => key));
-            }
-            return keysArray;
-        }, [],
-    ));
 
     class Model extends params.modelClass {
 
@@ -154,33 +141,18 @@ export const ModelFactory = <Attributes>(params: {
                     errors: validationErrors,
                 });
             }
-
-            // also validate the children, by iterating the relationships
-            if (params && params.deep) {
-                for (const relationship of relationships) {
-                    const { field, model: relationshipModel } = relationship;
-                    const fieldValue = this[field as string];
-
-                    if (!fieldValue || !(fieldValue instanceof Array)) { continue; }
-
-                    const fieldValueObjects: any[] = fieldValue.filter((value) => value instanceof Object);
-
-                    const modelToUse = relationshipModel === 'self' ? Model : relationshipModel;
-                    for (const data of fieldValueObjects) {
-                        await new modelToUse(data).validate();
-                    }
-                }
-            }
         }
 
         /**
          * creates the node, also creating its children nodes and relationships
-         * @param {Attributes} data - the data to create
+         * @param {Attributes} data - the data to create, potentially including data for related nodes to be created
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Attributes} - the created data
          */
         public static async createOne(
-            data: Attributes,
+            data: Attributes & {
+                [RelatedNodesToCreate]?: RelatedNodesCreationParamI<RelatedNodesToCreateI>;
+            },
             configuration?: GenericConfiguration
         ): Promise<Model> {
 
@@ -190,20 +162,15 @@ export const ModelFactory = <Attributes>(params: {
             await instance.validate();
 
             return acquireSession(configuration.session, async (session) => {
-                // create the object, without creating data with fields in `relationships`
-                // keep only the fields which are not used for relationships
-                const dataToCreate: Partial<Attributes> = {};
-                for (const key in instance) {
-                    if (!instance.hasOwnProperty(key)) { continue; }
-                    if (!relationshipFieldNamesToSkipCreating.has(key as keyof Attributes)) {
-                        dataToCreate[key] = data[key];
-                    }
-                }
+                // data to be created don't have RelatedNodesToCreateSymbol
+                const dataToCreate = { ...data };
+                delete dataToCreate[RelatedNodesToCreate];
+
                 const objectsCreateRes = await QueryRunner.createMany(session, label, [dataToCreate]);
                 const createdNode = getResultsArray<Attributes>(objectsCreateRes, label)[0];
 
                 // create the relationships if specified
-                await this.createRelationshipsAndChildren({
+                await this.createRelatedNodes({
                     data,
                     createdNodeId: createdNode[primaryKeyField] as unknown as string,
                     session,
@@ -237,7 +204,8 @@ export const ModelFactory = <Attributes>(params: {
                         await instance.validate();
                     }
                     const res = await QueryRunner.createMany(session, label, instances);
-                    const createdNodes = getResultsArray<Attributes>(res, label); // createdNodes may be used in case of fields generated by the database
+                    const createdNodes = getResultsArray<Attributes>(res, label);
+                    // TODO createdNodes may be used in case of fields generated by the database
                     return instances;
                 } else {
                     // else, create them 1-by-1 so the relationships and children are properly created
@@ -382,37 +350,45 @@ export const ModelFactory = <Attributes>(params: {
         }
 
         /**
-         * creates the relationships specified in the param, after potentially creating the children from the `field` field
+         * creates the related nodes, and the relationship with them
          */
-        private static async createRelationshipsAndChildren(params: {
-            /** the data of the (parent) object */
-            data: Attributes;
+        private static async createRelatedNodes(params: {
+            /** the data of the (parent) object, potentially including data for related nodes to be created */
+            data: {
+                [RelatedNodesToCreate]?: RelatedNodesCreationParamI<RelatedNodesToCreateI>;
+            };
             /** the id of the created node */
             createdNodeId: string;
             session?: Session;
         }) {
-            if (!relationships.length) { return; }
 
             const { data, session, createdNodeId: createdObjectId } = params;
-            for (const relationship of relationships) {
 
-                const { field, direction, model: relationshipModel, label } = relationship;
-                // if the field is not set, continue to the next relationship
-                if (!data[field]) { continue; }
+            // create each given relationship
+            for (const alias in data[RelatedNodesToCreate]) {
+                if (!data[RelatedNodesToCreate].hasOwnProperty(alias)) { continue; }
 
-                /** maps the relationship direction from the friendly format to the QueryRunner one */
-                const directionMap: {
-                    [key in IRelationships<Attributes>[0]['direction']]: QueryRunner.CreateRelationshipParamsI['relationship']['direction']
-                } = {
-                    out: 'a->b',
-                    none: 'a-b',
-                    in: 'a<-b',
-                };
+                const nodeCreateConfiguration: RelationshipAnyTypeI<RelatedNodesToCreateI[typeof alias]> = data[RelatedNodesToCreate][alias];
+
+                // find the relationship with this alias
+                const relationship = relationships.find((r) => r.alias === alias);
+                if (!relationship) {
+                    throw new Neo4JJayNotFoundError(`A relationship with the given alias couldn't be found`, { alias });
+                }
+
+                const { direction, model: relationshipModel, label } = relationship;
 
                 const createRelationship = (targetId: string | string[], values?: QueryRunner.CreateRelationshipParamsI['relationship']['values']) => {
                     /** the label and primary key of the `b` Model */
                     const otherLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
+
+                    const directionMap: Record<typeof direction, Parameters<typeof Model.createRelationship>[0]['relationship']['direction']> = {
+                        in: 'a<-b',
+                        out: 'a->b',
+                        none: 'a-b',
+                    };
+
                     return this.createRelationship(
                         {
                             a: {
@@ -441,54 +417,40 @@ export const ModelFactory = <Attributes>(params: {
                     );
                 };
 
-                const fieldValue = data[field];
-
-                if (relationship.type === 'id') {
-                    if (typeof fieldValue !== 'string') {
-                        throw new Neo4JJayConstraintError('Field value must be a string', {
-                            description: field,
-                            actual: fieldValue,
+                if (nodeCreateConfiguration.type === 'id') {
+                    /* for 'id', just create the relationship with the given id */
+                    const targetId = nodeCreateConfiguration.value;
+                    if (typeof targetId !== 'string') {
+                        throw new Neo4JJayConstraintError('Relationship value must be a string', {
+                            description: nodeCreateConfiguration,
+                            actual: targetId,
                             expected: 'string',
                         });
                     }
 
-                    // get any potential relationship values by looking at the relationshipFields
-                    const relationshipValues = {};
-                    if (relationship.relationshipFields) {
-                        for (const relationshipField of relationship.relationshipFields) {
-                            const relationshipFieldData = data[relationshipField.key];
-                            if (!relationshipFieldData) { continue; }
-
-                            if (relationshipField.spread === true) {
-                                // use the names inside the field
-                                for (const keyInSpread in relationshipFieldData) {
-                                    if (!relationshipFieldData.hasOwnProperty(keyInSpread)) { continue; }
-                                    relationshipValues[keyInSpread] = relationshipFieldData[keyInSpread];
-                                }
-                            } else {
-                                relationshipValues[relationshipField.name] = relationshipFieldData;
-                            }
-                        }
-                    }
-
-                    await createRelationship(fieldValue, relationshipValues);
-                } else if (relationship.type === 'array of ids') {
+                    await createRelationship(targetId, getSymbolValue(nodeCreateConfiguration, 'RelationshipValuesToCreateSymbol'));
+                } else if (nodeCreateConfiguration.type === 'array of ids') {
+                    /* for 'array of ids', just create the relationship with the given ids */
+                    const targetIds = nodeCreateConfiguration.values;
                     /** see if it's an invalid array */
-                    if (!(fieldValue instanceof Array) || fieldValue.find((value) => typeof value !== 'string')) {
-                        throw new Neo4JJayConstraintError('Field value must be an array of strings', {
-                            description: field,
-                            actual: fieldValue,
+                    if (!(targetIds instanceof Array) || targetIds.find((value) => typeof value !== 'string')) {
+                        throw new Neo4JJayConstraintError('Relationship value must be an array of strings', {
+                            description: nodeCreateConfiguration,
+                            actual: targetIds,
                             expected: 'string[]',
                         });
                     }
 
-                    await createRelationship(fieldValue);
+                    await createRelationship(targetIds);
 
-                } else if (relationship.type === 'array of objects') {
-                    if (!(fieldValue instanceof Array)) {
-                        throw new Neo4JJayConstraintError('Field value must be an array of objects', {
-                            description: field,
-                            actual: fieldValue,
+                } else if (nodeCreateConfiguration.type === 'array of objects') {
+                    /* for 'array of objects', create the nodes and the relationships with them */
+                    const nodeCreateConfigurationValues = nodeCreateConfiguration.values;
+
+                    if (!(nodeCreateConfigurationValues instanceof Array)) {
+                        throw new Neo4JJayConstraintError('Relationship value must be an array of objects', {
+                            description: nodeCreateConfiguration,
+                            actual: nodeCreateConfigurationValues,
                             expected: 'object[]',
                         });
                     }
@@ -496,78 +458,97 @@ export const ModelFactory = <Attributes>(params: {
                     /** the primary key field of the target relationship model */
                     const primaryKeyField = relationshipModel === 'self' ? this.getPrimaryKeyField() : relationshipModel.getPrimaryKeyField();
 
-                    // TODO: set both of these variables (withRelationshipValueNodes, noRelationshipValueNodes) properly, depending on whether they have values in their relationship fields or not, in order to bulk or single create them. So, remove the following condition and use the length of those variables as the source of truth
-                    if (relationship.relationshipFields) {
-                        const withRelationshipValueNodes: any[] = fieldValue;
-                        for (const nodeData of withRelationshipValueNodes) {
-                            // create single node, and relationship with values
+                    /** organize them depending on whether relationship values need to be created, so to single or bulk create them appropriately */
+                    const withRelationshipValuesNodesToCreate: Array<typeof nodeCreateConfigurationValues[0]> = [];
+                    const withoutRelationshipValuesNodesToCreate: Array<RelatedNodesToCreateI[Extract<keyof RelatedNodesToCreateI, string>]> = [];
 
+                    for (const valueToCreate of nodeCreateConfigurationValues) {
+                        if (valueToCreate[RelationshipValuesToCreate] && !isEmptyObject(valueToCreate[RelationshipValuesToCreate])) {
+                            withRelationshipValuesNodesToCreate.push(valueToCreate);
+                        } else {
+                            const valueWithoutRelationshipValues = { ...valueToCreate };
+                            delete valueWithoutRelationshipValues[RelationshipValuesToCreate];
+                            withoutRelationshipValuesNodesToCreate.push(valueWithoutRelationshipValues);
+                        }
+                    }
+
+                    /* create the nodes without any relationship values */
+                    if (withoutRelationshipValuesNodesToCreate.length) {
+                        if (relationshipModel === 'self') {
+                            /* if it references itself, create nodes of this model */
+                            // to get around ts(2345)
+                            await this.createMany(withoutRelationshipValuesNodesToCreate as unknown as Attributes[], { session });
+                        } else {
+                            /* else, create nodes of the model it references */
+                            await relationshipModel.createMany(withoutRelationshipValuesNodesToCreate, { session });
+                        }
+
+                        /* finally, create all relationships in bulk */
+                        await createRelationship(withoutRelationshipValuesNodesToCreate.map((value) => value[primaryKeyField]));
+                    }
+
+                    /* create the nodes with relationship values */
+                    if (withRelationshipValuesNodesToCreate.length) {
+                        /* create single node, and relationship with values */
+                        for (const nodeData of withRelationshipValuesNodesToCreate) {
+
+                            // keep the relationshipValues to be created. delete the from the node to create
+                            const relationshipValues = nodeData[RelationshipValuesToCreate];
                             const nodeDataToCreate = { ...nodeData };
-                            const relationshipValues = {};
-
-                            for (const relationshipField of relationship.relationshipFields) {
-                                const { key } = relationshipField;
-                                if (!nodeDataToCreate[key]) { continue; }
-                                // do not create the key of each relationshipFields at the children nodes
-                                if (relationshipField.spread === false) {
-                                    relationshipValues[relationshipField.name] = nodeDataToCreate[key];
-                                } else {
-                                    const nodeKeyData = nodeDataToCreate[key];
-                                    for (const fieldKey in nodeKeyData) {
-                                        if (!nodeKeyData.hasOwnProperty(fieldKey)) { continue; }
-                                        relationshipValues[fieldKey] = nodeKeyData[fieldKey];
-                                    }
-                                }
-                                delete nodeDataToCreate[key];
-                            }
+                            delete nodeDataToCreate[RelationshipValuesToCreate];
 
                             if (relationshipModel === 'self') {
-                                /** if it references itself, create nodes of this model */
-                                await this.createOne(nodeDataToCreate, { session });
+                                /* if it references itself, create nodes of this model */
+                                await this.createOne(nodeDataToCreate as unknown as Attributes, { session });
                             } else {
-                                /** else, create nodes of the model it references */
-                                await relationshipModel.createOne(nodeDataToCreate, { session });
+                                /* else, create nodes of the model it references */
+                                await relationshipModel.createOne(nodeDataToCreate as unknown as Attributes, { session });
                             }
 
                             await createRelationship(nodeDataToCreate[primaryKeyField], relationshipValues);
                         }
-                    } else {
-                        // createMany without any relationship fields
-                        const noRelationshipValueNodes: any[] = fieldValue;
-                        if (relationshipModel === 'self') {
-                            /** if it references itself, create nodes of this model */
-                            await this.createMany(noRelationshipValueNodes, { session });
-                        } else {
-                            /** else, create nodes of the model it references */
-                            await relationshipModel.createMany(noRelationshipValueNodes, { session });
-                        }
-
-                        await createRelationship(noRelationshipValueNodes.map((value) => value[primaryKeyField]));
                     }
-                } else if (relationship.type === 'array of id objects') {
-                    if (!(fieldValue instanceof Array)) {
-                        throw new Neo4JJayConstraintError('Field value must be an array of objects with id as a field', {
-                            description: field,
-                            actual: fieldValue,
+
+                } else if (nodeCreateConfiguration.type === 'array of id objects') {
+                    const nodeCreateConfigurationValues = nodeCreateConfiguration.values;
+                    if (!(nodeCreateConfigurationValues instanceof Array)) {
+                        throw new Neo4JJayConstraintError('Relationship value must be an array of objects with id as a field', {
+                            description: nodeCreateConfiguration,
+                            actual: nodeCreateConfigurationValues,
                             expected: 'object[]',
                         });
                     }
 
-                    for (const value of fieldValue) {
-                        if (typeof value.id !== 'string') {
+
+                    // Bulk create those without relationship values, and single create those with relationship values
+                    const bulkCreateRelationshipIds: string[] = [];
+                    for (const valueToCreate of nodeCreateConfigurationValues) {
+                        if (typeof valueToCreate.id !== 'string') {
                             throw new Neo4JJayConstraintError('Unspecified id, or not a string', {
-                                description: field,
-                                actual: value,
+                                description: nodeCreateConfiguration,
+                                actual: valueToCreate,
                                 expected: '{ id: string }',
                             });
                         }
+
+                        if (
+                            getSymbolValue(valueToCreate, 'RelationshipValuesToCreateSymbol')
+                            && !isEmptyObject(getSymbolValue(valueToCreate, 'RelationshipValuesToCreateSymbol'))
+                        ) {
+                            await createRelationship(
+                                valueToCreate.id,
+                                getSymbolValue(valueToCreate, 'RelationshipValuesToCreateSymbol')
+                            );
+                        } else {
+                            bulkCreateRelationshipIds.push(valueToCreate.id);
+                        }
                     }
 
-                    // TODO: also set the relationship values, in a similar manner with 'array of objects'. Bulk create those without relationship values, and single create those with relationship values
-
-                    await createRelationship(fieldValue.map((value) => value.id));
+                    await createRelationship(bulkCreateRelationshipIds);
                 }
+
             }
+
         }
 
     }
