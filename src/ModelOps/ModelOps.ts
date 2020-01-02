@@ -105,6 +105,16 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI>(params: {
     const { label, primaryKeyField } = params;
     const relationships = params.relationships || [];
 
+    // enforce unique relationship aliases
+    const allRelationshipAlias = relationships.map(({ alias }) => alias);
+    if (allRelationshipAlias.length !== new Set(allRelationshipAlias).size) {
+        throw new Neo4JJayConstraintError(`Relationship aliases must be unique`, {
+            description: relationships,
+            actual: allRelationshipAlias,
+            expected: [...new Set(allRelationshipAlias)],
+        });
+    }
+
     class Model extends params.modelClass {
 
         constructor(data: Attributes) {
