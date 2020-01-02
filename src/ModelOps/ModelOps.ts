@@ -5,7 +5,7 @@ import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValid
 import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
 import * as QueryRunner from '../QueryRunner';
 import { getWhere } from '../QueryRunner';
-import { acquireSession } from '../Sessions/Sessions';
+import { getSession } from '../Sessions/Sessions';
 import { isEmptyObject } from '../utils/object';
 
 export type Neo4JJayModel = ReturnType<typeof ModelFactory>;
@@ -25,7 +25,7 @@ const getNodesDeleted = (result: StatementResult): number => {
 /** the type of the values to be added to a relationship */
 export type RelationshipValuesI = Record<string, string | boolean | number>;
 
-export const RelatedNodesToCreate = Symbol('RelatedNodesToCreate');
+export const RelatedNodesToAssociate = Symbol('RelatedNodesToAssociate');
 export const RelationshipValuesToCreate = Symbol('RelationshipValuesToCreate');
 
 /**
@@ -33,9 +33,9 @@ export const RelationshipValuesToCreate = Symbol('RelationshipValuesToCreate');
  * https://github.com/microsoft/TypeScript/issues/1863
  * https://github.com/Microsoft/TypeScript/issues/24587 
  */
-const getSymbolValue = (obj: any, symbol: 'RelatedNodesToCreateSymbol' | 'RelationshipValuesToCreateSymbol') => {
-    if (symbol === 'RelatedNodesToCreateSymbol') {
-        return obj[RelatedNodesToCreate];
+const getSymbolValue = (obj: any, symbol: 'RelatedNodesToAssociateSymbol' | 'RelationshipValuesToCreateSymbol') => {
+    if (symbol === 'RelatedNodesToAssociateSymbol') {
+        return obj[RelatedNodesToAssociate];
     } else if (symbol === 'RelationshipValuesToCreateSymbol') {
         return obj[RelationshipValuesToCreate];
     }
@@ -45,18 +45,18 @@ interface GenericConfiguration {
     session?: Session;
 }
 
-/** used for defining the type of the RelatedNodesToCreate interface, to be passed as the second generic to ModelFactory */
-export type RelatedNodesI<RelatedModel extends Neo4JJayModel, RelationshipValues extends RelationshipValuesI> = Parameters<RelatedModel['createOne']>[0] & {
+/** used for defining the type of the RelatedNodesToAssociate interface, to be passed as the second generic to ModelFactory */
+export type ModelRelatedNodesI<RelatedModel extends Neo4JJayModel, RelationshipValues extends RelationshipValuesI> = Parameters<RelatedModel['createOne']>[0] & {
     [RelationshipValuesToCreate]?: RelationshipValues
 };
 
 /** to be used in create functions where the related nodes can be passed for creation */
-export type RelatedNodesCreationParamI<RelatedNodesToCreateI> = {
-    [key in keyof Partial<RelatedNodesToCreateI>]: RelationshipAnyTypeI<RelatedNodesToCreateI[key]>;
+export type RelatedNodesCreationParamI<RelatedNodesToAssociateI> = {
+    [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypeValueForCreateI<RelatedNodesToAssociateI[key]>;
 };
 
 /** the type of the relationship along with the values, so the proper relationship and/or nodes can be created */
-type RelationshipAnyTypeI<Attributes extends {
+type RelationshipTypeValueForCreateI<Attributes extends {
     [RelationshipValuesToCreate]?: RelationshipValuesI;
 }> = {
     type: 'array of objects';
@@ -77,27 +77,27 @@ type RelationshipAnyTypeI<Attributes extends {
 };
 
 /** the type for the Relationship configuration of a Model */
-export type RelationshipsI<RelatedNodesToCreateI> = Array<{
+export type RelationshipsI<RelatedNodesToAssociateI> = Array<{
     /** the related model, should only be passed as a string as a final resort, for circular references */
     model: ReturnType<typeof ModelFactory> | 'self',
     /** the label for the relationship */
     label: QueryRunner.CreateRelationshipParamsI['relationship']['label'];
     /** the direction of the relationship */
     direction: 'out' | 'in' | 'none';
-    alias: keyof RelatedNodesToCreateI;
+    alias: keyof RelatedNodesToAssociateI;
 }>;
 
 /**
  * a function which returns a class with the model operation functions for the given Attributes
- * RelatedNodesToCreateI are the corresponding Nodes for Relationships
+ * RelatedNodesToAssociateI are the corresponding Nodes for Relationships
  */
-export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
+export const ModelFactory = <Attributes, RelatedNodesToAssociateI>(params: {
     /** the id key of this model */
     primaryKeyField: string;
     /** the label of the nodes */
     label: string,
     /** relationships with other models or itself */
-    relationships?: RelationshipsI<RelatedNodesToCreateI>;
+    relationships?: RelationshipsI<RelatedNodesToAssociateI>;
     /** the model class to be extended */
     modelClass: new (...args: any[]) => any;
 }) => {
@@ -151,7 +151,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
          */
         public static async createOne(
             data: Attributes & {
-                [RelatedNodesToCreate]?: RelatedNodesCreationParamI<RelatedNodesToCreateI>;
+                [RelatedNodesToAssociate]?: RelatedNodesCreationParamI<RelatedNodesToAssociateI>;
             },
             configuration?: GenericConfiguration
         ): Promise<Model> {
@@ -161,10 +161,10 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
             const instance = new Model(data);
             await instance.validate();
 
-            return acquireSession(configuration.session, async (session) => {
-                // data to be created don't have RelatedNodesToCreateSymbol
+            return getSession(configuration.session, async (session) => {
+                // data to be created don't have RelatedNodesToAssociateSymbol
                 const dataToCreate = { ...data };
-                delete dataToCreate[RelatedNodesToCreate];
+                delete dataToCreate[RelatedNodesToAssociate];
 
                 const objectsCreateRes = await QueryRunner.createMany(session, label, [dataToCreate]);
                 const createdNode = getResultsArray<Attributes>(objectsCreateRes, label)[0];
@@ -195,7 +195,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
         ): Promise<Model[]> {
             configuration = configuration || {};
 
-            return acquireSession(configuration.session, async (session) => {
+            return getSession(configuration.session, async (session) => {
                 if (!relationships.length) {
                     // if there are no relationships, bulk create them
                     // create and validate the instances
@@ -240,7 +240,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
                 },
             });
 
-            return acquireSession(configuration.session, async (session) => {
+            return getSession(configuration.session, async (session) => {
                 const res = await QueryRunner.editMany(session, label, where, data);
                 return getResultArrayFromEdit<Attributes>(res, label)[0];
             });
@@ -267,7 +267,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
                 },
             });
 
-            return acquireSession(configuration.session, async (session) => {
+            return getSession(configuration.session, async (session) => {
                 const res = await QueryRunner.editMany(session, label, where, data);
                 return getResultArrayFromEdit<Attributes>(res, label);
             });
@@ -292,7 +292,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
                 },
             });
 
-            return acquireSession(configuration.session, async (session) => {
+            return getSession(configuration.session, async (session) => {
                 const res = await QueryRunner.deleteMany(
                     session,
                     label,
@@ -321,7 +321,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
                 },
             });
 
-            return acquireSession(configuration.session, async (session) => {
+            return getSession(configuration.session, async (session) => {
                 const res = await QueryRunner.deleteMany(
                     session,
                     label,
@@ -343,7 +343,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
 
             configuration = configuration || {};
 
-            return acquireSession(configuration.session, async (session) => {
+            return getSession(configuration.session, async (session) => {
                 const res = await QueryRunner.createRelationship(session, params);
                 return res.summary.counters.relationshipsCreated();
             });
@@ -355,7 +355,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
         private static async createRelatedNodes(params: {
             /** the data of the (parent) object, potentially including data for related nodes to be created */
             data: {
-                [RelatedNodesToCreate]?: RelatedNodesCreationParamI<RelatedNodesToCreateI>;
+                [RelatedNodesToAssociate]?: RelatedNodesCreationParamI<RelatedNodesToAssociateI>;
             };
             /** the id of the created node */
             createdNodeId: string;
@@ -365,10 +365,10 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
             const { data, session, createdNodeId: createdObjectId } = params;
 
             // create each given relationship
-            for (const alias in data[RelatedNodesToCreate]) {
-                if (!data[RelatedNodesToCreate].hasOwnProperty(alias)) { continue; }
+            for (const alias in data[RelatedNodesToAssociate]) {
+                if (!data[RelatedNodesToAssociate].hasOwnProperty(alias)) { continue; }
 
-                const nodeCreateConfiguration: RelationshipAnyTypeI<RelatedNodesToCreateI[typeof alias]> = data[RelatedNodesToCreate][alias];
+                const nodeCreateConfiguration: RelationshipTypeValueForCreateI<RelatedNodesToAssociateI[typeof alias]> = data[RelatedNodesToAssociate][alias];
 
                 // find the relationship with this alias
                 const relationship = relationships.find((r) => r.alias === alias);
@@ -460,7 +460,7 @@ export const ModelFactory = <Attributes, RelatedNodesToCreateI>(params: {
 
                     /** organize them depending on whether relationship values need to be created, so to single or bulk create them appropriately */
                     const withRelationshipValuesNodesToCreate: Array<typeof nodeCreateConfigurationValues[0]> = [];
-                    const withoutRelationshipValuesNodesToCreate: Array<RelatedNodesToCreateI[Extract<keyof RelatedNodesToCreateI, string>]> = [];
+                    const withoutRelationshipValuesNodesToCreate: Array<RelatedNodesToAssociateI[Extract<keyof RelatedNodesToAssociateI, string>]> = [];
 
                     for (const valueToCreate of nodeCreateConfigurationValues) {
                         if (valueToCreate[RelationshipValuesToCreate] && !isEmptyObject(valueToCreate[RelationshipValuesToCreate])) {

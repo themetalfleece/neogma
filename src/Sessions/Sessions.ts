@@ -7,7 +7,7 @@ import { getDriver } from '../Driver';
  * @param runInSession 
  * @param callback 
  */
-export const acquireSession = async <T>(runInSession: Session, callback: (s: Session) => T) => {
+export const getSession = async <T>(runInSession: Session, callback: (s: Session) => T) => {
     if (runInSession) {
         return callback(runInSession);
     }
