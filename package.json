@@ -9,7 +9,7 @@
     "@types/dotenv": "^6.1.1",
     "@types/node": "^12.6.4",
     "dotenv": "^8.0.0",
-    "neo4j-driver": "^1.7.5",
+    "neo4j-driver": "^4.0.1",
     "typescript": "^3.5.3"
   },
   "devDependencies": {
