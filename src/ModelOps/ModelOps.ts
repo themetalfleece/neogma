@@ -1,5 +1,5 @@
 import { validate } from 'class-validator';
-import { Session, StatementResult } from 'neo4j-driver/types/v1';
+import { QueryResult, Session } from 'neo4j-driver';
 import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
 import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
 import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
@@ -10,16 +10,16 @@ import { isEmptyObject } from '../utils/object';
 
 export type Neo4JJayModel = ReturnType<typeof ModelFactory>;
 
-const getResultsArray = <T>(result: StatementResult, label: string): T[] => {
+const getResultsArray = <T>(result: QueryResult, label: string): T[] => {
     return result.records.map((v) => v.get(label));
 };
 
-const getResultArrayFromEdit = <T>(result: StatementResult, label: string): T[] => {
+const getResultArrayFromEdit = <T>(result: QueryResult, label: string): T[] => {
     return result.records.map((v) => v.get(label).properties);
 };
 
-const getNodesDeleted = (result: StatementResult): number => {
-    return result.summary.counters.nodesDeleted();
+const getNodesDeleted = (result: QueryResult): number => {
+    return result.summary.counters.updates().nodesDeleted;
 };
 
 /** the type of the values to be added to a relationship */
@@ -355,7 +355,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI>(params: {
 
             return getSession(configuration.session, async (session) => {
                 const res = await QueryRunner.createRelationship(session, params);
-                return res.summary.counters.relationshipsCreated();
+                return res.summary.counters.updates().relationshipsCreated;
             });
         }
 

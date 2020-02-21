@@ -1,4 +1,4 @@
-import { Session } from 'neo4j-driver/types/v1';
+import { Session } from 'neo4j-driver/types';
 import { getDriver } from '../Driver';
 
 /**
@@ -13,6 +13,6 @@ export const getSession = async <T>(runInSession: Session, callback: (s: Session
     }
     const session = getDriver().session();
     const result = await callback(session);
-    session.close();
+    await session.close();
     return result;
 };

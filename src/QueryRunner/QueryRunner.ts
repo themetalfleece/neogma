@@ -1,4 +1,4 @@
-import { Session, StatementResult } from 'neo4j-driver/types/v1';
+import { QueryResult, Session } from 'neo4j-driver/types';
 import { WhereStatementI } from './Where';
 
 /** surrounds the label with backticks to also allow spaces */
@@ -10,7 +10,7 @@ const getLabel = (label: string) => '`' + label + '`';
  * @param nodesLabel - the label of the nodes to create
  * @param options - the data to create
  */
-export const createMany = async <T>(session: Session, nodesLabel: string, options: T[]): Promise<StatementResult> => {
+export const createMany = async <T>(session: Session, nodesLabel: string, options: T[]): Promise<QueryResult> => {
 
     const label = getLabel(nodesLabel);
 
@@ -32,7 +32,7 @@ export const createMany = async <T>(session: Session, nodesLabel: string, option
  * @param where - the where object for matching the nodes to be edited
  * @param options - the new data data, to be edited
  */
-export const editMany = async <T>(session: Session, nodesLabel: string, where: WhereStatementI, options: Partial<T>): Promise<StatementResult> => {
+export const editMany = async <T>(session: Session, nodesLabel: string, where: WhereStatementI, options: Partial<T>): Promise<QueryResult> => {
 
     const label = getLabel(nodesLabel);
 
@@ -53,7 +53,7 @@ export const editMany = async <T>(session: Session, nodesLabel: string, where: W
  * @param nodesLabel - the label of the nodes to create
  * @param where - the where object for matching the nodes to be deleted
  */
-export const deleteMany = async (session: Session, nodesLabel: string, where: WhereStatementI): Promise<StatementResult> => {
+export const deleteMany = async (session: Session, nodesLabel: string, where: WhereStatementI): Promise<QueryResult> => {
 
     const label = getLabel(nodesLabel);
 
@@ -85,7 +85,7 @@ export interface CreateRelationshipParamsI {
     where: WhereStatementI;
 }
 
-export const createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<StatementResult> => {
+export const createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<QueryResult> => {
 
     const { a, b, relationship, where } = params;
 

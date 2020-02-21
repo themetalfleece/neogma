@@ -1,8 +1,8 @@
 import * as dotenv from 'dotenv';
 import * as neo4j_driver from 'neo4j-driver';
-const neo4j = neo4j_driver.v1;
+const neo4j = neo4j_driver;
 
-let driver: neo4j_driver.v1.Driver;
+let driver: neo4j_driver.Driver;
 
 dotenv.config();
 
