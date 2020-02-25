@@ -1,10 +1,7 @@
-import * as dotenv from 'dotenv';
 import * as neo4j_driver from 'neo4j-driver';
 const neo4j = neo4j_driver;
 
 let driver: neo4j_driver.Driver;
-
-dotenv.config();
 
 export const getDriver = () => {
     return driver;
@@ -19,10 +16,8 @@ interface IConnectParams {
  * 
  * @param {IConnectParams} params - the connection params. If specified, they will be used. Else, the connection params will be taken from the environmental variables
  */
-export const connect = (params?: IConnectParams) => {
-    const url = params ? params.url : process.env.NEO4J_URL;
-    const username = params ? params.username : process.env.NEO4J_USERNAME;
-    const password = params ? params.password : process.env.NEO4J_PASSWORD;
+export const connect = (params: IConnectParams) => {
+    const { url, username, password } = params;
 
     try {
         driver = neo4j.driver(
