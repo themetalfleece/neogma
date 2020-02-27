@@ -101,8 +101,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
     label: string,
     /** relationships with other models or itself */
     relationships?: RelationshipsI<RelatedNodesToAssociateI>;
-    /** the model class to be extended */
-    modelClass: new (...args: any[]) => any;
     /** the keys which will be used on instance creation for associating related notes and creating relationship values */
     relationshipCreationKeys: RelationshipCreationKeysI;
 }) => {
@@ -120,10 +118,11 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         });
     }
 
-    class Model extends params.modelClass {
+    type Instance = Attributes & InstanceType<typeof Model>;
+
+    class Model {
 
         constructor(data: Attributes) {
-            super();
             /** to get around TS2322 */
             const obj = this as any;
             for (const key in data) {
@@ -162,6 +161,13 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         }
 
         /**
+         * creates a proper Instance of this Model
+         */
+        public static build(data: Attributes): Instance {
+            return new Model(data) as Instance;
+        }
+
+        /**
          * creates the node, also creating its children nodes and relationships
          * @param {Attributes} data - the data to create, potentially including data for related nodes to be created
          * @param {GenericConfiguration} configuration - query configuration
@@ -172,11 +178,11 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                 [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
             },
             configuration?: GenericConfiguration
-        ): Promise<Model> {
+        ): Promise<Instance> {
 
             configuration = configuration || {};
 
-            const instance = new Model(data);
+            const instance = Model.build(data);
             await instance.validate();
 
             return getSession(configuration.session, async (session) => {
@@ -210,14 +216,14 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         public static async createMany(
             data: Attributes[],
             configuration?: GenericConfiguration
-        ): Promise<Model[]> {
+        ): Promise<Instance[]> {
             configuration = configuration || {};
 
             return getSession(configuration.session, async (session) => {
                 if (!relationships.length) {
                     // if there are no relationships, bulk create them
                     // create and validate the instances
-                    const instances = data.map((value) => new Model(value));
+                    const instances = data.map((value) => Model.build(value));
                     for (const instance of instances) {
                         await instance.validate();
                     }
@@ -227,7 +233,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                     return instances;
                 } else {
                     // else, create them 1-by-1 so the relationships and children are properly created
-                    const createdNodes: Model[] = [];
+                    const createdNodes: Instance[] = [];
                     for (const nodeData of data) {
                         const createdNode = await this.createOne(nodeData, { session });
                         createdNodes.push(createdNode);
