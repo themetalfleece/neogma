@@ -1,5 +1,5 @@
-import { validate } from 'class-validator';
 import { QueryResult, Session } from 'neo4j-driver';
+import * as revalidator from 'revalidator';
 import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
 import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
 import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
@@ -103,10 +103,16 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
     relationships?: RelationshipsI<RelatedNodesToAssociateI>;
     /** the keys which will be used on instance creation for associating related notes and creating relationship values */
     relationshipCreationKeys: RelationshipCreationKeysI;
+    /** the schema for the validation */
+    schema: {
+        [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
+    };
 }) => {
 
-    const { label, primaryKeyField, relationshipCreationKeys } = params;
+    const { label, primaryKeyField, relationshipCreationKeys, schema } = params;
     const relationships = params.relationships || [];
+
+    const attributeKeysSet = new Set(Object.keys(schema));
 
     // enforce unique relationship aliases
     const allRelationshipAlias = relationships.map(({ alias }) => alias);
@@ -126,7 +132,8 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             /** to get around TS2322 */
             const obj = this as any;
             for (const key in data) {
-                if (!data.hasOwnProperty(key)) { continue; }
+                // set the key if it's in the allowed attribute keys specified by the schema
+                if (!data.hasOwnProperty(key) || !(attributeKeysSet.has(key))) { continue; }
                 obj[key] = data[key];
             }
         }
@@ -144,18 +151,31 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
 
         public static getRelationshipCreationKeys() { return relationshipCreationKeys; }
 
+        public getDataValues(): Attributes {
+            const data: Attributes = Object.keys(schema).reduce((acc, key) => {
+                acc[key] = this[key];
+                return acc;
+            }, {} as Attributes);
+
+            return data;
+        }
+
         /**
          * validates the given instance, not with the children models
          * @param {Boolean} params.deep - also validate the children nodes
          * @throws Neo4JJayValidationError
          */
         public async validate(params?: { deep: boolean }) {
-            const validationErrors = await validate(this, { whitelist: true });
+            const validationResult = revalidator.validate(this.getDataValues(), {
+                type: 'object',
+                properties: schema,
+            });
+
             // TODO also implement deep
-            if (validationErrors.length) {
+            if (validationResult.errors.length) {
                 throw new Neo4JJayInstanceValidationError(null, {
                     model: Model,
-                    errors: validationErrors,
+                    errors: validationResult.errors,
                 });
             }
         }
@@ -187,7 +207,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
 
             return getSession(configuration.session, async (session) => {
                 // data to be created don't have RelatedNodesToAssociate
-                const dataToCreate = { ...data };
+                const dataToCreate = { ...instance };
                 delete dataToCreate[relationshipCreationKeys.RelatedNodesToAssociate];
 
                 const objectsCreateRes = await QueryRunner.createMany(session, label, [dataToCreate]);

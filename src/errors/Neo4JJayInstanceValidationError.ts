@@ -1,4 +1,3 @@
-import { ValidationError } from 'class-validator';
 import { Neo4JJayModel } from '../ModelOps';
 import { Neo4JJayError } from './Neo4JJayError';
 
@@ -7,7 +6,7 @@ export class Neo4JJayInstanceValidationError extends Neo4JJayError {
     public message: Neo4JJayError['message'];
     public data: {
         model: Neo4JJayModel,
-        errors: ValidationError[],
+        errors: Revalidator.IErrrorProperty[],
     };
 
     constructor(
