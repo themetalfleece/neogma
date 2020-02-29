@@ -285,7 +285,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             });
 
             return getSession(configuration.session, async (session) => {
-                const res = await QueryRunner.editMany(session, label, where, data);
+                const res = await QueryRunner.editMany(session, label, data, where);
                 return getResultArrayFromEdit<Attributes>(res, label)[0];
             });
         }
@@ -312,7 +312,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             });
 
             return getSession(configuration.session, async (session) => {
-                const res = await QueryRunner.editMany(session, label, where, data);
+                const res = await QueryRunner.editMany(session, label, data, where);
                 return getResultArrayFromEdit<Attributes>(res, label);
             });
         }

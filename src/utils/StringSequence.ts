@@ -15,9 +15,15 @@ export class StringSequence {
         this.targetNumber = this.stringToNumber(to);
     }
 
-    public getNextString = () => {
+    public getNextString = (
+        /** throws if the current string if the target one */
+        throwOnTargetExcceeded?: boolean
+    ) => {
         this.currentNumber++;
         if (this.currentNumber > this.targetNumber) {
+            if (throwOnTargetExcceeded) {
+                throw new Error(`Target string reached`);
+            }
             this.currentNumber = this.initialNumber;
         }
         return this.pad(this.numberToString(this.currentNumber));

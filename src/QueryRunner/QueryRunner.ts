@@ -1,5 +1,5 @@
 import { QueryResult, Session } from 'neo4j-driver/types';
-import { WhereStatementI } from './Where';
+import { BindParam, WhereStatementI } from './Where';
 
 /** surrounds the label with backticks to also allow spaces */
 const getLabel = (label: string) => '`' + label + '`';
@@ -32,18 +32,23 @@ export const createMany = async <T>(session: Session, nodesLabel: string, option
  * @param where - the where object for matching the nodes to be edited
  * @param options - the new data data, to be edited
  */
-export const editMany = async <T>(session: Session, nodesLabel: string, where: WhereStatementI, options: Partial<T>): Promise<QueryResult> => {
-
+export const editMany = async <T>(session: Session, nodesLabel: string, options: Partial<T>, where?: WhereStatementI): Promise<QueryResult> => {
     const label = getLabel(nodesLabel);
 
-    const statement = `
+    let statement = `
         MATCH (${label}: ${label})
-        WHERE ${where.statement}
+    `;
+    if (where) {
+        statement += `WHERE ${where.statement}`;
+    }
+    statement += `
         SET ${label} += { options }
         return ${label}
     `;
 
-    return session.run(statement, { options, ...where.params });
+    return session.run(statement, {
+        ...BindParam.acquire(where?.bindParam).clone().add(options).get(),
+    });
 
 };
 
@@ -53,18 +58,21 @@ export const editMany = async <T>(session: Session, nodesLabel: string, where: W
  * @param nodesLabel - the label of the nodes to create
  * @param where - the where object for matching the nodes to be deleted
  */
-export const deleteMany = async (session: Session, nodesLabel: string, where: WhereStatementI): Promise<QueryResult> => {
+export const deleteMany = async (session: Session, nodesLabel: string, where?: WhereStatementI): Promise<QueryResult> => {
 
     const label = getLabel(nodesLabel);
 
-    const statement = `
+    let statement = `
         MATCH (${label}: ${label})
-        WHERE ${where.statement}
+    `;
+    if (where) {
+        statement += `WHERE ${where.statement}`;
+    }
+    statement += `
         OPTIONAL MATCH (${label})-[r]-()
         DELETE ${label},r
     `;
-
-    return session.run(statement, { ...where.params });
+    return session.run(statement, { ...where?.bindParam.get() });
 
 };
 
@@ -119,5 +127,7 @@ export const createRelationship = async (session: Session, params: CreateRelatio
         ${relationshipValuesStatement}
     `;
 
-    return session.run(statement, { ...where.params, ...relationshipAttributesParams });
+    return session.run(statement, {
+        ...BindParam.acquire(where.bindParam).clone().add(relationshipAttributesParams).get(),
+    });
 };
