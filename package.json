@@ -7,8 +7,9 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^12.6.4",
-    "class-validator": "^0.11.0",
+    "@types/revalidator": "^0.3.7",
     "neo4j-driver": "^4.0.1",
+    "revalidator": "^0.3.1",
     "typescript": "^3.7.5"
   },
   "devDependencies": {
