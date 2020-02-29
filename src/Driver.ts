@@ -1,22 +1,31 @@
 import * as neo4j_driver from 'neo4j-driver';
+import { QueryRunner } from './QueryRunner';
 const neo4j = neo4j_driver;
 
 let driver: neo4j_driver.Driver;
+let queryRunner: QueryRunner;
 
-export const getDriver = () => {
-    return driver;
-};
+export const getDriver = () => driver;
 
-interface IConnectParams {
+export const getQueryRunner = () => queryRunner;
+
+interface ConnectParamsI {
     url: string;
     username: string;
     password: string;
 }
+
+interface ConnectOptionsI {
+    /** whether to log the statements and parameters to the console */
+    logging?: QueryRunner['logging'];
+}
+
 /**
  * 
- * @param {IConnectParams} params - the connection params. If specified, they will be used. Else, the connection params will be taken from the environmental variables
+ * @param {ConnectParamsI} params - the connection params. If specified, they will be used. Else, the connection params will be taken from the environmental variables
+ * @param {ConnectOptionsI} options - additional options for the QueryRunner
  */
-export const connect = (params: IConnectParams) => {
+export const init = (params: ConnectParamsI, options?: ConnectOptionsI) => {
     const { url, username, password } = params;
 
     try {
@@ -29,4 +38,8 @@ export const connect = (params: IConnectParams) => {
         console.error(err);
         process.exit(-1);
     }
+
+    queryRunner = new QueryRunner({
+        logging: options?.logging,
+    });
 };

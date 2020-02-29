@@ -1,5 +1,5 @@
 import * as clone from 'clone';
-import { Neo4JJayConstraintError } from 'errors/Neo4JJayConstraintError';
+import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
 import { StringSequence } from '../utils/StringSequence';
 
 /**
