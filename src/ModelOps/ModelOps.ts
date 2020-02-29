@@ -1,12 +1,11 @@
 import { QueryResult, Session } from 'neo4j-driver';
 import * as revalidator from 'revalidator';
-import { getQueryRunner } from '../Driver';
 import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
 import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
 import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
+import { Neo4JJay } from '../Neo4JJay';
 import { CreateRelationshipParamsI } from '../QueryRunner';
 import { getWhere } from '../QueryRunner';
-import { getSession } from '../Sessions/Sessions';
 import { isEmptyObject } from '../utils/object';
 
 export type Neo4JJayModel = ReturnType<typeof ModelFactory>;
@@ -95,23 +94,29 @@ export type RelationshipsI<RelatedNodesToAssociateI> = Array<{
  * a function which returns a class with the model operation functions for the given Attributes
  * RelatedNodesToAssociateI are the corresponding Nodes for Relationships
  */
-export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesToAssociateKey extends string>(params: {
-    /** the id key of this model */
-    primaryKeyField: string;
-    /** the label of the nodes */
-    label: string,
-    /** relationships with other models or itself */
-    relationships?: RelationshipsI<RelatedNodesToAssociateI>;
-    /** the keys which will be used on instance creation for associating related notes and creating relationship values */
-    relationshipCreationKeys: RelationshipCreationKeysI;
-    /** the schema for the validation */
-    schema: {
-        [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
-    };
-}) => {
+export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesToAssociateKey extends string>(
+    params: {
+        /** the id key of this model */
+        primaryKeyField: string;
+        /** the label of the nodes */
+        label: string,
+        /** relationships with other models or itself */
+        relationships?: RelationshipsI<RelatedNodesToAssociateI>;
+        /** the keys which will be used on instance creation for associating related notes and creating relationship values */
+        relationshipCreationKeys: RelationshipCreationKeysI;
+        /** the schema for the validation */
+        schema: {
+            [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
+        };
+    },
+    neo4jjay: Neo4JJay,
+) => {
 
     const { label, primaryKeyField, relationshipCreationKeys, schema } = params;
     const relationships = params.relationships || [];
+
+    const queryRunner = neo4jjay.getQueryRunner();
+    const getSession = neo4jjay.getSession;
 
     const attributeKeysSet = new Set(Object.keys(schema));
 
@@ -200,8 +205,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             },
             configuration?: GenericConfiguration
         ): Promise<Instance> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             const instance = Model.build(data);
@@ -239,8 +242,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             data: Attributes[],
             configuration?: GenericConfiguration
         ): Promise<Instance[]> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             return getSession(configuration.session, async (session) => {
@@ -279,8 +280,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             data: Partial<Attributes>,
             configuration?: GenericConfiguration
         ): Promise<Attributes> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             const where = getWhere({
@@ -307,8 +306,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             data: Partial<Attributes>,
             configuration?: GenericConfiguration
         ): Promise<Attributes[]> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             const where = getWhere({
@@ -333,8 +330,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             id: string,
             configuration?: GenericConfiguration
         ): Promise<boolean> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             const where = getWhere({
@@ -363,8 +358,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             ids: string[],
             configuration?: GenericConfiguration
         ): Promise<number> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             const where = getWhere({
@@ -392,8 +385,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             params: CreateRelationshipParamsI,
             configuration?: { session?: GenericConfiguration['session'] }
         ): Promise<number> {
-            const queryRunner = getQueryRunner();
-
             configuration = configuration || {};
 
             return getSession(configuration.session, async (session) => {
