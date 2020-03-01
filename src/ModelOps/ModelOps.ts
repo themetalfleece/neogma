@@ -112,6 +112,11 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
     neo4jjay: Neo4JJay,
 ) => {
 
+    /** type used for creating nodes. It includes their Attributes and Related Nodes */
+    type CreateDataI = Attributes & {
+        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
+    };
+
     const { label, primaryKeyField, relationshipCreationKeys, schema } = params;
     const relationships = params.relationships || [];
 
@@ -133,6 +138,9 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
     type Instance = Attributes & InstanceType<typeof Model>;
 
     class Model {
+
+        /** whether this instance already exists in the database or it new */
+        private existsInDatabase = false;
 
         constructor(data: Attributes) {
             /** to get around TS2322 */
@@ -194,15 +202,37 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         }
 
         /**
+         * saves an instance to the database. If it's new it creates it, and if it already exists it edits it
+         */
+        public save(_configuration?: GenericConfiguration & {
+            /** whether to validate this instance, defaults to true */
+            validate?: boolean;
+        }) {
+            const configuration = {
+                validate: true,
+                ..._configuration,
+            };
+
+            return getSession(_configuration?.session, async (session) => {
+                if (configuration.validate) {
+                    await this.validate();
+                }
+                // if it's a new one - it doesn't exist in the database yet, need to create it
+                if (!this.existsInDatabase) {
+                    return this.createFromInstance(this.getDataValues(), session);
+                }
+                // TODO if it already exists, need to edit it
+            });
+        }
+
+        /**
          * creates the node, also creating its children nodes and relationships
          * @param {Attributes} data - the data to create, potentially including data for related nodes to be created
          * @param {GenericConfiguration} configuration - query configuration
          * @returns {Attributes} - the created data
          */
         public static async createOne(
-            data: Attributes & {
-                [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
-            },
+            data: CreateDataI,
             configuration?: GenericConfiguration
         ): Promise<Instance> {
             configuration = configuration || {};
@@ -211,25 +241,29 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             await instance.validate();
 
             return getSession(configuration.session, async (session) => {
-                // data to be created don't have RelatedNodesToAssociate
-                const dataToCreate = { ...instance };
-                delete dataToCreate[relationshipCreationKeys.RelatedNodesToAssociate];
+                return instance.createFromInstance(data, session);
+            });
+        }
 
-                const objectsCreateRes = await queryRunner.createMany(session, label, [dataToCreate]);
-                const createdNode = getResultsArray<Attributes>(objectsCreateRes, label)[0];
+        /** calls createMany and createRelatedNodes for the instance data values */
+        private async createFromInstance(data: CreateDataI, session: Session) {
+            const dataToCreate = { ...this.getDataValues() };
 
-                // create the relationships if specified
-                await this.createRelatedNodes({
-                    data,
-                    createdNodeId: createdNode[primaryKeyField] as unknown as string,
-                    session,
-                });
+            const objectsCreateRes = await queryRunner.createMany(session, label, [dataToCreate]);
+            const createdNode = getResultsArray<Attributes>(objectsCreateRes, label)[0];
 
-                // TODO: push children into the instance under a new field, which should be defined in the Attributes or Model. Its name must be defined in the relationship
-
-                return instance;
+            // create the relationships if specified
+            await Model.createRelatedNodes({
+                data,
+                createdNodeId: createdNode[primaryKeyField] as unknown as string,
+                session,
             });
 
+            // TODO: push children into the instance under a new field, which should be the relationship alias
+
+            this.existsInDatabase = true;
+
+            return this;
         }
 
         /**
@@ -254,7 +288,8 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                     }
                     const res = await queryRunner.createMany(session, label, instances);
                     const createdNodes = getResultsArray<Attributes>(res, label);
-                    // TODO createdNodes may be used in case of fields generated by the database
+                    // TODO createdNodes may be used in case of fields generated by the database - need to replace values of the nodes to the created ones
+                    // TODO also set existsInDatabase of created nodes
                     return instances;
                 } else {
                     // else, create them 1-by-1 so the relationships and children are properly created
