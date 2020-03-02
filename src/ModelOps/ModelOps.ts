@@ -1,6 +1,7 @@
 import { QueryResult, Session } from 'neo4j-driver';
 import * as revalidator from 'revalidator';
 import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
+import { Neo4JJayError } from '../errors/Neo4JJayError';
 import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
 import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
 import { Neo4JJay } from '../Neo4JJay';
@@ -421,13 +422,31 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
          */
         public static async createRelationship(
             params: CreateRelationshipParamsI,
-            configuration?: { session?: GenericConfiguration['session'] }
+            configuration?: {
+                /** throws an error if the number of created relationships don't equal to this number */
+                assertCreatedRelationships?: number;
+                session?: GenericConfiguration['session'];
+            }
         ): Promise<number> {
             configuration = configuration || {};
 
             return getSession(configuration.session, async (session) => {
                 const res = await queryRunner.createRelationship(session, params);
-                return res.summary.counters.updates().relationshipsCreated;
+                const relationshipsCreated = res.summary.counters.updates().relationshipsCreated;
+
+                const { assertCreatedRelationships } = configuration;
+                if (assertCreatedRelationships && relationshipsCreated !== assertCreatedRelationships) {
+                    throw new Neo4JJayError(
+                        `Not all required relationships were created`,
+                        {
+                            assertCreatedRelationships,
+                            relationshipsCreated,
+                            ...params,
+                        },
+                    );
+                }
+
+                return relationshipsCreated;
             });
         }
 
@@ -461,7 +480,10 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
 
                 const { direction, model: relationshipModel, label } = relationship;
 
-                const createRelationship = (targetId: string | string[], values?: CreateRelationshipParamsI['relationship']['values']) => {
+                const createRelationship = (
+                    targetId: string | string[],
+                    values?: CreateRelationshipParamsI['relationship']['values'],
+                ) => {
                     /** the label and primary key of the `b` Model */
                     const otherLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
@@ -495,6 +517,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                             }),
                         },
                         {
+                            assertCreatedRelationships: typeof targetId === 'string' ? 1 : targetId.length,
                             session,
                         }
                     );
