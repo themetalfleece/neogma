@@ -142,16 +142,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         /** whether this instance already exists in the database or it new */
         private existsInDatabase = false;
 
-        constructor(data: Attributes) {
-            /** to get around TS2322 */
-            const obj = this as any;
-            for (const key in data) {
-                // set the key if it's in the allowed attribute keys specified by the schema
-                if (!data.hasOwnProperty(key) || !(attributeKeysSet.has(key))) { continue; }
-                obj[key] = data[key];
-            }
-        }
-
         /**
          * @returns {String} - the label of this Model
          */
@@ -197,8 +187,20 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         /**
          * creates a proper Instance of this Model
          */
-        public static build(data: Attributes): Instance {
-            return new Model(data) as Instance;
+        public static build(data: CreateDataI): Instance {
+            const instance = new Model() as Instance;
+            for (const key in data) {
+                // set the key if it's in the allowed attribute keys specified by the schema or any of the relationship creation keys
+                if (
+                    key !== relationshipCreationKeys.RelatedNodesToAssociate &&
+                    key !== relationshipCreationKeys.RelationshipValuesToCreate &&
+                    (!data.hasOwnProperty(key) || !(attributeKeysSet.has(key)))
+                ) {
+                    continue;
+                }
+                instance[key] = data[key];
+            }
+            return instance;
         }
 
         /**
@@ -208,6 +210,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
             /** whether to validate this instance, defaults to true */
             validate?: boolean;
         }) {
+            const instance = this as unknown as Instance;
             const configuration = {
                 validate: true,
                 ..._configuration,
@@ -215,11 +218,11 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
 
             return getSession(_configuration?.session, async (session) => {
                 if (configuration.validate) {
-                    await this.validate();
+                    await instance.validate();
                 }
                 // if it's a new one - it doesn't exist in the database yet, need to create it
-                if (!this.existsInDatabase) {
-                    return this.createFromInstance(this.getDataValues(), session);
+                if (!instance.existsInDatabase) {
+                    return instance.createFromInstance(instance, session);
                 }
                 // TODO if it already exists, need to edit it
             });
@@ -246,7 +249,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         }
 
         /** calls createMany and createRelatedNodes for the instance data values */
-        private async createFromInstance(data: CreateDataI, session: Session) {
+        private async createFromInstance(data: CreateDataI | Instance, session: Session) {
             const dataToCreate = { ...this.getDataValues() };
 
             const objectsCreateRes = await queryRunner.createMany(session, label, [dataToCreate]);
