@@ -133,16 +133,15 @@ export class QueryRunner {
          */
         const directionString = `${relationship.direction === 'a<-b' ? '<-' : '-'}[r:${QueryRunner.getLabel(relationship.label)}]${relationship.direction === 'a->b' ? '->' : '-'}`;
 
-        /** the params of the relationship value, with a new string to avoid conflicts */
-        const relationshipAttributesParams = {};
+        /** the params of the relationship value */
+        const relationshipAttributesParams = new BindParam(BindParam.acquire(where.bindParam).clone().get());
         /** the values to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
         const relationshipValues: string[] = [];
         if (relationship.values) {
             for (const key in relationship.values) {
                 if (!relationship.values.hasOwnProperty(key)) { continue; }
 
-                const paramName = '__relationship_value__' + key;
-                relationshipAttributesParams[paramName] = relationship.values[key];
+                const paramName = relationshipAttributesParams.getUniqueNameAndAdd(key, relationship.values[key]);
                 relationshipValues.push(`r.${key} = {${paramName}}`);
             }
         }
@@ -157,9 +156,7 @@ export class QueryRunner {
             ${relationshipValuesStatement}
         `;
 
-        const parameters = {
-            ...BindParam.acquire(where.bindParam).clone().add(relationshipAttributesParams).get(),
-        };
+        const parameters = relationshipAttributesParams.get();
 
         this.log(statement, parameters);
 
