@@ -20,22 +20,20 @@ export interface CreateRelationshipParamsI {
 
 export class QueryRunner {
 
-    /** whether to log the statements and parameters to the console */
-    private logging: boolean;
+    /** whether to log the statements and parameters with the given function */
+    private logger: (...val: Array<string | boolean | object | number>) => any;
 
     constructor(params?: {
-        logging?: QueryRunner['logging'];
+        logger?: QueryRunner['logger'];
     }) {
-        this.logging = params?.logging || false;
+        this.logger = params?.logger || null;
     }
 
     /** surrounds the label with backticks to also allow spaces */
     public static getLabel = (label: string) => '`' + label + '`';
 
-    private log(...str: Array<string | boolean | object | number>) {
-        if (this.logging) {
-            console.log(...str);
-        }
+    private log(...val: Array<string | boolean | object | number>) {
+        this.logger?.(...val);
     }
 
     /**

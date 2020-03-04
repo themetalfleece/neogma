@@ -13,7 +13,7 @@ interface ConnectParamsI {
 
 interface ConnectOptionsI {
     /** whether to log the statements and parameters to the console */
-    logging?: QueryRunner['logging'];
+    logger?: QueryRunner['logger'];
 }
 
 export class Neo4JJay {
@@ -40,7 +40,7 @@ export class Neo4JJay {
         }
 
         this.queryRunner = new QueryRunner({
-            logging: options?.logging,
+            logger: options?.logger,
         });
     }
 
