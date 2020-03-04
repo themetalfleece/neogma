@@ -5,7 +5,7 @@ import { Neo4JJayError } from '../errors/Neo4JJayError';
 import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
 import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
 import { Neo4JJay } from '../Neo4JJay';
-import { CreateRelationshipParamsI } from '../QueryRunner';
+import { CreateRelationshipParamsI, WhereStatementI } from '../QueryRunner';
 import { getWhere } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
@@ -485,16 +485,16 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                     values?: CreateRelationshipParamsI['relationship']['values'],
                 ) => {
                     /** the label and primary key of the `b` Model */
-                    const otherLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
+                    const targetLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
 
                     return this.createRelationship(
                         {
-                            a: {
+                            source: {
                                 label: this.getLabel(),
                             },
-                            b: {
-                                label: otherLabel,
+                            target: {
+                                label: targetLabel,
                             },
                             relationship: {
                                 direction,
@@ -502,10 +502,10 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                                 values,
                             },
                             where: getWhere({
-                                a: {
+                                source: {
                                     [primaryKeyField]: createdObjectId,
                                 },
-                                b: {
+                                target: {
                                     [otherPrimaryKeyField]: targetId,
                                 },
                             }),

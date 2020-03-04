@@ -2,10 +2,10 @@ import { QueryResult, Session } from 'neo4j-driver/types';
 import { BindParam, WhereStatementI } from './Where';
 
 export interface CreateRelationshipParamsI {
-    a: {
+    source: {
         label: string;
     };
-    b: {
+    target: {
         label: string;
     };
     relationship: {
@@ -14,7 +14,7 @@ export interface CreateRelationshipParamsI {
         /** values to be set as relationship attributes */
         values?: object;
     };
-    /** can access query labels by `a` and `b` */
+    /** can access query labels by `source` and `target` */
     where: WhereStatementI;
 }
 
@@ -123,7 +123,7 @@ export class QueryRunner {
 
     public createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<QueryResult> => {
 
-        const { a, b, relationship, where } = params;
+        const { source, target, relationship, where } = params;
 
         /** 
          * string in the format -[Label]->
@@ -148,9 +148,9 @@ export class QueryRunner {
         const relationshipValuesStatement = relationshipValues.length ? 'SET ' + relationshipValues.join(', ') : '';
 
         const statement = `
-            MATCH (a:${QueryRunner.getLabel(a.label)}), (b:${QueryRunner.getLabel(b.label)})
+            MATCH (source:${QueryRunner.getLabel(source.label)}), (target:${QueryRunner.getLabel(target.label)})
             WHERE ${where.statement}
-            CREATE (a)${directionString}(b)
+            CREATE (source)${directionString}(target)
             ${relationshipValuesStatement}
         `;
 
