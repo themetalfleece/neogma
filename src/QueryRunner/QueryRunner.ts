@@ -10,7 +10,7 @@ export interface CreateRelationshipParamsI {
     };
     relationship: {
         label: string;
-        direction: 'a->b' | 'a-b' | 'a<-b',
+        direction: 'out' | 'in' | 'none',
         /** values to be set as relationship attributes */
         values?: object;
     };
@@ -129,7 +129,7 @@ export class QueryRunner {
          * string in the format -[Label]->
          * relationship has the alias `r`
          */
-        const directionString = `${relationship.direction === 'a<-b' ? '<-' : '-'}[r:${QueryRunner.getLabel(relationship.label)}]${relationship.direction === 'a->b' ? '->' : '-'}`;
+        const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${QueryRunner.getLabel(relationship.label)}]${relationship.direction === 'out' ? '->' : '-'}`;
 
         /** the params of the relationship value */
         const relationshipAttributesParams = new BindParam(BindParam.acquire(where.bindParam).clone().get());

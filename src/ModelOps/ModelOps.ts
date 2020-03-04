@@ -488,12 +488,6 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                     const otherLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
                     const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
 
-                    const directionMap: Record<typeof direction, Parameters<typeof Model.createRelationship>[0]['relationship']['direction']> = {
-                        in: 'a<-b',
-                        out: 'a->b',
-                        none: 'a-b',
-                    };
-
                     return this.createRelationship(
                         {
                             a: {
@@ -503,7 +497,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                                 label: otherLabel,
                             },
                             relationship: {
-                                direction: directionMap[direction],
+                                direction,
                                 label,
                                 values,
                             },
