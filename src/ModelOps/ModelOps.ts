@@ -37,9 +37,14 @@ interface GenericConfiguration {
 }
 
 /** used for defining the type of the RelatedNodesToAssociate interface, to be passed as the second generic to ModelFactory */
-export type ModelRelatedNodesI<RelationshipValuesToCreateKey extends string, RelatedModel extends Neo4JJayModel, RelationshipValues extends RelationshipValuesI> = Parameters<RelatedModel['createOne']>[0] & {
-    [key in RelationshipValuesToCreateKey]?: RelationshipValues
-};
+export type ModelRelatedNodesI<
+    RelationshipValuesToCreateKey extends string,
+    RelatedModel extends Neo4JJayModel,
+    RelationshipValues extends RelationshipValuesI
+    > =
+    Parameters<RelatedModel['createOne']>[0] & {
+        [key in RelationshipValuesToCreateKey]?: RelationshipValues
+    };
 
 /** to be used in create functions where the related nodes can be passed for creation */
 export type RelatedNodesCreationParamI<RelationshipValuesToCreateKey extends string, RelatedNodesToAssociateI> = {
@@ -95,7 +100,13 @@ export type RelationshipsI<RelatedNodesToAssociateI> = Array<{
  * a function which returns a class with the model operation functions for the given Attributes
  * RelatedNodesToAssociateI are the corresponding Nodes for Relationships
  */
-export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesToAssociateKey extends string>(
+export const ModelFactory = <
+    Attributes,
+    RelatedNodesToAssociateI,
+    RelatedNodesToAssociateKey extends string,
+    StaticsI extends Record<string, any> = {},
+    MethodsI extends Record<string, any> = {},
+>(
     params: {
         /** the id key of this model */
         primaryKeyField: string;
@@ -109,6 +120,8 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         schema: {
             [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
         };
+        statics?: StaticsI;
+        methods?: MethodsI;
     },
     neo4jjay: Neo4JJay,
 ) => {
@@ -119,6 +132,8 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
     };
 
     const { label, primaryKeyField, relationshipCreationKeys, schema } = params;
+    const statics = params.statics || {};
+    const methods = params.methods || {};
     const relationships = params.relationships || [];
 
     const queryRunner = neo4jjay.getQueryRunner();
@@ -136,7 +151,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
         });
     }
 
-    type Instance = Attributes & InstanceType<typeof Model>;
+    type Instance = Attributes & InstanceType<typeof Model> & MethodsI;
 
     class Model {
 
@@ -199,7 +214,7 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
                 ) {
                     continue;
                 }
-                instance[key] = data[key];
+                instance[key as keyof typeof instance] = data[key];
             }
             return instance;
         }
@@ -652,5 +667,15 @@ export const ModelFactory = <Attributes, RelatedNodesToAssociateI, RelatedNodesT
 
     }
 
-    return Model;
+    for (const staticKey in statics) {
+        if (!statics.hasOwnProperty(staticKey)) { continue; }
+        Model[staticKey as keyof typeof Model] = statics[staticKey];
+    }
+
+    for (const methodKey in methods) {
+        if (!methods.hasOwnProperty(methodKey)) { continue; }
+        Model.prototype[methodKey as keyof typeof Model.prototype] = methods[methodKey];
+    }
+
+    return Model as (typeof Model) & StaticsI;
 };
