@@ -87,8 +87,19 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
 
 /** the type for the Relationship configuration of a Model */
 export type RelationshipsI<RelatedNodesToAssociateI> = Array<{
-    /** the related model, should only be passed as a string as a final resort, for circular references */
-    model: ReturnType<typeof ModelFactory> | 'self',
+    /** the related model. It could be the object of the model, or "self" for this model */
+    model: {
+        createOne: (
+            data: any,
+            configuration?: GenericConfiguration,
+        ) => Promise<any>;
+        createMany: (
+            data: any[],
+            configuration?: GenericConfiguration,
+        ) => Promise<any[]>;
+        getLabel: () => string;
+        getPrimaryKeyField: () => string;
+    } | 'self', // we can't use the actual Neo4JJayModel type due to circular references
     /** the label for the relationship */
     label: CreateRelationshipParamsI['relationship']['label'];
     /** the direction of the relationship */
@@ -106,24 +117,24 @@ export const ModelFactory = <
     RelatedNodesToAssociateKey extends string,
     StaticsI extends Record<string, any> = {},
     MethodsI extends Record<string, any> = {},
->(
-    params: {
-        /** the id key of this model */
-        primaryKeyField: string;
-        /** the label of the nodes */
-        label: string,
-        /** relationships with other models or itself */
-        relationships?: RelationshipsI<RelatedNodesToAssociateI>;
-        /** the keys which will be used on instance creation for associating related notes and creating relationship values */
-        relationshipCreationKeys: RelationshipCreationKeysI;
-        /** the schema for the validation */
-        schema: {
-            [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
-        };
-        statics?: StaticsI;
-        methods?: MethodsI;
-    },
-    neo4jjay: Neo4JJay,
+    >(
+        params: {
+            /** the id key of this model */
+            primaryKeyField: string;
+            /** the label of the nodes */
+            label: string,
+            /** relationships with other models or itself */
+            relationships?: RelationshipsI<RelatedNodesToAssociateI>;
+            /** the keys which will be used on instance creation for associating related notes and creating relationship values */
+            relationshipCreationKeys: RelationshipCreationKeysI;
+            /** the schema for the validation */
+            schema: {
+                [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
+            };
+            statics?: StaticsI;
+            methods?: MethodsI;
+        },
+        neo4jjay: Neo4JJay,
 ) => {
 
     /** type used for creating nodes. It includes their Attributes and Related Nodes */
@@ -430,6 +441,63 @@ export const ModelFactory = <
             });
         }
 
+        /** creates a relationship by using the configuration specified in "relationships" from the given alias */
+        public static async relateTo(
+            params: {
+                alias: keyof RelatedNodesToAssociateI;
+                where?: WhereStatementI;
+                values?: object;
+            },
+            configuration?: {
+                /** throws an error if the number of created relationships don't equal to this number */
+                assertCreatedRelationships?: number;
+                session?: GenericConfiguration['session'];
+            }
+        ) {
+            configuration = configuration || {};
+
+            const relationship = relationships.find((relationship) => relationship.alias === params.alias);
+
+            if (!relationship) {
+                throw new Neo4JJayNotFoundError(`The relationship of the alias ${params.alias} can't be found for the model ${label}`);
+            }
+
+            return getSession(configuration.session, async (session) => {
+                const res = await queryRunner.createRelationship(
+                    session,
+                    {
+                        source: {
+                            label,
+                        },
+                        target: {
+                            label: Model.getLabelFromRelationshipModel(relationship.model),
+                        },
+                        relationship: {
+                            label: relationship.label,
+                            direction: relationship.direction,
+                            values: {},
+                        },
+                        where: params.where,
+                    }
+                );
+                const relationshipsCreated = res.summary.counters.updates().relationshipsCreated;
+
+                const { assertCreatedRelationships } = configuration;
+                if (assertCreatedRelationships && relationshipsCreated !== assertCreatedRelationships) {
+                    throw new Neo4JJayError(
+                        `Not all required relationships were created`,
+                        {
+                            assertCreatedRelationships,
+                            relationshipsCreated,
+                            ...params,
+                        },
+                    );
+                }
+
+                return relationshipsCreated;
+            });
+        }
+
         /**
          * @param {queryRunner.CreateRelationshipParamsI} - the parameters including the 2 nodes and the label/direction of the relationship between them
          * @param {GenericConfiguration} configuration - query configuration
@@ -500,8 +568,8 @@ export const ModelFactory = <
                     values?: CreateRelationshipParamsI['relationship']['values'],
                 ) => {
                     /** the label and primary key of the `b` Model */
-                    const targetLabel = relationshipModel === 'self' ? label : relationshipModel.getLabel();
-                    const otherPrimaryKeyField = relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
+                    const targetLabel = Model.getLabelFromRelationshipModel(relationshipModel);
+                    const otherPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
 
                     return this.createRelationship(
                         {
@@ -571,7 +639,7 @@ export const ModelFactory = <
                     }
 
                     /** the primary key field of the target relationship model */
-                    const primaryKeyField = relationshipModel === 'self' ? this.getPrimaryKeyField() : relationshipModel.getPrimaryKeyField();
+                    const primaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
 
                     /** organize them depending on whether relationship values need to be created, so to single or bulk create them appropriately */
                     const withRelationshipValuesNodesToCreate: Array<typeof nodeCreateConfigurationValues[0]> = [];
@@ -663,6 +731,16 @@ export const ModelFactory = <
 
             }
 
+        }
+
+        /** gets the label from the given model for a relationship */
+        private static getLabelFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
+            return relationshipModel === 'self' ? label : relationshipModel.getLabel();
+        }
+
+        /** gets the primary key field from the given model for a relationship */
+        private static getPrimaryKeyFieldFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
+            return relationshipModel === 'self' ? primaryKeyField : relationshipModel.getPrimaryKeyField();
         }
 
     }
