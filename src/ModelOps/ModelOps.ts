@@ -39,8 +39,13 @@ interface GenericConfiguration {
 /** used for defining the type of the RelatedNodesToAssociate interface, to be passed as the second generic to ModelFactory */
 export type ModelRelatedNodesI<
     RelationshipValuesToCreateKey extends string,
-    RelatedModel extends Neo4JJayModel,
-    RelationshipValues extends RelationshipValuesI
+    RelatedModel extends {
+        createOne: (
+            data: any,
+            configuration?: GenericConfiguration,
+        ) => Promise<any>;
+    },
+    RelationshipValues extends RelationshipValuesI = {}
     > =
     Parameters<RelatedModel['createOne']>[0] & {
         [key in RelationshipValuesToCreateKey]?: RelationshipValues
@@ -445,6 +450,7 @@ export const ModelFactory = <
         public static async relateTo(
             params: {
                 alias: keyof RelatedNodesToAssociateI;
+                /** can access query labels by `source` and `target` */
                 where?: WhereStatementI;
                 values?: object;
             },
@@ -504,6 +510,7 @@ export const ModelFactory = <
          * @returns {Number} - the number of created relationships
          */
         public static async createRelationship(
+            /** for "where", can access query labels by `source` and `target` */
             params: CreateRelationshipParamsI,
             configuration?: {
                 /** throws an error if the number of created relationships don't equal to this number */
