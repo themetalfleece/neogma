@@ -1,5 +1,5 @@
 import { Driver, Session } from 'neo4j-driver/types';
-import { Neo4JJay } from '../Neo4JJay';
+import { Neogma } from '../Neogma';
 
 /**
  * runs the callback in the given session if defined, else creates a new one

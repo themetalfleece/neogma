@@ -16,7 +16,7 @@ interface ConnectOptionsI {
     logger?: QueryRunner['logger'];
 }
 
-export class Neo4JJay {
+export class Neogma {
     private driver: neo4j_driver.Driver;
     private queryRunner: QueryRunner;
 

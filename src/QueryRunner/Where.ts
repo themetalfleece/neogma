@@ -1,5 +1,5 @@
 import * as clone from 'clone';
-import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
+import { NeogmaConstraintError } from '../errors/NeogmaConstraintError';
 import { StringSequence } from '../utils/StringSequence';
 
 /**
@@ -28,7 +28,7 @@ export class BindParam {
             for (const key in object) {
                 if (!object.hasOwnProperty(key)) { continue; }
                 if (this.bind.hasOwnProperty(key)) {
-                    throw new Neo4JJayConstraintError(`key ${key} already in the bind param`);
+                    throw new NeogmaConstraintError(`key ${key} already in the bind param`);
                 }
                 this.bind[key] = object[key];
             }

@@ -1,7 +1,7 @@
 {
-  "name": "neo4j-jay",
+  "name": "neogma",
   "version": "1.0.0",
-  "description": "Neo4j framework, built in TypeScript, for easy actions like object-to-node creation",
+  "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
   "main": "index.js",
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",

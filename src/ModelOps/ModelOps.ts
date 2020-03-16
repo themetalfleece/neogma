@@ -1,15 +1,15 @@
 import { QueryResult, Session } from 'neo4j-driver';
 import * as revalidator from 'revalidator';
-import { Neo4JJayConstraintError } from '../errors/Neo4JJayConstraintError';
-import { Neo4JJayError } from '../errors/Neo4JJayError';
-import { Neo4JJayInstanceValidationError } from '../errors/Neo4JJayInstanceValidationError';
-import { Neo4JJayNotFoundError } from '../errors/Neo4JJayNotFoundError';
-import { Neo4JJay } from '../Neo4JJay';
+import { NeogmaConstraintError } from '../errors/NeogmaConstraintError';
+import { NeogmaError } from '../errors/NeogmaError';
+import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
+import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
+import { Neogma } from '../Neogma';
 import { CreateRelationshipParamsI, WhereStatementI } from '../QueryRunner';
 import { getWhere } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
-export type Neo4JJayModel = ReturnType<typeof ModelFactory>;
+export type NeogmaModel = ReturnType<typeof ModelFactory>;
 
 const getResultsArray = <T>(result: QueryResult, label: string): T[] => {
     return result.records.map((v) => v.get(label));
@@ -117,7 +117,7 @@ export type RelationshipsI<
             ) => Promise<any[]>;
             getLabel: () => string;
             getPrimaryKeyField: () => string;
-        } | 'self', // we can't use the actual Neo4JJayModel type due to circular references
+        } | 'self', // we can't use the actual NeogmaModel type due to circular references
         /** the label for the relationship */
         label: CreateRelationshipParamsI['relationship']['label'];
         /** the direction of the relationship */
@@ -126,7 +126,7 @@ export type RelationshipsI<
     }>;
 
 /** the type of instance of the Model */
-export type Neo4JJayInstance<
+export type NeogmaInstance<
     /** the Model that this instance belongs to */
     Model extends new (...args) => any,
     /** the attributes used in the Model */
@@ -171,7 +171,7 @@ export const ModelFactory = <
             statics?: StaticsI;
             methods?: MethodsI;
         },
-        neo4jjay: Neo4JJay,
+        neogma: Neogma,
 ) => {
 
     /** type used for creating nodes. It includes their Attributes and Related Nodes */
@@ -184,22 +184,22 @@ export const ModelFactory = <
     const methods = params.methods || {};
     const relationships = params.relationships || [];
 
-    const queryRunner = neo4jjay.getQueryRunner();
-    const getSession = neo4jjay.getSession;
+    const queryRunner = neogma.getQueryRunner();
+    const getSession = neogma.getSession;
 
     const attributeKeysSet = new Set(Object.keys(schema));
 
     // enforce unique relationship aliases
     const allRelationshipAlias = relationships.map(({ alias }) => alias);
     if (allRelationshipAlias.length !== new Set(allRelationshipAlias).size) {
-        throw new Neo4JJayConstraintError(`Relationship aliases must be unique`, {
+        throw new NeogmaConstraintError(`Relationship aliases must be unique`, {
             description: relationships,
             actual: allRelationshipAlias,
             expected: [...new Set(allRelationshipAlias)],
         });
     }
 
-    type Instance = Neo4JJayInstance<typeof Model, Attributes, RelatedNodesToAssociateI, MethodsI>;
+    type Instance = NeogmaInstance<typeof Model, Attributes, RelatedNodesToAssociateI, MethodsI>;
 
     class Model {
 
@@ -231,7 +231,7 @@ export const ModelFactory = <
         /**
          * validates the given instance, not with the children models
          * @param {Boolean} params.deep - also validate the children nodes
-         * @throws Neo4JJayValidationError
+         * @throws NeogmaInstanceValidationError
          */
         public async validate(params?: { deep: boolean }) {
             const validationResult = revalidator.validate(this.getDataValues(), {
@@ -241,7 +241,7 @@ export const ModelFactory = <
 
             // TODO also implement deep
             if (validationResult.errors.length) {
-                throw new Neo4JJayInstanceValidationError(null, {
+                throw new NeogmaInstanceValidationError(null, {
                     model: Model,
                     errors: validationResult.errors,
                 });
@@ -497,7 +497,7 @@ export const ModelFactory = <
             const relationship = relationships.find((relationship) => relationship.alias === params.alias);
 
             if (!relationship) {
-                throw new Neo4JJayNotFoundError(`The relationship of the alias ${params.alias} can't be found for the model ${label}`);
+                throw new NeogmaNotFoundError(`The relationship of the alias ${params.alias} can't be found for the model ${label}`);
             }
 
             return getSession(configuration.session, async (session) => {
@@ -522,7 +522,7 @@ export const ModelFactory = <
 
                 const { assertCreatedRelationships } = configuration;
                 if (assertCreatedRelationships && relationshipsCreated !== assertCreatedRelationships) {
-                    throw new Neo4JJayError(
+                    throw new NeogmaError(
                         `Not all required relationships were created`,
                         {
                             assertCreatedRelationships,
@@ -558,7 +558,7 @@ export const ModelFactory = <
 
                 const { assertCreatedRelationships } = configuration;
                 if (assertCreatedRelationships && relationshipsCreated !== assertCreatedRelationships) {
-                    throw new Neo4JJayError(
+                    throw new NeogmaError(
                         `Not all required relationships were created`,
                         {
                             assertCreatedRelationships,
@@ -597,7 +597,7 @@ export const ModelFactory = <
                 // find the relationship with this alias
                 const relationship = relationships.find((r) => r.alias === alias);
                 if (!relationship) {
-                    throw new Neo4JJayNotFoundError(`A relationship with the given alias couldn't be found`, { alias });
+                    throw new NeogmaNotFoundError(`A relationship with the given alias couldn't be found`, { alias });
                 }
 
                 const { direction, model: relationshipModel, label } = relationship;
@@ -643,7 +643,7 @@ export const ModelFactory = <
                     /* for 'id', just create the relationship with the given id */
                     const targetId = nodeCreateConfiguration.value;
                     if (typeof targetId !== 'string') {
-                        throw new Neo4JJayConstraintError('Relationship value must be a string', {
+                        throw new NeogmaConstraintError('Relationship value must be a string', {
                             description: nodeCreateConfiguration,
                             actual: targetId,
                             expected: 'string',
@@ -656,7 +656,7 @@ export const ModelFactory = <
                     const targetIds = nodeCreateConfiguration.values;
                     /** see if it's an invalid array */
                     if (!(targetIds instanceof Array) || targetIds.find((value) => typeof value !== 'string')) {
-                        throw new Neo4JJayConstraintError('Relationship value must be an array of strings', {
+                        throw new NeogmaConstraintError('Relationship value must be an array of strings', {
                             description: nodeCreateConfiguration,
                             actual: targetIds,
                             expected: 'string[]',
@@ -670,7 +670,7 @@ export const ModelFactory = <
                     const nodeCreateConfigurationValues = nodeCreateConfiguration.values;
 
                     if (!(nodeCreateConfigurationValues instanceof Array)) {
-                        throw new Neo4JJayConstraintError('Relationship value must be an array of objects', {
+                        throw new NeogmaConstraintError('Relationship value must be an array of objects', {
                             description: nodeCreateConfiguration,
                             actual: nodeCreateConfigurationValues,
                             expected: 'object[]',
@@ -734,7 +734,7 @@ export const ModelFactory = <
                 } else if (nodeCreateConfiguration.type === 'array of id objects') {
                     const nodeCreateConfigurationValues = nodeCreateConfiguration.values;
                     if (!(nodeCreateConfigurationValues instanceof Array)) {
-                        throw new Neo4JJayConstraintError('Relationship value must be an array of objects with id as a field', {
+                        throw new NeogmaConstraintError('Relationship value must be an array of objects with id as a field', {
                             description: nodeCreateConfiguration,
                             actual: nodeCreateConfigurationValues,
                             expected: 'object[]',
@@ -745,7 +745,7 @@ export const ModelFactory = <
                     const bulkCreateRelationshipIds: string[] = [];
                     for (const valueToCreate of nodeCreateConfigurationValues) {
                         if (typeof valueToCreate.id !== 'string') {
-                            throw new Neo4JJayConstraintError('Unspecified id, or not a string', {
+                            throw new NeogmaConstraintError('Unspecified id, or not a string', {
                                 description: nodeCreateConfiguration,
                                 actual: valueToCreate,
                                 expected: '{ id: string }',
