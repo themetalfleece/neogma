@@ -136,7 +136,7 @@ export type Neo4JJayInstance<
     /** the Methods used in the Model */
     MethodsI extends Record<string, any> = {},
     > = Attributes & InstanceType<Model> & MethodsI & {
-        [key in keyof RelatedNodesToAssociateI]?: RelatedNodesToAssociateI[key]['Instance'];
+        [key in keyof RelatedNodesToAssociateI]?: Array<RelatedNodesToAssociateI[key]['Instance']>;
     };
 
 /**
