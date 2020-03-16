@@ -37,24 +37,35 @@ interface GenericConfiguration {
 }
 
 /** used for defining the type of the RelatedNodesToAssociate interface, to be passed as the second generic to ModelFactory */
-export type ModelRelatedNodesI<
-    RelationshipValuesToCreateKey extends string,
+export interface ModelRelatedNodesI<
+    /** the type of the related model */
     RelatedModel extends {
         createOne: (
             data: any,
             configuration?: GenericConfiguration,
         ) => Promise<any>;
     },
+    /** the instance of the related model */
+    RelatedInstance,
+    /** the string which will be used as a key for Relationship Value creation */
+    RelationshipValuesToCreateKey extends string,
+    /** values for the relationship */
     RelationshipValues extends RelationshipValuesI = {}
-    > =
-    Parameters<RelatedModel['createOne']>[0] & {
+    > {
+    CreateData: Parameters<RelatedModel['createOne']>[0] & {
         [key in RelationshipValuesToCreateKey]?: RelationshipValues
     };
+    Instance: RelatedInstance;
+}
+
 
 /** to be used in create functions where the related nodes can be passed for creation */
-export type RelatedNodesCreationParamI<RelationshipValuesToCreateKey extends string, RelatedNodesToAssociateI> = {
-    [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI[key]>;
-};
+export type RelatedNodesCreationParamI<
+    RelationshipValuesToCreateKey extends string,
+    RelatedNodesToAssociateI extends Record<string, any>
+    > = {
+        [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI[key]['CreateData']>;
+    };
 
 /** the type of the relationship along with the values, so the proper relationship and/or nodes can be created */
 type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends string, Attributes extends {
@@ -91,36 +102,57 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
     );
 
 /** the type for the Relationship configuration of a Model */
-export type RelationshipsI<RelatedNodesToAssociateI> = Array<{
-    /** the related model. It could be the object of the model, or "self" for this model */
-    model: {
-        createOne: (
-            data: any,
-            configuration?: GenericConfiguration,
-        ) => Promise<any>;
-        createMany: (
-            data: any[],
-            configuration?: GenericConfiguration,
-        ) => Promise<any[]>;
-        getLabel: () => string;
-        getPrimaryKeyField: () => string;
-    } | 'self', // we can't use the actual Neo4JJayModel type due to circular references
-    /** the label for the relationship */
-    label: CreateRelationshipParamsI['relationship']['label'];
-    /** the direction of the relationship */
-    direction: 'out' | 'in' | 'none';
-    alias: keyof RelatedNodesToAssociateI;
-}>;
+export type RelationshipsI<
+    RelatedNodesToAssociateI extends Record<string, any>,
+    > = Array<{
+        /** the related model. It could be the object of the model, or "self" for this model */
+        model: {
+            createOne: (
+                data: any,
+                configuration?: GenericConfiguration,
+            ) => Promise<any>;
+            createMany: (
+                data: any[],
+                configuration?: GenericConfiguration,
+            ) => Promise<any[]>;
+            getLabel: () => string;
+            getPrimaryKeyField: () => string;
+        } | 'self', // we can't use the actual Neo4JJayModel type due to circular references
+        /** the label for the relationship */
+        label: CreateRelationshipParamsI['relationship']['label'];
+        /** the direction of the relationship */
+        direction: 'out' | 'in' | 'none';
+        alias: keyof RelatedNodesToAssociateI;
+    }>;
+
+/** the type of instance of the Model */
+export type Neo4JJayInstance<
+    /** the Model that this instance belongs to */
+    Model extends new (...args) => any,
+    /** the attributes used in the Model */
+    Attributes,
+    /** the Related Nodes to Associate used in the Model */
+    RelatedNodesToAssociateI extends Record<string, any>,
+    /** the Methods used in the Model */
+    MethodsI extends Record<string, any> = {},
+    > = Attributes & InstanceType<Model> & MethodsI & {
+        [key in keyof RelatedNodesToAssociateI]?: RelatedNodesToAssociateI[key]['Instance'];
+    };
 
 /**
  * a function which returns a class with the model operation functions for the given Attributes
  * RelatedNodesToAssociateI are the corresponding Nodes for Relationships
  */
 export const ModelFactory = <
+    /** the base Attribute of the node */
     Attributes,
-    RelatedNodesToAssociateI,
+    /** related nodes to associate. Label-ModelRelatedNodesI pairs */
+    RelatedNodesToAssociateI extends Record<string, any>,
+    /** the string which will be used as a key for Related Nodes creation */
     RelatedNodesToAssociateKey extends string,
+    /** interface for the statics of the model */
     StaticsI extends Record<string, any> = {},
+    /** interface for the methods of the instance */
     MethodsI extends Record<string, any> = {},
     >(
         params: {
@@ -167,7 +199,7 @@ export const ModelFactory = <
         });
     }
 
-    type Instance = Attributes & InstanceType<typeof Model> & MethodsI;
+    type Instance = Neo4JJayInstance<typeof Model, Attributes, RelatedNodesToAssociateI, MethodsI>;
 
     class Model {
 
@@ -560,7 +592,7 @@ export const ModelFactory = <
                 if (!data[relationshipCreationKeys.RelatedNodesToAssociate].hasOwnProperty(_alias)) { continue; }
                 const alias = _alias as keyof RelatedNodesToAssociateI;
 
-                const nodeCreateConfiguration: RelationshipTypeValueForCreateI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI[typeof alias]> = data[relationshipCreationKeys.RelatedNodesToAssociate][alias];
+                const nodeCreateConfiguration: RelationshipTypeValueForCreateI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI[typeof alias]['CreateData']> = data[relationshipCreationKeys.RelatedNodesToAssociate][alias];
 
                 // find the relationship with this alias
                 const relationship = relationships.find((r) => r.alias === alias);
