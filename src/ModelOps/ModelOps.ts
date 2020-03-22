@@ -5,8 +5,7 @@ import { NeogmaError } from '../errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
-import { CreateRelationshipParamsI, WhereStatementI } from '../QueryRunner';
-import { getWhere } from '../QueryRunner';
+import { AnyWhere, CreateRelationshipParamsI } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
@@ -384,11 +383,11 @@ export const ModelFactory = <
         ): Promise<Attributes> {
             configuration = configuration || {};
 
-            const where = getWhere({
+            const where = {
                 [label]: {
                     [primaryKeyField]: id,
                 },
-            });
+            };
 
             return getSession(configuration.session, async (session) => {
                 const res = await queryRunner.editMany(session, label, data, where);
@@ -410,11 +409,11 @@ export const ModelFactory = <
         ): Promise<Attributes[]> {
             configuration = configuration || {};
 
-            const where = getWhere({
+            const where = {
                 [label]: {
                     [primaryKeyField]: { in: ids },
                 },
-            });
+            };
 
             return getSession(configuration.session, async (session) => {
                 const res = await queryRunner.editMany(session, label, data, where);
@@ -434,11 +433,11 @@ export const ModelFactory = <
         ): Promise<boolean> {
             configuration = configuration || {};
 
-            const where = getWhere({
+            const where = {
                 [label]: {
                     [primaryKeyField]: id,
                 },
-            });
+            };
 
             return getSession(configuration.session, async (session) => {
                 const res = await queryRunner.deleteMany(
@@ -462,11 +461,11 @@ export const ModelFactory = <
         ): Promise<number> {
             configuration = configuration || {};
 
-            const where = getWhere({
+            const where = {
                 [label]: {
                     [primaryKeyField]: { in: ids },
                 },
-            });
+            };
 
             return getSession(configuration.session, async (session) => {
                 const res = await queryRunner.deleteMany(
@@ -482,8 +481,8 @@ export const ModelFactory = <
         public static async relateTo(
             params: {
                 alias: keyof RelatedNodesToAssociateI;
-                /** can access query labels by `source` and `target` */
-                where?: WhereStatementI;
+                /** can access query identifiers by `source` and `target` */
+                where?: AnyWhere;
                 values?: object;
             },
             configuration?: {
@@ -542,7 +541,7 @@ export const ModelFactory = <
          * @returns {Number} - the number of created relationships
          */
         public static async createRelationship(
-            /** for "where", can access query labels by `source` and `target` */
+            /** for "where", can access query identifiers by `source` and `target` */
             params: CreateRelationshipParamsI,
             configuration?: {
                 /** throws an error if the number of created relationships don't equal to this number */
@@ -623,14 +622,14 @@ export const ModelFactory = <
                                 label,
                                 values,
                             },
-                            where: getWhere({
+                            where: {
                                 source: {
                                     [primaryKeyField]: createdObjectId,
                                 },
                                 target: {
                                     [otherPrimaryKeyField]: targetId,
                                 },
-                            }),
+                            },
                         },
                         {
                             assertCreatedRelationships: typeof targetId === 'string' ? 1 : targetId.length,

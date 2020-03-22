@@ -1,5 +1,5 @@
 import { QueryResult, Session } from 'neo4j-driver/types';
-import { BindParam, WhereStatementI } from './Where';
+import { AnyWhere, BindParam, Where } from './Where';
 
 export interface CreateRelationshipParamsI {
     source: {
@@ -14,8 +14,8 @@ export interface CreateRelationshipParamsI {
         /** values to be set as relationship attributes */
         values?: object;
     };
-    /** can access query labels by `source` and `target` */
-    where: WhereStatementI;
+    /** can access query identifiers by `source` and `target` */
+    where: AnyWhere;
 }
 
 export class QueryRunner {
@@ -68,8 +68,10 @@ export class QueryRunner {
      * @param where - the where object for matching the nodes to be edited
      * @param options - the new data data, to be edited
      */
-    public editMany = async <T>(session: Session, nodesLabel: string, options: Partial<T>, where?: WhereStatementI): Promise<QueryResult> => {
+    public editMany = async <T>(session: Session, nodesLabel: string, options: Partial<T>, anyWhere?: AnyWhere): Promise<QueryResult> => {
         const label = QueryRunner.getLabel(nodesLabel);
+
+        const where = Where.get(anyWhere);
 
         let statement = `
             MATCH (${label}: ${label})
@@ -98,9 +100,10 @@ export class QueryRunner {
      * @param nodesLabel - the label of the nodes to create
      * @param where - the where object for matching the nodes to be deleted
      */
-    public deleteMany = async (session: Session, nodesLabel: string, where?: WhereStatementI): Promise<QueryResult> => {
-
+    public deleteMany = async (session: Session, nodesLabel: string, anyWhere?: AnyWhere): Promise<QueryResult> => {
         const label = QueryRunner.getLabel(nodesLabel);
+
+        const where = Where.get(anyWhere);
 
         let statement = `
             MATCH (${label}: ${label})
@@ -124,6 +127,7 @@ export class QueryRunner {
     public createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<QueryResult> => {
 
         const { source, target, relationship, where } = params;
+        const whereInstance = Where.get(where);
 
         /** 
          * string in the format -[Label]->
@@ -132,7 +136,7 @@ export class QueryRunner {
         const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${QueryRunner.getLabel(relationship.label)}]${relationship.direction === 'out' ? '->' : '-'}`;
 
         /** the params of the relationship value */
-        const relationshipAttributesParams = new BindParam(BindParam.acquire(where.bindParam).clone().get());
+        const relationshipAttributesParams = new BindParam(BindParam.acquire(whereInstance.bindParam).clone().get());
         /** the values to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
         const relationshipValues: string[] = [];
         if (relationship.values) {
@@ -149,7 +153,7 @@ export class QueryRunner {
 
         const statement = `
             MATCH (source:${QueryRunner.getLabel(source.label)}), (target:${QueryRunner.getLabel(target.label)})
-            WHERE ${where.statement}
+            WHERE ${whereInstance.statement}
             CREATE (source)${directionString}(target)
             ${relationshipValuesStatement}
         `;

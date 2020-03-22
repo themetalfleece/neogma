@@ -79,13 +79,6 @@ export class BindParam {
     }
 }
 
-export interface WhereStatementI {
-    /** the where statent string to be used in the query */
-    statement: string;
-    /** the params of the values associated with the statement, to be used as query parameters */
-    bindParam?: BindParam;
-}
-
 /** passing an array directly as an value also works, i.e. { primes: [2, 3, 5, 7] } */
 interface WhereInI {
     in: Array<string | number>;
@@ -97,60 +90,90 @@ const isWhereIn = (value: WhereAttributesI): value is WhereInI => {
 
 type WhereAttributesI = string | number | boolean | Array<string | number> | WhereInI;
 
-interface WhereParamsI {
-    /** the labels to use */
-    [label: string]: {
-        /** the keys of those labels */
+export interface WhereParamsI {
+    /** the identifiers to use */
+    [identifier: string]: {
+        /** the keys of those identifiers */
         [key: string]: WhereAttributesI;
     };
 }
 
-/**
- * returns a "where" string statement to be placed in a query, along with a BindParam. Ensures that keys of the bind param are unique
- */
-export const getWhere = (
-    options: WhereParamsI,
-    /** an existing bind param for the name/value to be added. If empty, a new one will be created and returned */
-    _bindParam?: BindParam,
-): WhereStatementI => {
-    let statement: WhereStatementI['statement'] = '';
+/** a Where instance or the basic object which can create a Where instance */
+export type AnyWhere = WhereParamsI | Where;
 
-    const bindParam = BindParam.acquire(_bindParam);
+export class Where {
+    /** where statement to be placed in a query */
+    public statement: string;
+    /** where bind params. Ensures that keys of the bind param are unique */
+    public readonly bindParam: BindParam;
+    /** all the given options, so we can easily combine them into a new statement */
+    private rawOptions: WhereParamsI[] = [];
+
+    constructor(
+        whereParams: WhereParamsI,
+        /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
+        bindOrWhere?: BindParam | Where,
+    ) {
+        this.statement = '';
+        this.rawOptions = [];
+        this.bindParam = new BindParam();
+        if (bindOrWhere instanceof BindParam) {
+            this.bindParam = BindParam.acquire(bindOrWhere);
+        } else if (bindOrWhere instanceof Where) {
+            // push the existing rawOptions in order, at the beginning of the array
+            this.rawOptions.push(...bindOrWhere.rawOptions);
+        }
+        // the the latest whereParams to the end of the array
+        this.rawOptions.push(whereParams);
+
+        // merge all rawOptions into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
+        const options = Object.assign({}, ...this.rawOptions);
+
+        for (const nodeAlias in options) {
+            if (!options.hasOwnProperty(nodeAlias)) { continue; }
+            for (const key in options[nodeAlias]) {
+                if (!options[nodeAlias].hasOwnProperty(key)) { continue; }
+
+                const value = options[nodeAlias][key];
+
+                if (['string', 'number', 'boolean', 'array'].includes(typeof value)) {
+                    // in case of an array, use the IN operand
+                    const operand = value instanceof Array ? 'IN' : '=';
+                    this.addAnd(`${nodeAlias}.${key} ${operand} ${this.getNameAndAddToParams(key, value)}`);
+                } else if (isWhereIn(value)) {
+                    this.addAnd(`${nodeAlias}.${key} IN ${this.getNameAndAddToParams(key, value.in)}`);
+                }
+            }
+        }
+
+        Object.setPrototypeOf(this, Where.prototype);
+
+    }
 
     /** generates a variable name, adds the value to the params under this name and returns it */
-    const getNameAndAddToParams = (prefix, value: string | number | boolean | object) => {
-        const name = bindParam.getUniqueNameAndAdd(prefix, value);
+    private getNameAndAddToParams = (prefix, value: string | number | boolean | object) => {
+        const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
         return `{${name}}`;
-    };
+    }
 
     /** adds a value to the statement by prepending AND if the statement already has a value */
-    const addAnd = (value: string) => {
-        if (!statement) {
-            statement += value;
+    private addAnd = (value: string) => {
+        if (!this.statement) {
+            this.statement += value;
         } else {
-            statement += ` AND ${value}`;
-        }
-    };
-
-    for (const nodeAlias in options) {
-        if (!options.hasOwnProperty(nodeAlias)) { continue; }
-        for (const key in options[nodeAlias]) {
-            if (!options[nodeAlias].hasOwnProperty(key)) { continue; }
-
-            const value = options[nodeAlias][key];
-
-            if (['string', 'number', 'boolean', 'array'].includes(typeof value)) {
-                // in case of an array, use the IN operand
-                const operand = value instanceof Array ? 'IN' : '=';
-                addAnd(`${nodeAlias}.${key} ${operand} ${getNameAndAddToParams(key, value)}`);
-            } else if (isWhereIn(value)) {
-                addAnd(`${nodeAlias}.${key} IN ${getNameAndAddToParams(key, value.in)}`);
-            }
+            this.statement += ` AND ${value}`;
         }
     }
 
-    return {
-        statement,
-        bindParam,
-    };
-};
+    /** returns a Where object if data is specified, else returns null */
+    public static get(params: AnyWhere, bindParam?: BindParam): Where | null {
+        if (!params) { return null; }
+
+        if (params instanceof Where) {
+            return params;
+        }
+
+        return new Where(params, bindParam);
+    }
+
+}
