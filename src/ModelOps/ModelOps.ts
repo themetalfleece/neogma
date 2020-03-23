@@ -5,7 +5,7 @@ import { NeogmaError } from '../errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
-import { AnyWhere, CreateRelationshipParamsI } from '../QueryRunner';
+import { AnyWhere, CreateRelationshipParamsI, Where } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
@@ -533,6 +533,36 @@ export const ModelFactory = <
 
                 return relationshipsCreated;
             });
+        }
+
+        /** wrapper for the static relateTo, where the source is always this node */
+        public async relateTo(
+            params: {
+                alias: keyof RelatedNodesToAssociateI;
+                /** can access query identifiers by `target`. `source` will be automatically set */
+                where?: AnyWhere;
+                values?: object;
+            },
+            configuration?: {
+                /** throws an error if the number of created relationships don't equal to this number */
+                assertCreatedRelationships?: number;
+                session?: GenericConfiguration['session'];
+            }
+        ) {
+            const where = Where.get(params.where);
+            where.addParams({
+                source: {
+                    _id: this[primaryKeyField],
+                },
+            });
+
+            return Model.relateTo(
+                {
+                    ...params,
+                    where,
+                },
+                configuration,
+            );
         }
 
         /**

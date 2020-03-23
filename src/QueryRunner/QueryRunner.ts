@@ -136,7 +136,7 @@ export class QueryRunner {
         const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${QueryRunner.getLabel(relationship.label)}]${relationship.direction === 'out' ? '->' : '-'}`;
 
         /** the params of the relationship value */
-        const relationshipAttributesParams = new BindParam(BindParam.acquire(whereInstance.bindParam).clone().get());
+        const relationshipAttributesParams = BindParam.acquire(whereInstance.bindParam).clone();
         /** the values to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
         const relationshipValues: string[] = [];
         if (relationship.values) {

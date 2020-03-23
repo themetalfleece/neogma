@@ -105,36 +105,54 @@ export class Where {
     /** where statement to be placed in a query */
     public statement: string;
     /** where bind params. Ensures that keys of the bind param are unique */
-    public readonly bindParam: BindParam;
+    public bindParam: BindParam;
     /** all the given options, so we can easily combine them into a new statement */
-    private rawOptions: WhereParamsI[] = [];
+    private rawParams: WhereParamsI[] = [];
 
     constructor(
+        /** the where parameters to use */
+        whereParams: Parameters<Where['addParams']>[0],
+        /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
+        bindOrWhere?: Parameters<Where['addParams']>[1],
+    ) {
+        this.addParams(whereParams, bindOrWhere);
+        Object.setPrototypeOf(this, Where.prototype);
+    }
+
+    /** refreshes the statement and the bindParams by the given where params */
+    public addParams(
+        /** the where parameters to use */
         whereParams: WhereParamsI,
         /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
         bindOrWhere?: BindParam | Where,
     ) {
-        this.statement = '';
-        this.rawOptions = [];
         this.bindParam = new BindParam();
         if (bindOrWhere instanceof BindParam) {
             this.bindParam = BindParam.acquire(bindOrWhere);
         } else if (bindOrWhere instanceof Where) {
-            // push the existing rawOptions in order, at the beginning of the array
-            this.rawOptions.push(...bindOrWhere.rawOptions);
+            // push the existing rawParams in order, at the beginning of the array
+            this.rawParams.push(...bindOrWhere.rawParams);
         }
         // the the latest whereParams to the end of the array
-        this.rawOptions.push(whereParams);
+        this.rawParams.push(whereParams);
 
-        // merge all rawOptions into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
-        const options = Object.assign({}, ...this.rawOptions);
+        // set the statement and bindParams fields
+        this.setFieldsByRawParams();
+    }
 
-        for (const nodeAlias in options) {
-            if (!options.hasOwnProperty(nodeAlias)) { continue; }
-            for (const key in options[nodeAlias]) {
-                if (!options[nodeAlias].hasOwnProperty(key)) { continue; }
+    /** sets the statement, bindParams fields by the rawParams */
+    private setFieldsByRawParams() {
+        this.statement = '';
 
-                const value = options[nodeAlias][key];
+        // merge all rawParams into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
+        const params = Object.assign({}, ...this.rawParams);
+
+        for (const nodeAlias in params) {
+            if (!params.hasOwnProperty(nodeAlias)) { continue; }
+            for (const key in params[nodeAlias]) {
+                if (!params[nodeAlias].hasOwnProperty(key)) { continue; }
+
+                const value = params[nodeAlias][key];
 
                 if (['string', 'number', 'boolean', 'array'].includes(typeof value)) {
                     // in case of an array, use the IN operand
@@ -145,9 +163,6 @@ export class Where {
                 }
             }
         }
-
-        Object.setPrototypeOf(this, Where.prototype);
-
     }
 
     /** generates a variable name, adds the value to the params under this name and returns it */
