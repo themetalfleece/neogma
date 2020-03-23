@@ -98,6 +98,14 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
                 }
             )>;
         }
+    ) | (
+        {
+            type: 'where';
+            /** can access target node identifier with `target` */
+            where: AnyWhere;
+        } & {
+            [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+        }
     );
 
 /** the type for the Relationship configuration of a Model */
@@ -629,29 +637,18 @@ export const ModelFactory = <
                     throw new NeogmaNotFoundError(`A relationship with the given alias couldn't be found`, { alias });
                 }
 
-                const { direction, model: relationshipModel, label } = relationship;
+                const relationshipModel = relationship.model;
 
-                const createRelationship = (
+                const createRelationshipToIds = (
                     targetId: string | string[],
                     values?: CreateRelationshipParamsI['relationship']['values'],
                 ) => {
-                    /** the label and primary key of the `b` Model */
-                    const targetLabel = Model.getLabelFromRelationshipModel(relationshipModel);
                     const otherPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
 
-                    return this.createRelationship(
+                    return Model.relateTo(
                         {
-                            source: {
-                                label: this.getLabel(),
-                            },
-                            target: {
-                                label: targetLabel,
-                            },
-                            relationship: {
-                                direction,
-                                label,
-                                values,
-                            },
+                            alias: relationship.alias,
+                            values,
                             where: {
                                 source: {
                                     [primaryKeyField]: createdObjectId,
@@ -679,7 +676,7 @@ export const ModelFactory = <
                         });
                     }
 
-                    await createRelationship(targetId, nodeCreateConfiguration[relationshipCreationKeys.RelatedNodesToAssociate]);
+                    await createRelationshipToIds(targetId, nodeCreateConfiguration[relationshipCreationKeys.RelationshipValuesToCreate]);
                 } else if (nodeCreateConfiguration.type === 'array of ids') {
                     /* for 'array of ids', just create the relationship with the given ids */
                     const targetIds = nodeCreateConfiguration.values;
@@ -692,7 +689,7 @@ export const ModelFactory = <
                         });
                     }
 
-                    await createRelationship(targetIds);
+                    await createRelationshipToIds(targetIds);
 
                 } else if (nodeCreateConfiguration.type === 'array of objects') {
                     /* for 'array of objects', create the nodes and the relationships with them */
@@ -735,7 +732,7 @@ export const ModelFactory = <
                         }
 
                         /* finally, create all relationships in bulk */
-                        await createRelationship(withoutRelationshipValuesNodesToCreate.map((value) => value[primaryKeyField]));
+                        await createRelationshipToIds(withoutRelationshipValuesNodesToCreate.map((value) => value[primaryKeyField]));
                     }
 
                     /* create the nodes with relationship values */
@@ -756,7 +753,7 @@ export const ModelFactory = <
                                 await relationshipModel.createOne(nodeDataToCreate as unknown as Attributes, { session });
                             }
 
-                            await createRelationship(nodeDataToCreate[primaryKeyField], relationshipValues);
+                            await createRelationshipToIds(nodeDataToCreate[primaryKeyField], relationshipValues);
                         }
                     }
 
@@ -785,7 +782,7 @@ export const ModelFactory = <
                             valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate]
                             && !isEmptyObject(valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate])
                         ) {
-                            await createRelationship(
+                            await createRelationshipToIds(
                                 valueToCreate.id,
                                 valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate]
                             );
@@ -794,7 +791,31 @@ export const ModelFactory = <
                         }
                     }
 
-                    await createRelationship(bulkCreateRelationshipIds);
+                    await createRelationshipToIds(bulkCreateRelationshipIds);
+                } else if (nodeCreateConfiguration.type === 'where') {
+                    if (!nodeCreateConfiguration.where) {
+                        throw new NeogmaConstraintError('Relationship value must be AnyWhere', {
+                            description: nodeCreateConfiguration,
+                            actual: nodeCreateConfiguration.where,
+                            expected: 'AnyWhere',
+                        });
+                    }
+
+                    const where = Where.get(nodeCreateConfiguration.where);
+                    // source is always the created node
+                    where.addParams({
+                        source: {
+                            [primaryKeyField]: createdObjectId,
+                        },
+                    });
+
+                    await Model.relateTo(
+                        {
+                            alias: relationship.alias,
+                            values: nodeCreateConfiguration[relationshipCreationKeys.RelationshipValuesToCreate],
+                            where,
+                        }
+                    );
                 }
 
             }
