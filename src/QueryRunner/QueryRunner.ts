@@ -1,5 +1,5 @@
 import { QueryResult, Session } from 'neo4j-driver/types';
-import { AnyWhere, BindParam, Where } from './Where';
+import { AnyWhereI, BindParam, Where } from './Where';
 
 export interface CreateRelationshipParamsI {
     source: {
@@ -15,7 +15,7 @@ export interface CreateRelationshipParamsI {
         values?: object;
     };
     /** can access query identifiers by `source` and `target` */
-    where: AnyWhere;
+    where: AnyWhereI;
 }
 
 export class QueryRunner {
@@ -29,11 +29,14 @@ export class QueryRunner {
         this.logger = params?.logger || null;
     }
 
-    /** surrounds the label with backticks to also allow spaces */
-    public static getLabel = (label: string) => '`' + label + '`';
-
     private log(...val: Array<string | boolean | object | number>) {
         this.logger?.(...val);
+    }
+
+    /** surrounds the label with backticks to also allow spaces */
+    public static getNormalizedLabels = (label: string | string[]) => {
+        const labels = label instanceof Array ? label : [label];
+        return labels.map((l) => '`' + l + '`').join(':');
     }
 
     /**
@@ -41,16 +44,17 @@ export class QueryRunner {
      * @param session - the session for running this query
      * @param nodesLabel - the label of the nodes to create
      * @param options - the data to create
+     * @param identifier - identifier for the nodes
      */
-    public createMany = async <T>(session: Session, nodesLabel: string, options: T[]): Promise<QueryResult> => {
+    public createMany = async <T>(session: Session, label: string, options: T[], identifier?: string): Promise<QueryResult> => {
 
-        const label = QueryRunner.getLabel(nodesLabel);
+        identifier = identifier || 'nodes';
 
         const statement = `
-            UNWIND {options} as ${label}
-            CREATE (node: ${label})
-            SET node = ${label}
-            RETURN ${label};
+            UNWIND {options} as data
+            CREATE (${identifier}:${label})
+            SET ${identifier} += data
+            RETURN ${identifier};
         `;
 
         const parameters = { options };
@@ -67,21 +71,22 @@ export class QueryRunner {
      * @param nodesLabel - the label of the nodes to create
      * @param where - the where object for matching the nodes to be edited
      * @param options - the new data data, to be edited
+     * @param identifier - identifier for the nodes
      */
-    public editMany = async <T>(session: Session, nodesLabel: string, options: Partial<T>, anyWhere?: AnyWhere): Promise<QueryResult> => {
-        const label = QueryRunner.getLabel(nodesLabel);
-
+    public editMany = async <T>(session: Session, label: string, options: Partial<T>, anyWhere?: AnyWhereI, identifier?: string): Promise<QueryResult> => {
         const where = Where.get(anyWhere);
 
+        identifier = identifier || 'nodes';
+
         let statement = `
-            MATCH (${label}: ${label})
+            MATCH (${identifier}:${label})
         `;
         if (where) {
             statement += `WHERE ${where.statement}`;
         }
         statement += `
-            SET ${label} += { options }
-            return ${label}
+            SET ${identifier} += { options }
+            return ${identifier}
         `;
 
         const parameters = {
@@ -99,21 +104,22 @@ export class QueryRunner {
      * @param session - the session for running this query
      * @param nodesLabel - the label of the nodes to create
      * @param where - the where object for matching the nodes to be deleted
+     * @param identifier - identifier for the nodes
      */
-    public deleteMany = async (session: Session, nodesLabel: string, anyWhere?: AnyWhere): Promise<QueryResult> => {
-        const label = QueryRunner.getLabel(nodesLabel);
-
+    public deleteMany = async (session: Session, label: string, anyWhere?: AnyWhereI, identifier?: string): Promise<QueryResult> => {
         const where = Where.get(anyWhere);
 
+        identifier = identifier || 'nodes';
+
         let statement = `
-            MATCH (${label}: ${label})
+            MATCH (${identifier}: ${label})
         `;
         if (where) {
             statement += `WHERE ${where.statement}`;
         }
         statement += `
-            OPTIONAL MATCH (${label})-[r]-()
-            DELETE ${label},r
+            OPTIONAL MATCH (${identifier})-[r]-()
+            DELETE ${identifier},r
         `;
 
         const parameters = { ...where?.bindParam.get() };
@@ -133,7 +139,7 @@ export class QueryRunner {
          * string in the format -[Label]->
          * relationship has the alias `r`
          */
-        const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${QueryRunner.getLabel(relationship.label)}]${relationship.direction === 'out' ? '->' : '-'}`;
+        const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${relationship.label}]${relationship.direction === 'out' ? '->' : '-'}`;
 
         /** the params of the relationship value */
         const relationshipAttributesParams = BindParam.acquire(whereInstance.bindParam).clone();
@@ -152,7 +158,7 @@ export class QueryRunner {
         const relationshipValuesStatement = relationshipValues.length ? 'SET ' + relationshipValues.join(', ') : '';
 
         const statement = `
-            MATCH (source:${QueryRunner.getLabel(source.label)}), (target:${QueryRunner.getLabel(target.label)})
+            MATCH (source:${source.label}), (target:${target.label})
             WHERE ${whereInstance.statement}
             CREATE (source)${directionString}(target)
             ${relationshipValuesStatement}

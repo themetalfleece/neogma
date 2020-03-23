@@ -99,7 +99,7 @@ export interface WhereParamsI {
 }
 
 /** a Where instance or the basic object which can create a Where instance */
-export type AnyWhere = WhereParamsI | Where;
+export type AnyWhereI = WhereParamsI | Where;
 
 export class Where {
     /** where statement to be placed in a query */
@@ -181,7 +181,7 @@ export class Where {
     }
 
     /** returns a Where object if data is specified, else returns null */
-    public static get(params: AnyWhere, bindParam?: BindParam): Where | null {
+    public static get(params: AnyWhereI, bindParam?: BindParam): Where | null {
         if (!params) { return null; }
 
         if (params instanceof Where) {
