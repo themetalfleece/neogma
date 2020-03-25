@@ -4,9 +4,13 @@ import { AnyWhereI, BindParam, Where } from './Where';
 export interface CreateRelationshipParamsI {
     source: {
         label: string;
+        /** identifier to be used in the query. defaults to the value of QueryRunner.identifiers.createRelationship.source */
+        identifier?: string;
     };
     target: {
         label: string;
+        /** identifier to be used in the query. defaults to the value of QueryRunner.identifiers.createRelationship.target */
+        identifier?: string;
     };
     relationship: {
         label: string;
@@ -14,7 +18,7 @@ export interface CreateRelationshipParamsI {
         /** values to be set as relationship attributes */
         values?: object;
     };
-    /** can access query identifiers by `source` and `target` */
+    /** can access query identifiers by setting the "identifiers" property, else by the values of QueryRunnder.identifiers.createRelationship */
     where: AnyWhereI;
 }
 
@@ -157,10 +161,14 @@ export class QueryRunner {
         /** the relationship values statement to be inserted into the final statement string */
         const relationshipValuesStatement = relationshipValues.length ? 'SET ' + relationshipValues.join(', ') : '';
 
+        const identifiers = {
+            source: source.identifier || QueryRunner.identifiers.createRelationship.source,
+            target: target.identifier || QueryRunner.identifiers.createRelationship.target,
+        };
         const statement = `
-            MATCH (source:${source.label}), (target:${target.label})
+            MATCH (${identifiers.source}:${source.label}), (${identifiers.target}:${target.label})
             WHERE ${whereInstance.statement}
-            CREATE (source)${directionString}(target)
+            CREATE (${identifiers.source})${directionString}(${identifiers.target})
             ${relationshipValuesStatement}
         `;
 
@@ -170,5 +178,16 @@ export class QueryRunner {
 
         return session.run(statement, parameters);
     }
+
+    /** default identifiers for the queries */
+    public static readonly identifiers = {
+        /** default identifiers for createRelationship */
+        createRelationship: {
+            /** default identifier for the source node */
+            source: 'source',
+            /** default identifier for the target node */
+            target: 'target',
+        },
+    };
 
 }

@@ -101,7 +101,7 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
     ) | (
         {
             type: 'where';
-            /** can access target node identifier with `target` */
+            /** can access target node identifier with the value of QueryRunner.identifiers.createRelationship.target */
             where: AnyWhereI;
         } & {
             [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
@@ -490,8 +490,15 @@ export const ModelFactory = <
         public static async relateTo(
             params: {
                 alias: keyof RelatedNodesToAssociateI;
-                /** can access query identifiers by `source` and `target` */
+                /** can access query identifiers by setting the "identifiers" property, else by the values of QueryRunnder.identifiers.createRelationship */
                 where?: AnyWhereI;
+                /** identifiers to use in the query */
+                identifiers?: {
+                    /** identifier for the source node */
+                    source?: string;
+                    /** identifier for the target node */
+                    target?: string;
+                };
                 values?: object;
             },
             configuration?: {
@@ -514,9 +521,11 @@ export const ModelFactory = <
                     {
                         source: {
                             label,
+                            identifier: params.identifiers?.source,
                         },
                         target: {
                             label: Model.getLabelFromRelationshipModel(relationship.model),
+                            identifier: params.identifiers?.target,
                         },
                         relationship: {
                             label: relationship.label,
@@ -548,8 +557,15 @@ export const ModelFactory = <
         public async relateTo(
             params: {
                 alias: keyof RelatedNodesToAssociateI;
-                /** can access query identifiers by `target`. `source` will be automatically set */
+                /** can access the target identifier by setting the "identifiers" property, else by QueryRunnder.identifiers.createRelationship.target. The source identifier will always be set */
                 where?: AnyWhereI;
+                /** identifiers to use in the query */
+                identifiers?: {
+                    /** identifier for the source node */
+                    source?: string;
+                    /** identifier for the target node */
+                    target?: string;
+                };
                 values?: object;
             },
             configuration?: {
@@ -559,8 +575,9 @@ export const ModelFactory = <
             }
         ) {
             const where = Where.get(params.where);
+            const sourceIdentifier = params.identifiers?.source || QueryRunner.identifiers.createRelationship.source;
             where.addParams({
-                source: {
+                [sourceIdentifier]: {
                     _id: this[primaryKeyField],
                 },
             });
@@ -580,7 +597,6 @@ export const ModelFactory = <
          * @returns {Number} - the number of created relationships
          */
         public static async createRelationship(
-            /** for "where", can access query identifiers by `source` and `target` */
             params: CreateRelationshipParamsI,
             configuration?: {
                 /** throws an error if the number of created relationships don't equal to this number */
@@ -805,7 +821,7 @@ export const ModelFactory = <
                     const where = Where.get(nodeCreateConfiguration.where);
                     // source is always the created node
                     where.addParams({
-                        source: {
+                        [QueryRunner.identifiers.createRelationship.source]: {
                             [primaryKeyField]: createdObjectId,
                         },
                     });
