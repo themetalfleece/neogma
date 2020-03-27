@@ -5,7 +5,7 @@ import { NeogmaError } from '../errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
-import { AnyWhereI, CreateRelationshipParamsI, QueryRunner, Where } from '../QueryRunner';
+import { AnyWhereI, CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
@@ -23,7 +23,7 @@ const getNodesDeleted = (result: QueryResult): number => {
 };
 
 /** the type of the values to be added to a relationship */
-export type RelationshipValuesI = Record<string, string | boolean | number>;
+export type RelationshipValuesI = Record<string, Neo4jSupportedTypes>;
 
 /** interface used for the keys which will be used on instance creation for associating related notes and creating relationship values */
 interface RelationshipCreationKeysI {

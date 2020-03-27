@@ -1,6 +1,8 @@
 import { QueryResult, Session } from 'neo4j-driver/types';
 import { AnyWhereI, BindParam, Where } from './Where';
 
+export type Neo4jSupportedTypes = string | number | boolean | Date | Array<string | number | boolean | Date>;
+
 export interface CreateRelationshipParamsI {
     source: {
         label: string;

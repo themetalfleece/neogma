@@ -1,6 +1,7 @@
 import * as clone from 'clone';
 import { NeogmaConstraintError } from '../errors/NeogmaConstraintError';
 import { StringSequence } from '../utils/StringSequence';
+import { Neo4jSupportedTypes } from './QueryRunner';
 
 /**
  * the bind param which should be passed to a query. It throws an error if more than one of each key is added
@@ -88,7 +89,7 @@ const isWhereIn = (value: WhereAttributesI): value is WhereInI => {
     return (value as any).in;
 };
 
-type WhereAttributesI = string | number | boolean | Array<string | number> | WhereInI;
+type WhereAttributesI = Neo4jSupportedTypes | WhereInI;
 
 export interface WhereParamsI {
     /** the identifiers to use */
@@ -155,9 +156,7 @@ export class Where {
                 const value = params[nodeAlias][key];
 
                 if (['string', 'number', 'boolean', 'array'].includes(typeof value)) {
-                    // in case of an array, use the IN operand
-                    const operand = value instanceof Array ? 'IN' : '=';
-                    this.addAnd(`${nodeAlias}.${key} ${operand} ${this.getNameAndAddToParams(key, value)}`);
+                    this.addAnd(`${nodeAlias}.${key} = ${this.getNameAndAddToParams(key, value)}`);
                 } else if (isWhereIn(value)) {
                     this.addAnd(`${nodeAlias}.${key} IN ${this.getNameAndAddToParams(key, value.in)}`);
                 }
@@ -166,7 +165,7 @@ export class Where {
     }
 
     /** generates a variable name, adds the value to the params under this name and returns it */
-    private getNameAndAddToParams = (prefix, value: string | number | boolean | object) => {
+    private getNameAndAddToParams = (prefix, value: Neo4jSupportedTypes) => {
         const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
         return `{${name}}`;
     }
