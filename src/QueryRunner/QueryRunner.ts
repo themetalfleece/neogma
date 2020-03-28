@@ -5,12 +5,12 @@ export type Neo4jSupportedTypes = string | number | boolean | Date | Array<strin
 
 export interface CreateRelationshipParamsI {
     source: {
-        label: string;
+        label?: string;
         /** identifier to be used in the query. defaults to the value of QueryRunner.identifiers.createRelationship.source */
         identifier?: string;
     };
     target: {
-        label: string;
+        label?: string;
         /** identifier to be used in the query. defaults to the value of QueryRunner.identifiers.createRelationship.target */
         identifier?: string;
     };
@@ -21,7 +21,7 @@ export interface CreateRelationshipParamsI {
         values?: object;
     };
     /** can access query identifiers by setting the "identifiers" property, else by the values of QueryRunnder.identifiers.createRelationship */
-    where: AnyWhereI;
+    where?: AnyWhereI;
 }
 
 export class QueryRunner {
@@ -39,10 +39,21 @@ export class QueryRunner {
         this.logger?.(...val);
     }
 
-    /** surrounds the label with backticks to also allow spaces */
-    public static getNormalizedLabels = (label: string | string[]) => {
+    /** 
+     * surrounds the label with backticks to also allow spaces
+     * @param label - the label to use
+     * @param operation - defaults to 'and'. Whether to generate a "and" or an "or" operation for the labels
+     */
+    public static getNormalizedLabels = (label: string | string[], operation?: 'and' | 'or') => {
         const labels = label instanceof Array ? label : [label];
-        return labels.map((l) => '`' + l + '`').join(':');
+        return labels.map((l) => '`' + l + '`').join(operation === 'or' ? '|' : ':');
+    }
+
+    /**
+     * returns a string to be used in a query, regardless if any of the identifier or label are null
+     */
+    public static getIdentifierWithLabel = (identifier?: string, label?: string) => {
+        return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
     }
 
     /**
@@ -65,10 +76,7 @@ export class QueryRunner {
 
         const parameters = { options };
 
-        this.log(statement, parameters);
-
-        return session.run(statement, parameters);
-
+        return this.run(session, statement, parameters);
     }
 
     /**
@@ -84,25 +92,22 @@ export class QueryRunner {
 
         identifier = identifier || 'nodes';
 
-        let statement = `
-            MATCH (${identifier}:${label})
-        `;
+        const statementParts: string[] = [];
+        statementParts.push(`MATCH (${identifier}:${label})`);
         if (where) {
-            statement += `WHERE ${where.statement}`;
+            statementParts.push(`WHERE ${where.statement}`);
         }
-        statement += `
+        statementParts.push(`
             SET ${identifier} += { options }
-            return ${identifier}
-        `;
+            RETURN ${identifier}
+        `);
 
+        const statement = statementParts.join(' ');
         const parameters = {
             ...BindParam.acquire(where?.bindParam).clone().add(options).get(),
         };
 
-        this.log(statement, parameters);
-
-        return session.run(statement, parameters);
-
+        return this.run(session, statement, parameters);
     }
 
     /**
@@ -117,23 +122,20 @@ export class QueryRunner {
 
         identifier = identifier || 'nodes';
 
-        let statement = `
-            MATCH (${identifier}: ${label})
-        `;
+        const statementParts: string[] = [];
+        statementParts.push(`MATCH (${identifier}: ${label})`);
         if (where) {
-            statement += `WHERE ${where.statement}`;
+            statementParts.push(`WHERE ${where.statement}`);
         }
-        statement += `
+        statementParts.push(`
             OPTIONAL MATCH (${identifier})-[r]-()
             DELETE ${identifier},r
-        `;
+        `);
 
+        const statement = statementParts.join(' ');
         const parameters = { ...where?.bindParam.get() };
 
-        this.log(statement, parameters);
-
-        return session.run(statement, parameters);
-
+        return this.run(session, statement, parameters);
     }
 
     public createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<QueryResult> => {
@@ -148,7 +150,7 @@ export class QueryRunner {
         const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${relationship.label}]${relationship.direction === 'out' ? '->' : '-'}`;
 
         /** the params of the relationship value */
-        const relationshipAttributesParams = BindParam.acquire(whereInstance.bindParam).clone();
+        const relationshipAttributesParams = BindParam.acquire(whereInstance?.bindParam).clone();
         /** the values to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
         const relationshipValues: string[] = [];
         if (relationship.values) {
@@ -167,18 +169,34 @@ export class QueryRunner {
             source: source.identifier || QueryRunner.identifiers.createRelationship.source,
             target: target.identifier || QueryRunner.identifiers.createRelationship.target,
         };
-        const statement = `
-            MATCH (${identifiers.source}:${source.label}), (${identifiers.target}:${target.label})
-            WHERE ${whereInstance.statement}
-            CREATE (${identifiers.source})${directionString}(${identifiers.target})
+        const { getIdentifierWithLabel } = QueryRunner;
+        const statementParts: string[] = [];
+        statementParts.push(`
+        MATCH 
+            (${getIdentifierWithLabel(identifiers.source, source.label)}), 
+            (${getIdentifierWithLabel(identifiers.target, target.label)})
+        `);
+        if (whereInstance) {
+            statementParts.push(`WHERE ${whereInstance.statement}`);
+        }
+        statementParts.push(`CREATE
+            (${identifiers.source})${directionString}(${identifiers.target})
             ${relationshipValuesStatement}
-        `;
+        `);
 
+        const statement = statementParts.join(' ');
         const parameters = relationshipAttributesParams.get();
 
-        this.log(statement, parameters);
+        return this.run(session, statement, parameters);
+    }
 
-        return session.run(statement, parameters);
+    /** runs the statement */
+    public run(session: Session, statement: string, parameters: Record<string, any>) {
+        const trimmedStatement = statement.replace(/\s+/g, ' ');
+        this.log('Executing statement:', trimmedStatement);
+        this.log('Parameters:', parameters);
+
+        return session.run(trimmedStatement, parameters);
     }
 
     /** default identifiers for the queries */
