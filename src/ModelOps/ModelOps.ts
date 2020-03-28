@@ -5,7 +5,7 @@ import { NeogmaError } from '../errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
-import { AnyWhereI, CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where } from '../QueryRunner';
+import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
@@ -90,19 +90,19 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
     ) | (
         {
             type: 'array of id objects',
-            values: Array<(
+            values: (
                 {
                     id: string;
                 } & {
                     [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
                 }
-            )>;
+            )[];
         }
     ) | (
         {
             type: 'where';
-            /** can access target node identifier with the value of QueryRunner.identifiers.createRelationship.target */
-            where: AnyWhereI;
+            /** where for the target nodes */
+            where: WhereParamsI;
         } & {
             [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
         }
@@ -111,7 +111,7 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
 /** the type for the Relationship configuration of a Model */
 export type RelationshipsI<
     RelatedNodesToAssociateI extends Record<string, any>,
-    > = Array<{
+    > = {
         /** the related model. It could be the object of the model, or "self" for this model */
         model: {
             createOne: (
@@ -130,7 +130,7 @@ export type RelationshipsI<
         /** the direction of the relationship */
         direction: 'out' | 'in' | 'none';
         alias: keyof RelatedNodesToAssociateI;
-    }>;
+    }[];
 
 /** the type of instance of the Model */
 export type NeogmaInstance<
@@ -143,7 +143,7 @@ export type NeogmaInstance<
     /** the Methods used in the Model */
     MethodsI extends Record<string, any> = {},
     > = Attributes & InstanceType<Model> & MethodsI & {
-        [key in keyof RelatedNodesToAssociateI]?: Array<RelatedNodesToAssociateI[key]['Instance']>;
+        [key in keyof RelatedNodesToAssociateI]?: RelatedNodesToAssociateI[key]['Instance'][];
     };
 
 /**
@@ -190,6 +190,8 @@ export const ModelFactory = <
     const statics = parameters.statics || {};
     const methods = parameters.methods || {};
     const relationships = parameters.relationships || [];
+    /* helper name for queries */
+    const modelName = (modelLabel instanceof Array ? modelLabel : [modelLabel]).join('');
 
     const queryRunner = neogma.getQueryRunner();
     const getSession = neogma.getSession;
@@ -225,6 +227,8 @@ export const ModelFactory = <
         public static getPrimaryKeyField() { return modelPrimaryKeyField; }
 
         public static getRelationshipCreationKeys() { return relationshipCreationKeys; }
+
+        public static getModelName() { return modelName; }
 
         public getDataValues(): Attributes {
             const data: Attributes = Object.keys(schema).reduce((acc, key) => {
@@ -503,14 +507,9 @@ export const ModelFactory = <
         public static async relateTo(
             params: {
                 alias: keyof RelatedNodesToAssociateI;
-                /** can access query identifiers by setting the "identifiers" property, else by the values of QueryRunnder.identifiers.createRelationship */
-                where?: AnyWhereI;
-                /** identifiers to use in the query */
-                identifiers?: {
-                    /** identifier for the source node */
-                    source?: string;
-                    /** identifier for the target node */
-                    target?: string;
+                where: {
+                    source: WhereParamsI;
+                    target: WhereParamsI;
                 };
                 values?: object;
             },
@@ -529,23 +528,27 @@ export const ModelFactory = <
             }
 
             return getSession(configuration?.session, async (session) => {
+                const where: WhereParamsByIdentifierI = {};
+                if (params.where) {
+                    where[QueryRunner.identifiers.createRelationship.source] = params.where.source;
+                    where[QueryRunner.identifiers.createRelationship.target] = params.where.target;
+                }
+
                 const res = await queryRunner.createRelationship(
                     session,
                     {
                         source: {
                             label: QueryRunner.getNormalizedLabels(modelLabel),
-                            identifier: params.identifiers?.source,
                         },
                         target: {
                             label: QueryRunner.getNormalizedLabels(Model.getLabelFromRelationshipModel(relationship.model)),
-                            identifier: params.identifiers?.target,
                         },
                         relationship: {
                             label: relationship.label,
                             direction: relationship.direction,
                             values: {},
                         },
-                        where: params.where,
+                        where,
                     }
                 );
                 const relationshipsCreated = res.summary.counters.updates().relationshipsCreated;
@@ -570,15 +573,8 @@ export const ModelFactory = <
         public async relateTo(
             params: {
                 alias: keyof RelatedNodesToAssociateI;
-                /** can access the target identifier by setting the "identifiers" property, else by QueryRunnder.identifiers.createRelationship.target. The source identifier will always be set */
-                where?: AnyWhereI;
-                /** identifiers to use in the query */
-                identifiers?: {
-                    /** identifier for the source node */
-                    source?: string;
-                    /** identifier for the target node */
-                    target?: string;
-                };
+                /** where statement for the target node */
+                where: WhereParamsI;
                 values?: object;
             },
             configuration?: {
@@ -587,13 +583,12 @@ export const ModelFactory = <
                 session?: GenericConfiguration['session'];
             }
         ) {
-            const where = Where.get(params.where);
-            const sourceIdentifier = params.identifiers?.source || QueryRunner.identifiers.createRelationship.source;
-            where.addParams({
-                [sourceIdentifier]: {
+            const where: Parameters<typeof Model.relateTo>[0]['where'] = {
+                source: {
                     _id: this[modelPrimaryKeyField],
                 },
-            });
+                target: params.where,
+            };
 
             return Model.relateTo(
                 {
@@ -737,8 +732,8 @@ export const ModelFactory = <
                     const primaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
 
                     /** organize them depending on whether relationship values need to be created, so to single or bulk create them appropriately */
-                    const withRelationshipValuesNodesToCreate: Array<typeof nodeCreateConfigurationValues[0]> = [];
-                    const withoutRelationshipValuesNodesToCreate: Array<RelatedNodesToAssociateI[Extract<keyof RelatedNodesToAssociateI, string>]> = [];
+                    const withRelationshipValuesNodesToCreate: typeof nodeCreateConfigurationValues[0][] = [];
+                    const withoutRelationshipValuesNodesToCreate: RelatedNodesToAssociateI[Extract<keyof RelatedNodesToAssociateI, string>][] = [];
 
                     for (const valueToCreate of nodeCreateConfigurationValues) {
                         if (valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate] && !isEmptyObject(valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate])) {
@@ -824,20 +819,19 @@ export const ModelFactory = <
                     await createRelationshipToIds(bulkCreateRelationshipIds);
                 } else if (nodeCreateConfiguration.type === 'where') {
                     if (!nodeCreateConfiguration.where) {
-                        throw new NeogmaConstraintError('Relationship value must be AnyWhere', {
+                        throw new NeogmaConstraintError('Relationship value must be WhereParamsI', {
                             description: nodeCreateConfiguration,
                             actual: nodeCreateConfiguration.where,
-                            expected: 'AnyWhere',
+                            expected: 'WhereParamsI',
                         });
                     }
 
-                    const where = Where.get(nodeCreateConfiguration.where);
-                    // source is always the created node
-                    where.addParams({
-                        [QueryRunner.identifiers.createRelationship.source]: {
+                    const where: Parameters<typeof Model.relateTo>[0]['where'] = {
+                        source: {
                             [modelPrimaryKeyField]: createdObjectId,
                         },
-                    });
+                        target: nodeCreateConfiguration.where,
+                    };
 
                     await Model.relateTo(
                         {
@@ -873,6 +867,9 @@ export const ModelFactory = <
         if (!methods.hasOwnProperty(methodKey)) { continue; }
         Model.prototype[methodKey as keyof typeof Model.prototype] = methods[methodKey];
     }
+
+    // add to modelsByName
+    neogma.modelsByName[modelName] = Model;
 
     return Model as (typeof Model) & StaticsI;
 };

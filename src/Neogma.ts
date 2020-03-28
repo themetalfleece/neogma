@@ -1,6 +1,6 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Session } from 'neo4j-driver/types';
-import { ModelFactory } from './ModelOps';
+import { NeogmaModel } from './ModelOps';
 import { QueryRunner } from './QueryRunner';
 import { getSession } from './Sessions/Sessions';
 const neo4j = neo4j_driver;
@@ -19,6 +19,8 @@ interface ConnectOptionsI {
 export class Neogma {
     private driver: neo4j_driver.Driver;
     private queryRunner: QueryRunner;
+    /** a map between each Model's modelName and the Model itself */
+    public modelsByName: Record<string, NeogmaModel> = {};
 
     /**
      * 

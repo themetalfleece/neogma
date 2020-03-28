@@ -21,7 +21,7 @@ export interface CreateRelationshipParamsI {
         /** values to be set as relationship attributes */
         values?: object;
     };
-    /** can access query identifiers by setting the "identifiers" property, else by the values of QueryRunnder.identifiers.createRelationship */
+    /** can access query identifiers by setting the "identifier" property of source/target, else by the values of QueryRunnder.identifiers.createRelationship */
     where?: AnyWhereI;
 }
 
@@ -174,9 +174,9 @@ export class QueryRunner {
         const { getIdentifierWithLabel } = QueryRunner;
         const statementParts: string[] = [];
         statementParts.push(`
-        MATCH 
-            (${getIdentifierWithLabel(identifiers.source, source.label)}), 
-            (${getIdentifierWithLabel(identifiers.target, target.label)})
+            MATCH 
+                (${getIdentifierWithLabel(identifiers.source, source.label)}), 
+                (${getIdentifierWithLabel(identifiers.target, target.label)})
         `);
         if (whereInstance) {
             statementParts.push(`WHERE ${whereInstance.statement}`);

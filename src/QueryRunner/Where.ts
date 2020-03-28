@@ -16,7 +16,7 @@ export class BindParam {
     /** the object with the bind param */
     private bind: Record<string, any>;
 
-    constructor(...objects: Array<BindParam['bind']>) {
+    constructor(...objects: BindParam['bind'][]) {
         this.bind = {};
         this.add(...objects);
     }
@@ -24,7 +24,7 @@ export class BindParam {
     /**
      * adds objects to the bind attribute, throwing an error if a given key already exists in the bind param
      */
-    public add(...objects: Array<BindParam['bind']>) {
+    public add(...objects: BindParam['bind'][]) {
         for (const object of objects) {
             for (const key in object) {
                 if (!object.hasOwnProperty(key)) { continue; }
@@ -82,7 +82,7 @@ export class BindParam {
 
 /** passing an array directly as an value also works, i.e. { primes: [2, 3, 5, 7] } */
 interface WhereInI {
-    in: Array<string | number>;
+    in: (string | number)[];
 }
 
 const isWhereIn = (value: WhereAttributesI): value is WhereInI => {
@@ -92,15 +92,17 @@ const isWhereIn = (value: WhereAttributesI): value is WhereInI => {
 type WhereAttributesI = Neo4jSupportedTypes | WhereInI;
 
 export interface WhereParamsI {
+    /** the keys and values for an identifier */
+    [key: string]: WhereAttributesI;
+}
+
+export interface WhereParamsByIdentifierI {
     /** the identifiers to use */
-    [identifier: string]: {
-        /** the keys of those identifiers */
-        [key: string]: WhereAttributesI;
-    };
+    [identifier: string]: WhereParamsI;
 }
 
 /** a Where instance or the basic object which can create a Where instance */
-export type AnyWhereI = WhereParamsI | Where;
+export type AnyWhereI = WhereParamsByIdentifierI | Where;
 
 export class Where {
     /** where statement to be placed in a query */
@@ -108,7 +110,7 @@ export class Where {
     /** where bind params. Ensures that keys of the bind param are unique */
     public bindParam: BindParam;
     /** all the given options, so we can easily combine them into a new statement */
-    private rawParams: WhereParamsI[] = [];
+    private rawParams: WhereParamsByIdentifierI[] = [];
 
     constructor(
         /** the where parameters to use */
@@ -123,7 +125,7 @@ export class Where {
     /** refreshes the statement and the bindParams by the given where params */
     public addParams(
         /** the where parameters to use */
-        whereParams: WhereParamsI,
+        whereParams: WhereParamsByIdentifierI,
         /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
         bindOrWhere?: BindParam | Where,
     ) {
