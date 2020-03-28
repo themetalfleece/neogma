@@ -1,4 +1,5 @@
 import { QueryResult, Session } from 'neo4j-driver/types';
+import * as uuid from 'uuid';
 import { AnyWhereI, BindParam, Where } from './Where';
 
 export type Neo4jSupportedTypes = string | number | boolean | Date | Array<string | number | boolean | Date>;
@@ -67,9 +68,10 @@ export class QueryRunner {
 
         identifier = identifier || 'nodes';
 
+        const { getIdentifierWithLabel } = QueryRunner;
         const statement = `
             UNWIND {options} as data
-            CREATE (${identifier}:${label})
+            CREATE (${getIdentifierWithLabel(identifier, label)})
             SET ${identifier} += data
             RETURN ${identifier};
         `;
@@ -190,11 +192,24 @@ export class QueryRunner {
         return this.run(session, statement, parameters);
     }
 
+    /** maps a session object to a uuid, for logging purposes */
+    private sessionIdentifiers = new WeakMap<Session, string>([]);
+
     /** runs the statement */
     public run(session: Session, statement: string, parameters: Record<string, any>) {
+        /** an identifier to be used for logging purposes */
+        let sessionIdentifier = 'Default';
+        if (this.sessionIdentifiers.has(session)) {
+            sessionIdentifier = this.sessionIdentifiers.get(session);
+        } else {
+            sessionIdentifier = uuid.v4();
+            this.sessionIdentifiers.set(session, sessionIdentifier);
+        }
+
         const trimmedStatement = statement.replace(/\s+/g, ' ');
-        this.log('Executing statement:', trimmedStatement);
-        this.log('Parameters:', parameters);
+        this.log(sessionIdentifier);
+        this.log(`\tStatement:`, trimmedStatement);
+        this.log(`\tParameters:`, parameters);
 
         return session.run(trimmedStatement, parameters);
     }

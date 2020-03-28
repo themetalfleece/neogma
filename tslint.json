@@ -127,7 +127,7 @@
             "severity": "warning"
         },
         "no-shadowed-variable": {
-            "severity": "off"
+            "severity": "error"
         },
         "one-line": {
             "severity": "warning"
