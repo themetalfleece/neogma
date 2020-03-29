@@ -2,7 +2,10 @@ import { QueryResult, Session } from 'neo4j-driver/types';
 import * as uuid from 'uuid';
 import { AnyWhereI, BindParam, Where } from './Where';
 
-export type Neo4jSupportedTypes = string | number | boolean | Date | Array<string | number | boolean | Date>;
+/** the types that Neo4j supports (not including an array of them) */
+export type Neo4jSingleTypes = string | number | boolean | Date;
+/** the types that Neo4j supports (including an array of them) */
+export type Neo4jSupportedTypes = Neo4jSingleTypes | (Neo4jSingleTypes)[];
 
 export interface CreateRelationshipParamsI {
     source: {
@@ -28,7 +31,7 @@ export interface CreateRelationshipParamsI {
 export class QueryRunner {
 
     /** whether to log the statements and parameters with the given function */
-    private logger: (...val: Array<string | boolean | object | number>) => any;
+    private logger: (...val: (string | boolean | object | number)[]) => any;
 
     constructor(params?: {
         logger?: QueryRunner['logger'];
@@ -36,7 +39,7 @@ export class QueryRunner {
         this.logger = params?.logger || null;
     }
 
-    private log(...val: Array<string | boolean | object | number>) {
+    private log(...val: (string | boolean | object | number)[]) {
         this.logger?.(...val);
     }
 

@@ -1,7 +1,7 @@
 import * as clone from 'clone';
 import { NeogmaConstraintError } from '../errors/NeogmaConstraintError';
 import { StringSequence } from '../utils/StringSequence';
-import { Neo4jSupportedTypes } from './QueryRunner';
+import { Neo4jSingleTypes, Neo4jSupportedTypes } from './QueryRunner';
 
 /**
  * the bind param which should be passed to a query. It throws an error if more than one of each key is added
@@ -80,22 +80,30 @@ export class BindParam {
     }
 }
 
-/** passing an array directly as an value also works, i.e. { primes: [2, 3, 5, 7] } */
+/** the type to be used for "in" */
 interface WhereInI {
-    in: (string | number)[];
+    in: (Neo4jSingleTypes)[];
 }
 
-const isWhereIn = (value: WhereAttributesI): value is WhereInI => {
+const isWhereIn = (value: WhereValuesI): value is WhereInI => {
     return (value as any).in;
 };
 
-type WhereAttributesI = Neo4jSupportedTypes | WhereInI;
+/** the type for the accepted values for an attribute */
+export type WhereValuesI = Neo4jSupportedTypes | WhereInI;
 
+/**
+ * an object to be used for a query identifier
+ * Its keys are the identifier attributes for the where, and the values are the values for that attribute
+ */
 export interface WhereParamsI {
-    /** the keys and values for an identifier */
-    [key: string]: WhereAttributesI;
+    /** the attribute and values for an identifier */
+    [attribute: string]: WhereValuesI;
 }
 
+/**
+ * an object with the query identifiers as keys and the attributes+types as value
+ */
 export interface WhereParamsByIdentifierI {
     /** the identifiers to use */
     [identifier: string]: WhereParamsI;
@@ -157,7 +165,7 @@ export class Where {
 
                 const value = params[nodeAlias][key];
 
-                if (['string', 'number', 'boolean', 'array'].includes(typeof value)) {
+                if (['string', 'number', 'boolean'].includes(typeof value) || value instanceof Array) {
                     this.addAnd(`${nodeAlias}.${key} = ${this.getNameAndAddToParams(key, value)}`);
                 } else if (isWhereIn(value)) {
                     this.addAnd(`${nodeAlias}.${key} IN ${this.getNameAndAddToParams(key, value.in)}`);
@@ -190,6 +198,15 @@ export class Where {
         }
 
         return new Where(params, bindParam);
+    }
+
+    /**
+     * if the value is not an array, it gets returned as is. If it's an array, a "in" object ir returned for that value
+     */
+    public static ensureIn(value: WhereValuesI): WhereValuesI {
+        return value instanceof Array ? {
+            in: value,
+        } : value;
     }
 
 }

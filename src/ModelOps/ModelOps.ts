@@ -5,7 +5,7 @@ import { NeogmaError } from '../errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
-import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI } from '../QueryRunner';
+import { BindParam, CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
 import { isEmptyObject } from '../utils/object';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
@@ -668,7 +668,7 @@ export const ModelFactory = <
                     targetId: string | string[],
                     values?: CreateRelationshipParamsI['relationship']['values'],
                 ) => {
-                    const otherPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
+                    const targetPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
 
                     return Model.relateTo(
                         {
@@ -679,7 +679,7 @@ export const ModelFactory = <
                                     [modelPrimaryKeyField]: createdObjectId,
                                 },
                                 target: {
-                                    [otherPrimaryKeyField]: targetId,
+                                    [targetPrimaryKeyField]: Where.ensureIn(targetId),
                                 },
                             },
                         },
@@ -729,7 +729,7 @@ export const ModelFactory = <
                     }
 
                     /** the primary key field of the target relationship model */
-                    const primaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
+                    const targetPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
 
                     /** organize them depending on whether relationship values need to be created, so to single or bulk create them appropriately */
                     const withRelationshipValuesNodesToCreate: typeof nodeCreateConfigurationValues[0][] = [];
@@ -757,7 +757,7 @@ export const ModelFactory = <
                         }
 
                         /* finally, create all relationships in bulk */
-                        await createRelationshipToIds(withoutRelationshipValuesNodesToCreate.map((value) => value[primaryKeyField]));
+                        await createRelationshipToIds(withoutRelationshipValuesNodesToCreate.map((value) => value[targetPrimaryKeyField]));
                     }
 
                     /* create the nodes with relationship values */
@@ -778,7 +778,7 @@ export const ModelFactory = <
                                 await relationshipModel.createOne(nodeDataToCreate as unknown as Attributes, { session });
                             }
 
-                            await createRelationshipToIds(nodeDataToCreate[primaryKeyField], relationshipValues);
+                            await createRelationshipToIds(nodeDataToCreate[targetPrimaryKeyField], relationshipValues);
                         }
                     }
 
