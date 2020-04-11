@@ -8,6 +8,10 @@
         "no-conditional-assignment": true,
         "no-consecutive-blank-lines": false,
         "max-classes-per-file": false,
+        "array-type": {
+            "options": "array-simple",
+            "severity": "warn"
+        },
         "no-console": {
             "severity": "warning",
             "options": [

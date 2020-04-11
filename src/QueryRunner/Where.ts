@@ -16,7 +16,7 @@ export class BindParam {
     /** the object with the bind param */
     private bind: Record<string, any>;
 
-    constructor(...objects: BindParam['bind'][]) {
+    constructor(...objects: Array<BindParam['bind']>) {
         this.bind = {};
         this.add(...objects);
     }
@@ -24,7 +24,7 @@ export class BindParam {
     /**
      * adds objects to the bind attribute, throwing an error if a given key already exists in the bind param
      */
-    public add(...objects: BindParam['bind'][]) {
+    public add(...objects: Array<BindParam['bind']>) {
         for (const object of objects) {
             for (const key in object) {
                 if (!object.hasOwnProperty(key)) { continue; }

@@ -31,7 +31,7 @@ export interface CreateRelationshipParamsI {
 export class QueryRunner {
 
     /** whether to log the statements and parameters with the given function */
-    private logger: (...val: (string | boolean | object | number)[]) => any;
+    private logger: (...val: Array<string | boolean | object | number>) => any;
 
     constructor(params?: {
         logger?: QueryRunner['logger'];
@@ -39,7 +39,7 @@ export class QueryRunner {
         this.logger = params?.logger || null;
     }
 
-    private log(...val: (string | boolean | object | number)[]) {
+    private log(...val: Array<string | boolean | object | number>) {
         this.logger?.(...val);
     }
 
@@ -152,7 +152,7 @@ export class QueryRunner {
          * string in the format -[Label]->
          * relationship has the alias `r`
          */
-        const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${relationship.label}]${relationship.direction === 'out' ? '->' : '-'}`;
+        const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${relationship.name}]${relationship.direction === 'out' ? '->' : '-'}`;
 
         /** the params of the relationship value */
         const relationshipAttributesParams = BindParam.acquire(whereInstance?.bindParam).clone();
