@@ -125,8 +125,8 @@ export type RelationshipsI<
             getLabel: () => string | string[];
             getPrimaryKeyField: () => string;
         } | 'self', // we can't use the actual NeogmaModel type due to circular references
-        /** the label for the relationship */
-        label: CreateRelationshipParamsI['relationship']['label'];
+        /** the name of the relationship */
+        name: CreateRelationshipParamsI['relationship']['name'];
         /** the direction of the relationship */
         direction: 'out' | 'in' | 'none';
         alias: keyof RelatedNodesToAssociateI;
@@ -544,7 +544,7 @@ export const ModelFactory = <
                             label: QueryRunner.getNormalizedLabels(Model.getLabelFromRelationshipModel(relationship.model)),
                         },
                         relationship: {
-                            label: relationship.label,
+                            name: relationship.name,
                             direction: relationship.direction,
                             values: {},
                         },

@@ -19,7 +19,7 @@ export interface CreateRelationshipParamsI {
         identifier?: string;
     };
     relationship: {
-        label: string;
+        name: string;
         direction: 'out' | 'in' | 'none',
         /** values to be set as relationship attributes */
         values?: object;
