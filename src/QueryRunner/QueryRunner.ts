@@ -60,16 +60,22 @@ export class QueryRunner {
         return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
     }
 
-    /**
-     * 
-     * @param session - the session for running this query
-     * @param nodesLabel - the label of the nodes to create
-     * @param options - the data to create
-     * @param identifier - identifier for the nodes
-     */
-    public createMany = async <T>(session: Session, label: string, options: T[], identifier?: string): Promise<QueryResult> => {
+    public static defaultIdentifier = 'nodes';
 
-        identifier = identifier || 'nodes';
+    public create = async <T>(
+        /** the session for running this query */
+        session: Session,
+        params: {
+            /** the label of the nodes to create */
+            label: string,
+            /** the data to create */
+            data: T[],
+            /** identifier for the nodes */
+            identifier?: string
+        }
+    ): Promise<QueryResult> => {
+        const { label, data: options } = params;
+        const identifier = params.identifier || QueryRunner.defaultIdentifier;
 
         const { getIdentifierWithLabel } = QueryRunner;
         const statement = `
@@ -84,18 +90,26 @@ export class QueryRunner {
         return this.run(session, statement, parameters);
     }
 
-    /**
-     * 
-     * @param session - the session for running this query
-     * @param nodesLabel - the label of the nodes to create
-     * @param where - the where object for matching the nodes to be edited
-     * @param options - the new data data, to be edited
-     * @param identifier - identifier for the nodes
-     */
-    public editMany = async <T>(session: Session, label: string, options: Partial<T>, anyWhere?: AnyWhereI, identifier?: string): Promise<QueryResult> => {
-        const where = Where.get(anyWhere);
+    public update = async <T>(
+        /** the session for running this query */
+        session: Session,
+        params: {
+            /** the label of the nodes to create */
+            label: string,
+            /** the where object for matching the nodes to be edited */
+            data: Partial<T>,
+            /** the new data data, to be edited */
+            where?: AnyWhereI,
+            /** identifier for the nodes */
+            identifier?: string;
+            /** whether to return the nodes */
+            return?: boolean;
+        }
+    ): Promise<QueryResult> => {
+        const { label, data: options } = params;
+        const where = Where.get(params.where);
 
-        identifier = identifier || 'nodes';
+        const identifier = params.identifier || QueryRunner.defaultIdentifier;
 
         const statementParts: string[] = [];
         statementParts.push(`MATCH (${identifier}:${label})`);
@@ -104,12 +118,18 @@ export class QueryRunner {
         }
         statementParts.push(`
             SET ${identifier} += { options }
-            RETURN ${identifier}
         `);
+        if (params.return) {
+            statementParts.push(`
+                RETURN ${identifier}
+            `);
+        }
 
         const statement = statementParts.join(' ');
         const parameters = {
-            ...BindParam.acquire(where?.bindParam).clone().add(options).get(),
+            options: {
+                ...BindParam.acquire(where?.bindParam).clone().add(options).get(),
+            },
         };
 
         return this.run(session, statement, parameters);
@@ -118,14 +138,14 @@ export class QueryRunner {
     /**
      * 
      * @param session - the session for running this query
-     * @param nodesLabel - the label of the nodes to create
+     * @param label - the label of the nodes to create
      * @param where - the where object for matching the nodes to be deleted
      * @param identifier - identifier for the nodes
      */
-    public deleteMany = async (session: Session, label: string, anyWhere?: AnyWhereI, identifier?: string): Promise<QueryResult> => {
+    public delete = async (session: Session, label: string, anyWhere?: AnyWhereI, identifier?: string): Promise<QueryResult> => {
         const where = Where.get(anyWhere);
 
-        identifier = identifier || 'nodes';
+        identifier = identifier || QueryRunner.defaultIdentifier;
 
         const statementParts: string[] = [];
         statementParts.push(`MATCH (${identifier}: ${label})`);
