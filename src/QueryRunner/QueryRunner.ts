@@ -106,19 +106,32 @@ export class QueryRunner {
             return?: boolean;
         }
     ): Promise<QueryResult> => {
-        const { label, data: options } = params;
-        const where = Where.get(params.where);
+        const { label, data } = params;
 
         const identifier = params.identifier || QueryRunner.defaultIdentifier;
+
+        const where = Where.get(params.where);
+
+        /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+        const updateBindParam = where.bindParam.clone();
+
 
         const statementParts: string[] = [];
         statementParts.push(`MATCH (${identifier}:${label})`);
         if (where) {
             statementParts.push(`WHERE ${where.statement}`);
         }
+
+        const setParts: string[] = [];
+        for (const key in data) {
+            if (!data.hasOwnProperty(key)) { continue; }
+            const paramKey = updateBindParam.getUniqueNameAndAdd(key, data[key]);
+            setParts.push(`${identifier}.${key} = {${paramKey}}`);
+        }
         statementParts.push(`
-            SET ${identifier} += { options }
+            SET ${setParts.join(', ')}
         `);
+
         if (params.return) {
             statementParts.push(`
                 RETURN ${identifier}
@@ -126,11 +139,7 @@ export class QueryRunner {
         }
 
         const statement = statementParts.join(' ');
-        const parameters = {
-            options: {
-                ...BindParam.acquire(where?.bindParam).clone().add(options).get(),
-            },
-        };
+        const parameters = updateBindParam.get();
 
         return this.run(session, statement, parameters);
     }
