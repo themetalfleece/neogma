@@ -205,8 +205,6 @@ export const ModelFactory = <
     const queryRunner = neogma.getQueryRunner();
     const getSession = neogma.getSession;
 
-    const attributeKeysSet = new Set(Object.keys(schema));
-
     // enforce unique relationship aliases
     const allRelationshipAlias = relationships.map(({ alias }) => alias);
     if (allRelationshipAlias.length !== new Set(allRelationshipAlias).size) {
@@ -222,7 +220,12 @@ export const ModelFactory = <
     class Model {
 
         /** whether this instance already exists in the database or it new */
-        private __existsInDatabase = false;
+        private __existsInDatabase;
+
+        /** the data of Attributes */
+        private dataValues: Attributes;
+        /** the changed attributes of this instance, to be taken into account when saving it */
+        public changed: Record<keyof Attributes, boolean>;
 
         /**
          * @returns {String} - the label of this Model
@@ -269,22 +272,47 @@ export const ModelFactory = <
         }
 
         /**
-         * creates a proper Instance of this Model
+         * builds data Instance by data, setting information fields appropriately
+         * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
          */
-        public static build(data: CreateDataI): Instance {
+        private static __build(data: CreateDataI, { status }: {
+            status: 'new' | 'existing'
+        }) {
             const instance = new Model() as Instance;
-            for (const key in data) {
-                // set the key if it's in the allowed attribute keys specified by the schema or any of the relationship creation keys
-                if (
-                    key !== relationshipCreationKeys.RelatedNodesToAssociate &&
-                    key !== relationshipCreationKeys.RelationshipValuesToCreate &&
-                    (!data.hasOwnProperty(key) || !(attributeKeysSet.has(key)))
-                ) {
-                    continue;
+
+            instance.__existsInDatabase = status === 'existing';
+
+            instance.dataValues = {} as Attributes;
+            instance.changed = {} as Record<keyof Attributes, boolean>;
+
+            for (const _key of [...Object.keys(schema), ...Object.values(relationshipCreationKeys)]) {
+                const key = _key as keyof typeof schema;
+
+                /* set dataValues using data */
+                if (data.hasOwnProperty(key)) {
+                    instance.dataValues[key] = data[key];
+                    instance.changed[key] = status === 'new';
                 }
-                instance[key as keyof typeof instance] = data[key];
+
+                /* set the setters and getters of the keys */
+                Object.defineProperty(instance, key, {
+                    get: () => {
+                        return instance.dataValues[key];
+                    },
+                    set: (val) => {
+                        instance.dataValues[key] = val;
+                        instance.changed[key] = true;
+                    },
+                });
             }
             return instance;
+        }
+
+        /**
+         * creates a new Instance of this Model, which can be saved to the database
+         */
+        public static build(data: CreateDataI): Instance {
+            return Model.__build(data, { status: 'new' });
         }
 
         /**
@@ -293,22 +321,48 @@ export const ModelFactory = <
         public save(_configuration?: GenericConfiguration & {
             /** whether to validate this instance, defaults to true */
             validate?: boolean;
-        }) {
+        }): Promise<Instance> {
             const instance = this as unknown as Instance;
             const configuration = {
                 validate: true,
                 ..._configuration,
             };
 
-            return getSession(_configuration?.session, async (session) => {
+            return getSession<Instance>(_configuration?.session, async (session) => {
                 if (configuration.validate) {
                     await instance.validate();
                 }
-                // if it's a new one - it doesn't exist in the database yet, need to create it
-                if (!instance.__existsInDatabase) {
+
+                if (instance.__existsInDatabase) {
+                    // if it exists in the database, update the node by only the fields which have changed
+                    const updateData = Object.entries(instance.changed).reduce((val, [key, changed]) => {
+                        if (changed) {
+                            val[key] = instance[key];
+                        }
+                        return val;
+                    }, {});
+
+                    await Model.update(
+                        updateData,
+                        {
+                            return: false,
+                            session,
+                            where: {
+                                [modelPrimaryKeyField]: instance[modelPrimaryKeyField],
+                            },
+                        }
+                    );
+
+                    // set all changed to false
+                    for (const key in this.changed) {
+                        if (!this.changed.hasOwnProperty(key)) { continue; }
+                        this.changed[key] = false;
+                    }
+                    return instance;
+                } else {
+                    // if it's a new one - it doesn't exist in the database yet, need to create it
                     return instance.createFromInstance(instance, session);
                 }
-                // TODO if it already exists, need to edit it
             });
         }
 
@@ -324,7 +378,7 @@ export const ModelFactory = <
         ): Promise<Instance> {
             configuration = configuration || {};
 
-            const instance = Model.build(data);
+            const instance = Model.__build(data, { status: 'new' });
             await instance.validate();
 
             return getSession(configuration?.session, async (session) => {
@@ -355,7 +409,12 @@ export const ModelFactory = <
 
             // TODO: push children into the instance under a new field, which should be the relationship alias
 
+            // this exists in the database, and set all changed to false
             this.__existsInDatabase = true;
+            for (const key in this.changed) {
+                if (!this.changed.hasOwnProperty(key)) { continue; }
+                this.changed[key] = false;
+            }
 
             return this;
         }
@@ -376,7 +435,7 @@ export const ModelFactory = <
                 if (!relationships.length) {
                     // if there are no relationships, bulk create them
                     // create and validate the instances
-                    const instances = data.map((value) => Model.build(value));
+                    const instances = data.map((value) => Model.__build(value, { status: 'new' }));
                     for (const instance of instances) {
                         await instance.validate();
                     }
@@ -413,12 +472,13 @@ export const ModelFactory = <
             }
         ): Promise<[Instance[], QueryResult]> {
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
+            const identifier = 'node';
+
             const where = params?.where ? {
-                [normalizedLabel]: params.where,
+                [identifier]: params.where,
             } : null;
 
             return getSession(params?.session, async (session) => {
-                const identifier = 'node';
                 const res = await queryRunner.update(session,
                     {
                         label: normalizedLabel,
@@ -429,7 +489,7 @@ export const ModelFactory = <
                 );
                 const nodeAttributes = params?.return ? getResultArrayFromEdit<Attributes>(res, identifier) : [];
 
-                const instances = nodeAttributes.map((v) => Model.build(v));
+                const instances = nodeAttributes.map((v) => Model.__build(v, { status: 'existing' }));
                 return [instances, res] as [Instance[], QueryResult];
             });
         }
@@ -532,8 +592,7 @@ export const ModelFactory = <
 
                 if (params?.order) {
                     statementParts.push(`
-                        ORDER BY
-                        ${params.order.map(([field, direction]) => `${rootIdentifier}.${field} ${direction}`).join(', ')}
+                        ORDER BY ${params.order.map(([field, direction]) => `${rootIdentifier}.${field} ${direction}`).join(', ')}
                     `);
                 }
 
@@ -547,7 +606,7 @@ export const ModelFactory = <
                 const instances = res.records.map((record) => {
                     const node = record.get(rootIdentifier);
                     const data: Attributes = node.properties;
-                    const instance = Model.build(data);
+                    const instance = Model.__build(data, { status: 'existing' });
                     instance.__existsInDatabase = true;
                     return instance;
                 });

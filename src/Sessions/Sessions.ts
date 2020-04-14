@@ -7,7 +7,7 @@ import { Neogma } from '../Neogma';
  * @param runInSession 
  * @param callback 
  */
-export const getSession = async <T>(runInSession: Session, callback: (s: Session) => T, driver: Driver) => {
+export const getSession = async <T>(runInSession: Session, callback: (s: Session) => Promise<T>, driver: Driver) => {
     if (runInSession) {
         return callback(runInSession);
     }

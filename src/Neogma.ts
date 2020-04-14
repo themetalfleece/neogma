@@ -52,7 +52,7 @@ export class Neogma {
 
     public getSession = <T>(
         runInSession: Session,
-        callback: (s: Session) => T,
+        callback: (s: Session) => Promise<T>,
     ) => {
         return getSession<T>(runInSession, callback, this.driver);
     }
