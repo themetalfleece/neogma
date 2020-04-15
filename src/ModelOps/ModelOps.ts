@@ -138,13 +138,9 @@ export type NeogmaInstance<
     Model extends new (...args) => any,
     /** the attributes used in the Model */
     Attributes,
-    /** the Related Nodes to Associate used in the Model */
-    RelatedNodesToAssociateI extends Record<string, any>,
     /** the Methods used in the Model */
     MethodsI extends Record<string, any> = {},
-    > = Attributes & InstanceType<Model> & MethodsI & {
-        [key in keyof RelatedNodesToAssociateI]?: Array<RelatedNodesToAssociateI[key]['Instance']>;
-    };
+    > = Attributes & InstanceType<Model> & MethodsI;
 
 export type FindManyIncludeI<AliasKeys> = {
     alias: AliasKeys;
@@ -215,7 +211,7 @@ export const ModelFactory = <
         });
     }
 
-    type Instance = NeogmaInstance<typeof Model, Attributes, RelatedNodesToAssociateI, MethodsI>;
+    type Instance = NeogmaInstance<typeof Model, Attributes, MethodsI>;
 
     class Model {
 
@@ -494,6 +490,103 @@ export const ModelFactory = <
             });
         }
 
+        public static async updateRelationship(
+            data: object,
+            params: {
+                alias: keyof RelatedNodesToAssociateI;
+                where?: {
+                    source?: WhereParamsI;
+                    target?: WhereParamsI;
+                    relationship?: WhereParamsI;
+                };
+                session?: GenericConfiguration['session'];
+            }
+        ) {
+            const relationship = relationships.find((r) => r.alias === params.alias);
+
+            if (!relationship) {
+                throw new NeogmaNotFoundError(`The relationship of the alias ${params.alias} can't be found for the model ${modelLabel}`);
+            }
+
+            return getSession(params?.session, async (session) => {
+                const identifiers = {
+                    source: 'source',
+                    target: 'target',
+                    relationship: 'r',
+                };
+                const labels = {
+                    source: QueryRunner.getNormalizedLabels(modelLabel),
+                    target: QueryRunner.getNormalizedLabels(Model.getLabelFromRelationshipModel(relationship.model)),
+                };
+
+                const where: Where = new Where({});
+                if (params.where?.source) {
+                    where.addParams({ [identifiers.source]: params.where.source });
+                }
+                if (params.where?.target) {
+                    where.addParams({ [identifiers.target]: params.where.target });
+                }
+                if (params.where?.relationship) {
+                    where.addParams({ [identifiers.relationship]: params.where.relationship });
+                }
+
+                const { getIdentifierWithLabel } = QueryRunner;
+
+                const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
+                    direction: relationship.direction,
+                    name: relationship.name,
+                    identifier: identifiers.relationship,
+                });
+
+                /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+                const updateBindParam = where.bindParam.clone();
+
+                const { statement: setStatement } = QueryRunner.getSetParts({
+                    bindParam: updateBindParam,
+                    data,
+                    identifier: identifiers.relationship,
+                });
+
+                const statementParts: string[] = [];
+
+                statementParts.push(`
+                    MATCH
+                    (${getIdentifierWithLabel(identifiers.source, labels.source)})
+                    ${directionAndNameString}
+                    (${getIdentifierWithLabel(identifiers.target, labels.target)})
+                `);
+
+                if (where.statement) {
+                    statementParts.push(`WHERE ${where.statement}`);
+                }
+
+                statementParts.push(setStatement);
+
+                return queryRunner.run(session,
+                    statementParts.join(' '),
+                    updateBindParam.get(),
+                );
+
+            });
+        }
+
+        public async updateRelationship(
+            data: Parameters<typeof Model.updateRelationship>[0],
+            params: Omit<Parameters<typeof Model.updateRelationship>[1], 'where'> & {
+                where: Omit<Parameters<typeof Model.updateRelationship>[1]['where'], 'source'>
+            }
+        ) {
+            return Model.updateRelationship(data, {
+                ...params,
+                where: {
+                    ...params.where,
+                    source: {
+                        [modelPrimaryKeyField]: this[modelPrimaryKeyField],
+                    },
+                },
+            });
+        }
+
         /**
          * 
          * @param {String} id - the id of the node to delete
@@ -696,17 +789,10 @@ export const ModelFactory = <
 
         /** wrapper for the static relateTo, where the source is always this node */
         public async relateTo(
-            params: {
-                alias: keyof RelatedNodesToAssociateI;
-                /** where statement for the target node */
+            params: Omit<Parameters<typeof Model.relateTo>[0], 'where'> & {
                 where: WhereParamsI;
-                values?: object;
             },
-            configuration?: {
-                /** throws an error if the number of created relationships don't equal to this number */
-                assertCreatedRelationships?: number;
-                session?: GenericConfiguration['session'];
-            }
+            configuration?: Parameters<typeof Model.relateTo>[1]
         ) {
             const where: Parameters<typeof Model.relateTo>[0]['where'] = {
                 source: {

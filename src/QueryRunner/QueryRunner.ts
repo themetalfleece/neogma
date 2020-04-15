@@ -115,22 +115,18 @@ export class QueryRunner {
         /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
         const updateBindParam = where.bindParam.clone();
 
-
         const statementParts: string[] = [];
         statementParts.push(`MATCH (${identifier}:${label})`);
         if (where) {
             statementParts.push(`WHERE ${where.statement}`);
         }
 
-        const setParts: string[] = [];
-        for (const key in data) {
-            if (!data.hasOwnProperty(key)) { continue; }
-            const paramKey = updateBindParam.getUniqueNameAndAdd(key, data[key]);
-            setParts.push(`${identifier}.${key} = {${paramKey}}`);
-        }
-        statementParts.push(`
-            SET ${setParts.join(', ')}
-        `);
+        const { statement: setStatement } = QueryRunner.getSetParts({
+            data,
+            bindParam: updateBindParam,
+            identifier,
+        });
+        statementParts.push(setStatement);
 
         if (params.return) {
             statementParts.push(`
@@ -177,11 +173,12 @@ export class QueryRunner {
         const { source, target, relationship, where } = params;
         const whereInstance = Where.get(where);
 
-        /** 
-         * string in the format -[Label]->
-         * relationship has the alias `r`
-         */
-        const directionString = `${relationship.direction === 'in' ? '<-' : '-'}[r:${relationship.name}]${relationship.direction === 'out' ? '->' : '-'}`;
+        const relationshipIdentifier = 'r';
+        const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
+            direction: relationship.direction,
+            name: relationship.name,
+            identifier: relationshipIdentifier,
+        });
 
         /** the params of the relationship value */
         const relationshipAttributesParams = BindParam.acquire(whereInstance?.bindParam).clone();
@@ -192,7 +189,7 @@ export class QueryRunner {
                 if (!relationship.values.hasOwnProperty(key)) { continue; }
 
                 const paramName = relationshipAttributesParams.getUniqueNameAndAdd(key, relationship.values[key]);
-                relationshipValues.push(`r.${key} = {${paramName}}`);
+                relationshipValues.push(`${relationshipIdentifier}.${key} = {${paramName}}`);
             }
         }
 
@@ -214,7 +211,7 @@ export class QueryRunner {
             statementParts.push(`WHERE ${whereInstance.statement}`);
         }
         statementParts.push(`CREATE
-            (${identifiers.source})${directionString}(${identifiers.target})
+            (${identifiers.source})${directionAndNameString}(${identifiers.target})
             ${relationshipValuesStatement}
         `);
 
@@ -222,6 +219,45 @@ export class QueryRunner {
         const parameters = relationshipAttributesParams.get();
 
         return this.run(session, statement, parameters);
+    }
+
+    /** returns the parts and the statement for a SET operation with the given params  */
+    public static getSetParts = (params: {
+        /** data to set */
+        data: object;
+        /** bind param to use */
+        bindParam: BindParam;
+        /** identifier to use */
+        identifier: string
+    }) => {
+        const { data, bindParam, identifier } = params;
+
+        const setParts: string[] = [];
+        for (const key in data) {
+            if (!data.hasOwnProperty(key)) { continue; }
+            const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
+            setParts.push(`${identifier}.${key} = {${paramKey}}`);
+        }
+
+        return {
+            parts: setParts,
+            statement: `SET ${setParts.join(', ')}`,
+        };
+    }
+
+    /** 
+     * returns a string in the format -[r: name]->
+     */
+    public static getRelationshipDirectionAndName = (params: {
+        /** relationship direction */
+        direction: CreateRelationshipParamsI['relationship']['direction'];
+        /** relationship name */
+        name: string;
+        /** relationship identifier */
+        identifier?: string;
+    }) => {
+        const { direction, name, identifier = 'r' } = params;
+        return `${direction === 'in' ? '<-' : '-'}[${QueryRunner.getIdentifierWithLabel(identifier, name)}]${direction === 'out' ? '->' : '-'}`;
     }
 
     /** maps a session object to a uuid, for logging purposes */
