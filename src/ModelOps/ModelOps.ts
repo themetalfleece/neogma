@@ -6,7 +6,6 @@ import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidatio
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
 import { BindParam, CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
-import { isEmptyObject } from '../utils/object';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
 
@@ -72,39 +71,22 @@ type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends strin
 }> =
     (
         {
-            type: 'array of objects';
-            values: Attributes[];
-        }
-    ) | (
-        {
-            type: 'id';
-            value: string;
-        } & {
-            [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
-        }
-    ) | (
-        {
-            type: 'array of ids';
-            values: string[];
-        }
-    ) | (
-        {
-            type: 'array of id objects',
-            values: Array<
+            attributes?: Attributes[];
+            where?: Array<
                 {
-                    id: string;
+                    /** where for the target nodes */
+                    params: WhereParamsI;
                 } & {
                     [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
                 }
-            >;
-        }
-    ) | (
-        {
-            type: 'where';
-            /** where for the target nodes */
-            where: WhereParamsI;
-        } & {
-            [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+            > | (
+                {
+                    /** where for the target nodes */
+                    params: WhereParamsI;
+                } & {
+                    [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+                }
+            );
         }
     );
 
@@ -357,7 +339,7 @@ export const ModelFactory = <
                     return instance;
                 } else {
                     // if it's a new one - it doesn't exist in the database yet, need to create it
-                    return instance.createFromInstance(instance, session);
+                    return Model.createOne(instance, { session });
                 }
             });
         }
@@ -370,92 +352,138 @@ export const ModelFactory = <
          */
         public static async createOne(
             data: CreateDataI,
-            configuration?: GenericConfiguration
+            configuration?: GenericConfiguration,
         ): Promise<Instance> {
-            configuration = configuration || {};
-
-            const instance = Model.__build(data, { status: 'new' });
-            await instance.validate();
-
-            return getSession(configuration?.session, async (session) => {
-                return instance.createFromInstance(data, session);
-            });
+            const instances = await Model.createMany([data], configuration);
+            return instances[0];
         }
 
-        /** calls createMany and createRelatedNodes for the instance data values */
-        private async createFromInstance(data: CreateDataI | Instance, session: Session) {
-            const dataToCreate = { ...this.getDataValues() };
+        public static getRelationshipByAlias = (alias: keyof RelatedNodesToAssociateI) => {
+            const relationship = relationships.find((r) => r.alias === alias);
 
-            const objectsCreateRes = await queryRunner.create(
-                session,
-                {
-                    label: QueryRunner.getNormalizedLabels(modelLabel),
-                    data: [dataToCreate],
-                    identifier: 'nodes',
-                }
-            );
-            const createdNode = getResultsArray<Attributes>(objectsCreateRes, 'nodes')[0];
-
-            // create the relationships if specified
-            await Model.createRelatedNodes({
-                data,
-                createdNodeId: createdNode[modelPrimaryKeyField] as unknown as string,
-                session,
-            });
-
-            // TODO: push children into the instance under a new field, which should be the relationship alias
-
-            // this exists in the database, and set all changed to false
-            this.__existsInDatabase = true;
-            for (const key in this.changed) {
-                if (!this.changed.hasOwnProperty(key)) { continue; }
-                this.changed[key] = false;
+            if (!alias) {
+                throw new NeogmaNotFoundError(`The relationship of the alias ${alias} can't be found for the model ${modelLabel}`);
             }
 
-            return this;
+            return {
+                model: relationship.model,
+                direction: relationship.direction,
+                name: relationship.name,
+            };
         }
 
-        /**
-         * creates many nodes. May create them 1-by-1 if there are relationships
-         * @param {CreateDataI[]} data - the data to create
-         * @param {GenericConfiguration} configuration - query configuration
-         * @returns {Attributes[]} - the created data
-         */
         public static async createMany(
-            data: CreateDataI[],
-            configuration?: GenericConfiguration
+            data: CreateDataI[] | Instance[],
+            configuration?: GenericConfiguration & {
+                /** validate all parent and children instances. default to true */
+                validate?: boolean;
+            },
         ): Promise<Instance[]> {
             configuration = configuration || {};
+            const validate = !(configuration.validate === false);
+
+            // FIXME those without RelatedNodesToAssociateKey can be bulk created with the QueryRunner
 
             return getSession(configuration?.session, async (session) => {
-                if (!relationships.length) {
-                    // if there are no relationships, bulk create them
-                    // create and validate the instances
-                    const instances = data.map((value) => Model.__build(value, { status: 'new' }));
-                    for (const instance of instances) {
-                        await instance.validate();
-                    }
-                    const res = await queryRunner.create(
-                        session,
-                        {
-                            label: QueryRunner.getNormalizedLabels(modelLabel),
-                            data: instances,
-                            identifier: 'nodes',
+
+                const statementParts: string[] = [];
+                const returnParts: string[] = [];
+
+                const label = QueryRunner.getNormalizedLabels(modelLabel);
+
+                const bindParam = new BindParam();
+                // used only for unique names
+                const identifiers = new BindParam();
+
+                const toRelateByIdentifier: {
+                    [identifier: string]: {
+                        where: WhereParamsI;
+                        relationship: Omit<RelationshipsI<any>[0], 'alias'>;
+                    };
+                } = {};
+
+                const instances: Instance[] = [];
+
+                const addCreateToStatement = async <M extends NeogmaModel>(model: M, dataToUse: object[], parentNode?: {
+                    identifier: string;
+                    relationship: Omit<RelationshipsI<any>[0], 'alias'>;
+                }) => {
+                    for (const createData of dataToUse) {
+                        const identifier = identifiers.getUniqueNameAndAdd('node', null);
+
+                        const instance = (
+                            createData instanceof model ? createData : model.__build(createData, { status: 'new' })
+                        ) as Instance;
+
+                        instances.push(instance);
+
+                        if (validate) {
+                            await instance.validate();
                         }
-                    );
-                    const createdNodes = getResultsArray<Attributes>(res, 'nodes');
-                    // TODO createdNodes may be used in case of fields generated by the database - need to replace values of the nodes to the created ones
-                    // TODO also set __existsInDatabase of created nodes
-                    return instances;
-                } else {
-                    // else, create them 1-by-1 so the relationships and children are properly created
-                    const createdNodes: Instance[] = [];
-                    for (const nodeData of data) {
-                        const createdNode = await this.createOne(nodeData, { session });
-                        createdNodes.push(createdNode);
+                        const dataParam = bindParam.getUniqueNameAndAdd('data', instance.getDataValues());
+
+                        const identifierWithLabel = QueryRunner.getIdentifierWithLabel(identifier, label);
+
+                        statementParts.push(`
+                            CREATE (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
+                        `);
+
+                        if (parentNode) {
+                            const { relationship, identifier: parentIdentifier } = parentNode;
+                            const relationshipIdentifier = identifiers.getUniqueNameAndAdd('r', null);
+                            const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
+                                direction: relationship.direction,
+                                name: relationship.name,
+                                identifier: relationshipIdentifier,
+                            });
+                            statementParts.push(`
+                                CREATE (${parentIdentifier})${directionAndNameString}(${identifier})
+                            `);
+                        }
+
+                        const relatedNodesToAssociate = instance[model.getRelationshipCreationKeys().RelatedNodesToAssociate];
+                        if (relatedNodesToAssociate) {
+                            // tslint:disable-next-line:forin
+                            for (const relationshipAlias in relatedNodesToAssociate) {
+                                const relatedNodesData: RelationshipTypeValueForCreateI<any, any> = relatedNodesToAssociate[relationshipAlias];
+                                const relationship = model.getRelationshipByAlias(relationshipAlias);
+                                const otherModel = model.getRelationshipModel(relationship.model) as NeogmaModel;
+
+                                // FIXME relationshipValues to both cases - the parent needs to pass it
+                                if (relatedNodesData.attributes) {
+                                    await addCreateToStatement(otherModel, relatedNodesData.attributes, {
+                                        identifier,
+                                        relationship,
+                                    });
+                                }
+                                if (relatedNodesData.where) {
+                                    const whereArr = relatedNodesData.where instanceof Array ? relatedNodesData.where : [relatedNodesData.where];
+
+                                    for (const whereEntry of whereArr) {
+                                        toRelateByIdentifier[identifier] = {
+                                            relationship,
+                                            where: whereEntry.params,
+                                        };
+                                    }
+                                }
+                            }
+                        }
+
+                        returnParts.push(identifier);
                     }
-                    return createdNodes;
-                }
+                };
+
+                await addCreateToStatement(Model, data, null);
+
+                // TODO toRelateByIdentifier
+                console.log(toRelateByIdentifier);
+
+                const statement = statementParts.join(' ');
+                const queryParams = bindParam.get();
+
+                await queryRunner.run(session, statement, queryParams);
+
+                return instances;
             });
         }
 
@@ -845,226 +873,9 @@ export const ModelFactory = <
             });
         }
 
-        /**
-         * creates the related nodes, and the relationship with them
-         */
-        private static async createRelatedNodes(params: {
-            /** the data of the (parent) object, potentially including data for related nodes to be created */
-            data: {
-                [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
-            };
-            /** the id of the created node */
-            createdNodeId: string;
-            session?: Session;
-        }) {
-
-            const { data, session, createdNodeId: createdObjectId } = params;
-
-            // create each given relationship
-            for (const _alias in data[relationshipCreationKeys.RelatedNodesToAssociate]) {
-                if (!data[relationshipCreationKeys.RelatedNodesToAssociate].hasOwnProperty(_alias)) { continue; }
-                const alias = _alias as keyof RelatedNodesToAssociateI;
-
-                const nodeCreateConfiguration: RelationshipTypeValueForCreateI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI[typeof alias]['CreateData']> = data[relationshipCreationKeys.RelatedNodesToAssociate][alias];
-
-                // find the relationship with this alias
-                const relationship = relationships.find((r) => r.alias === alias);
-                if (!relationship) {
-                    throw new NeogmaNotFoundError(`A relationship with the given alias couldn't be found`, { alias });
-                }
-
-                const relationshipModel = relationship.model;
-
-                const createRelationshipToIds = (
-                    targetId: string | string[],
-                    values?: CreateRelationshipParamsI['relationship']['values'],
-                ) => {
-                    const targetPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
-
-                    return Model.relateTo(
-                        {
-                            alias: relationship.alias,
-                            values,
-                            where: {
-                                source: {
-                                    [modelPrimaryKeyField]: createdObjectId,
-                                },
-                                target: {
-                                    [targetPrimaryKeyField]: Where.ensureIn(targetId),
-                                },
-                            },
-                        },
-                        {
-                            assertCreatedRelationships: typeof targetId === 'string' ? 1 : targetId.length,
-                            session,
-                        }
-                    );
-                };
-
-                if (nodeCreateConfiguration.type === 'id') {
-                    /* for 'id', just create the relationship with the given id */
-                    const targetId = nodeCreateConfiguration.value;
-                    if (typeof targetId !== 'string') {
-                        throw new NeogmaConstraintError('Relationship value must be a string', {
-                            description: nodeCreateConfiguration,
-                            actual: targetId,
-                            expected: 'string',
-                        });
-                    }
-
-                    await createRelationshipToIds(targetId, nodeCreateConfiguration[relationshipCreationKeys.RelationshipValuesToCreate]);
-                } else if (nodeCreateConfiguration.type === 'array of ids') {
-                    /* for 'array of ids', just create the relationship with the given ids */
-                    const targetIds = nodeCreateConfiguration.values;
-                    /** see if it's an invalid array */
-                    if (!(targetIds instanceof Array) || targetIds.find((value) => typeof value !== 'string')) {
-                        throw new NeogmaConstraintError('Relationship value must be an array of strings', {
-                            description: nodeCreateConfiguration,
-                            actual: targetIds,
-                            expected: 'string[]',
-                        });
-                    }
-
-                    await createRelationshipToIds(targetIds);
-
-                } else if (nodeCreateConfiguration.type === 'array of objects') {
-                    /* for 'array of objects', create the nodes and the relationships with them */
-                    const nodeCreateConfigurationValues = nodeCreateConfiguration.values;
-
-                    if (!(nodeCreateConfigurationValues instanceof Array)) {
-                        throw new NeogmaConstraintError('Relationship value must be an array of objects', {
-                            description: nodeCreateConfiguration,
-                            actual: nodeCreateConfigurationValues,
-                            expected: 'object[]',
-                        });
-                    }
-
-                    /** the primary key field of the target relationship model */
-                    const targetPrimaryKeyField = Model.getPrimaryKeyFieldFromRelationshipModel(relationshipModel);
-
-                    /** organize them depending on whether relationship values need to be created, so to single or bulk create them appropriately */
-                    const withRelationshipValuesNodesToCreate: Array<typeof nodeCreateConfigurationValues[0]> = [];
-                    const withoutRelationshipValuesNodesToCreate: Array<RelatedNodesToAssociateI[Extract<keyof RelatedNodesToAssociateI, string>]> = [];
-
-                    for (const valueToCreate of nodeCreateConfigurationValues) {
-                        if (valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate] && !isEmptyObject(valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate])) {
-                            withRelationshipValuesNodesToCreate.push(valueToCreate);
-                        } else {
-                            const valueWithoutRelationshipValues = { ...valueToCreate };
-                            delete valueWithoutRelationshipValues[relationshipCreationKeys.RelationshipValuesToCreate];
-                            withoutRelationshipValuesNodesToCreate.push(valueWithoutRelationshipValues as RelatedNodesToAssociateI[Extract<keyof RelatedNodesToAssociateI, string>]);
-                        }
-                    }
-
-                    /* create the nodes without any relationship values */
-                    if (withoutRelationshipValuesNodesToCreate.length) {
-                        if (relationshipModel === 'self') {
-                            /* if it references itself, create nodes of this model */
-                            // to get around ts(2345)
-                            await this.createMany(withoutRelationshipValuesNodesToCreate as unknown as Attributes[], { session });
-                        } else {
-                            /* else, create nodes of the model it references */
-                            await relationshipModel.createMany(withoutRelationshipValuesNodesToCreate, { session });
-                        }
-
-                        /* finally, create all relationships in bulk */
-                        await createRelationshipToIds(withoutRelationshipValuesNodesToCreate.map((value) => value[targetPrimaryKeyField]));
-                    }
-
-                    /* create the nodes with relationship values */
-                    if (withRelationshipValuesNodesToCreate.length) {
-                        /* create single node, and relationship with values */
-                        for (const nodeData of withRelationshipValuesNodesToCreate) {
-
-                            // keep the relationshipValues to be created. delete the from the node to create
-                            const relationshipValues = nodeData[relationshipCreationKeys.RelationshipValuesToCreate];
-                            const nodeDataToCreate = { ...nodeData };
-                            delete nodeDataToCreate[relationshipCreationKeys.RelationshipValuesToCreate];
-
-                            if (relationshipModel === 'self') {
-                                /* if it references itself, create nodes of this model */
-                                await this.createOne(nodeDataToCreate as unknown as Attributes, { session });
-                            } else {
-                                /* else, create nodes of the model it references */
-                                await relationshipModel.createOne(nodeDataToCreate as unknown as Attributes, { session });
-                            }
-
-                            await createRelationshipToIds(nodeDataToCreate[targetPrimaryKeyField], relationshipValues);
-                        }
-                    }
-
-                } else if (nodeCreateConfiguration.type === 'array of id objects') {
-                    const nodeCreateConfigurationValues = nodeCreateConfiguration.values;
-                    if (!(nodeCreateConfigurationValues instanceof Array)) {
-                        throw new NeogmaConstraintError('Relationship value must be an array of objects with id as a field', {
-                            description: nodeCreateConfiguration,
-                            actual: nodeCreateConfigurationValues,
-                            expected: 'object[]',
-                        });
-                    }
-
-                    // Bulk create those without relationship values, and single create those with relationship values
-                    const bulkCreateRelationshipIds: string[] = [];
-                    for (const valueToCreate of nodeCreateConfigurationValues) {
-                        if (typeof valueToCreate.id !== 'string') {
-                            throw new NeogmaConstraintError('Unspecified id, or not a string', {
-                                description: nodeCreateConfiguration,
-                                actual: valueToCreate,
-                                expected: '{ id: string }',
-                            });
-                        }
-
-                        if (
-                            valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate]
-                            && !isEmptyObject(valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate])
-                        ) {
-                            await createRelationshipToIds(
-                                valueToCreate.id,
-                                valueToCreate[relationshipCreationKeys.RelationshipValuesToCreate]
-                            );
-                        } else {
-                            bulkCreateRelationshipIds.push(valueToCreate.id);
-                        }
-                    }
-
-                    await createRelationshipToIds(bulkCreateRelationshipIds);
-                } else if (nodeCreateConfiguration.type === 'where') {
-                    if (!nodeCreateConfiguration.where) {
-                        throw new NeogmaConstraintError('Relationship value must be WhereParamsI', {
-                            description: nodeCreateConfiguration,
-                            actual: nodeCreateConfiguration.where,
-                            expected: 'WhereParamsI',
-                        });
-                    }
-
-                    const where: Parameters<typeof Model.relateTo>[0]['where'] = {
-                        source: {
-                            [modelPrimaryKeyField]: createdObjectId,
-                        },
-                        target: nodeCreateConfiguration.where,
-                    };
-
-                    await Model.relateTo(
-                        {
-                            alias: relationship.alias,
-                            values: nodeCreateConfiguration[relationshipCreationKeys.RelationshipValuesToCreate],
-                            where,
-                        }
-                    );
-                }
-
-            }
-
-        }
-
         /** gets the label from the given model for a relationship */
         private static getLabelFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
             return relationshipModel === 'self' ? modelLabel : relationshipModel.getLabel();
-        }
-
-        /** gets the primary key field from the given model for a relationship */
-        private static getPrimaryKeyFieldFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
-            return relationshipModel === 'self' ? modelPrimaryKeyField : relationshipModel.getPrimaryKeyField();
         }
 
         /** gets the model of a relationship */
