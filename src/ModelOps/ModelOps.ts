@@ -387,19 +387,20 @@ export const ModelFactory = <
             return getSession(configuration?.session, async (session) => {
 
                 const statementParts: string[] = [];
-                const returnParts: string[] = [];
 
                 const label = QueryRunner.getNormalizedLabels(modelLabel);
 
+                /** the bind param of the query */
                 const bindParam = new BindParam();
                 // used only for unique names
                 const identifiers = new BindParam();
 
+                /** identifiers and the where/relationship configuration for a relationship to be created */
                 const toRelateByIdentifier: {
-                    [identifier: string]: {
+                    [identifier: string]: Array<{
                         where: WhereParamsI;
                         relationship: Omit<RelationshipsI<any>[0], 'alias'>;
-                    };
+                    }>;
                 } = {};
 
                 const instances: Instance[] = [];
@@ -460,23 +461,50 @@ export const ModelFactory = <
                                     const whereArr = relatedNodesData.where instanceof Array ? relatedNodesData.where : [relatedNodesData.where];
 
                                     for (const whereEntry of whereArr) {
-                                        toRelateByIdentifier[identifier] = {
+                                        if (!toRelateByIdentifier[identifier]) {
+                                            toRelateByIdentifier[identifier] = [];
+                                        }
+
+                                        toRelateByIdentifier[identifier].push({
                                             relationship,
                                             where: whereEntry.params,
-                                        };
+                                        });
                                     }
                                 }
                             }
                         }
-
-                        returnParts.push(identifier);
                     }
                 };
 
                 await addCreateToStatement(Model, data, null);
 
-                // TODO toRelateByIdentifier
-                console.log(toRelateByIdentifier);
+                // parse toRelateByIdentifier
+                const relationshipByWhereParts = [];
+
+                for (const identifier of Object.keys(toRelateByIdentifier)) {
+                    /** to be used in the WITH clause */
+                    const allNeededIdentifiers = Object.keys(toRelateByIdentifier);
+                    for (const relateParameters of toRelateByIdentifier[identifier]) {
+                        const relationship = relateParameters.relationship;
+                        const targetNodeModel = Model.getRelationshipModel(relationship.model);
+                        const targetNodeLabel = QueryRunner.getNormalizedLabels(targetNodeModel.getLabel());
+                        const targetNodeIdentifier = identifiers.getUniqueNameAndAdd('targetNode', null);
+
+                        relationshipByWhereParts.push(
+                            `WITH ${allNeededIdentifiers.join(', ')}`,
+                            `MATCH (${QueryRunner.getIdentifierWithLabel(targetNodeIdentifier, targetNodeLabel)})`,
+                            `WHERE ${new Where({ [targetNodeIdentifier]: relateParameters.where }, bindParam).statement}`,
+                            `CREATE (${identifier})${QueryRunner.getRelationshipDirectionAndName(relationship)}(${targetNodeIdentifier})`
+                        );
+
+                        // remove this relateParameters from the array
+                        toRelateByIdentifier[identifier] = toRelateByIdentifier[identifier].filter((r) => r !== relateParameters);
+                    }
+                    // remove the identifier from the object
+                    delete toRelateByIdentifier[identifier];
+                }
+
+                statementParts.push(...relationshipByWhereParts);
 
                 const statement = statementParts.join(' ');
                 const queryParams = bindParam.get();
