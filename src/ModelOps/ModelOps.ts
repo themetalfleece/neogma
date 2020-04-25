@@ -382,8 +382,6 @@ export const ModelFactory = <
             configuration = configuration || {};
             const validate = !(configuration.validate === false);
 
-            // FIXME those without RelatedNodesToAssociateKey can be bulk created with the QueryRunner
-
             return getSession(configuration?.session, async (session) => {
 
                 const statementParts: string[] = [];
@@ -404,6 +402,7 @@ export const ModelFactory = <
                 } = {};
 
                 const instances: Instance[] = [];
+                const bulkCreateData: Attributes[] = [];
 
                 const addCreateToStatement = async <M extends NeogmaModel>(model: M, dataToUse: object[], parentNode?: {
                     identifier: string;
@@ -421,29 +420,31 @@ export const ModelFactory = <
                         if (validate) {
                             await instance.validate();
                         }
-                        const dataParam = bindParam.getUniqueNameAndAdd('data', instance.getDataValues());
-
-                        const identifierWithLabel = QueryRunner.getIdentifierWithLabel(identifier, label);
-
-                        statementParts.push(`
-                            CREATE (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
-                        `);
-
-                        if (parentNode) {
-                            const { relationship, identifier: parentIdentifier } = parentNode;
-                            const relationshipIdentifier = identifiers.getUniqueNameAndAdd('r', null);
-                            const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
-                                direction: relationship.direction,
-                                name: relationship.name,
-                                identifier: relationshipIdentifier,
-                            });
-                            statementParts.push(`
-                                CREATE (${parentIdentifier})${directionAndNameString}(${identifier})
-                            `);
-                        }
 
                         const relatedNodesToAssociate = instance[model.getRelationshipCreationKeys().RelatedNodesToAssociate];
-                        if (relatedNodesToAssociate) {
+                        if (relatedNodesToAssociate || parentNode) {
+                            /* if it has related nodes to associated or it has a parent node, create it with an identifier */
+                            const dataParam = bindParam.getUniqueNameAndAdd('data', instance.getDataValues());
+
+                            const identifierWithLabel = QueryRunner.getIdentifierWithLabel(identifier, label);
+
+                            statementParts.push(`
+                                CREATE (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
+                            `);
+
+                            if (parentNode) {
+                                const { relationship, identifier: parentIdentifier } = parentNode;
+                                const relationshipIdentifier = identifiers.getUniqueNameAndAdd('r', null);
+                                const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
+                                    direction: relationship.direction,
+                                    name: relationship.name,
+                                    identifier: relationshipIdentifier,
+                                });
+                                statementParts.push(`
+                                CREATE (${parentIdentifier})${directionAndNameString}(${identifier})
+                            `);
+                            }
+
                             // tslint:disable-next-line:forin
                             for (const relationshipAlias in relatedNodesToAssociate) {
                                 const relatedNodesData: RelationshipTypeValueForCreateI<any, any> = relatedNodesToAssociate[relationshipAlias];
@@ -472,15 +473,29 @@ export const ModelFactory = <
                                     }
                                 }
                             }
+                        } else {
+                            /* if it doesn't have related nodes to associated and it doesn't have a parent node add it to the array so they'll be bulk created */
+                            bulkCreateData.push(instance.getDataValues());
                         }
                     }
                 };
 
                 await addCreateToStatement(Model, data, null);
 
+                if (bulkCreateData.length) {
+                    const bulkCreateIdentifier = identifiers.getUniqueNameAndAdd('bulkCreateNodes', null);
+                    const bulkCreateOptionsParam = bindParam.getUniqueNameAndAdd('bulkCreateOptions', bulkCreateData);
+                    const bulkCreateDataIdentifier = identifiers.getUniqueNameAndAdd('bulkCreateData', null);
+                    statementParts.unshift(`
+                    UNWIND {${bulkCreateOptionsParam}} as ${bulkCreateDataIdentifier}
+                `);
+                    statementParts.push(`
+                    CREATE (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, label)})
+                    SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
+                `);
+                }
                 // parse toRelateByIdentifier
                 const relationshipByWhereParts = [];
-
                 for (const identifier of Object.keys(toRelateByIdentifier)) {
                     /** to be used in the WITH clause */
                     const allNeededIdentifiers = Object.keys(toRelateByIdentifier);
