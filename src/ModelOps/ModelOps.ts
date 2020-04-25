@@ -179,6 +179,7 @@ export const ModelFactory = <
     const relationships = parameters.relationships || [];
     /* helper name for queries */
     const modelName = (modelLabel instanceof Array ? modelLabel : [modelLabel]).join('');
+    const schemaKeys = new Set(Object.keys(schema));
 
     const queryRunner = neogma.getQueryRunner();
     const getSession = neogma.getSession;
@@ -314,7 +315,7 @@ export const ModelFactory = <
                 if (instance.__existsInDatabase) {
                     // if it exists in the database, update the node by only the fields which have changed
                     const updateData = Object.entries(instance.changed).reduce((val, [key, changed]) => {
-                        if (changed) {
+                        if (changed && schemaKeys.has(key)) {
                             val[key] = instance[key];
                         }
                         return val;
@@ -386,8 +387,6 @@ export const ModelFactory = <
 
                 const statementParts: string[] = [];
 
-                const label = QueryRunner.getNormalizedLabels(modelLabel);
-
                 /** the bind param of the query */
                 const bindParam = new BindParam();
                 // used only for unique names
@@ -409,11 +408,14 @@ export const ModelFactory = <
                     relationship: Omit<RelationshipsI<any>[0], 'alias'>;
                 }) => {
                     for (const createData of dataToUse) {
+                        /** identifier for the node to create */
                         const identifier = identifiers.getUniqueNameAndAdd('node', null);
+                        const label = QueryRunner.getNormalizedLabels(model.getLabel());
 
                         const instance = (
                             createData instanceof model ? createData : model.__build(createData, { status: 'new' })
                         ) as Instance;
+                        instance.__existsInDatabase = true;
 
                         instances.push(instance);
 
@@ -432,6 +434,7 @@ export const ModelFactory = <
                                 CREATE (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
                             `);
 
+                            /** if it has a parent node, also create a relationship with it */
                             if (parentNode) {
                                 const { relationship, identifier: parentIdentifier } = parentNode;
                                 const relationshipIdentifier = identifiers.getUniqueNameAndAdd('r', null);
@@ -445,8 +448,10 @@ export const ModelFactory = <
                             `);
                             }
 
-                            // tslint:disable-next-line:forin
+                            /** create the related nodes */
                             for (const relationshipAlias in relatedNodesToAssociate) {
+                                if (!relatedNodesToAssociate.hasOwnProperty(relationshipAlias)) { continue; }
+
                                 const relatedNodesData: RelationshipTypeValueForCreateI<any, any> = relatedNodesToAssociate[relationshipAlias];
                                 const relationship = model.getRelationshipByAlias(relationshipAlias);
                                 const otherModel = model.getRelationshipModel(relationship.model) as NeogmaModel;
@@ -455,6 +460,7 @@ export const ModelFactory = <
                                 if (relatedNodesData.attributes) {
                                     await addCreateToStatement(otherModel, relatedNodesData.attributes, {
                                         identifier,
+                                        // TODO add relationship.attributes
                                         relationship,
                                     });
                                 }
@@ -490,7 +496,7 @@ export const ModelFactory = <
                     UNWIND {${bulkCreateOptionsParam}} as ${bulkCreateDataIdentifier}
                 `);
                     statementParts.push(`
-                    CREATE (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, label)})
+                        CREATE (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
                     SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
                 `);
                 }
@@ -506,7 +512,7 @@ export const ModelFactory = <
                         const targetNodeIdentifier = identifiers.getUniqueNameAndAdd('targetNode', null);
 
                         relationshipByWhereParts.push(
-                            `WITH ${allNeededIdentifiers.join(', ')}`,
+                            `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
                             `MATCH (${QueryRunner.getIdentifierWithLabel(targetNodeIdentifier, targetNodeLabel)})`,
                             `WHERE ${new Where({ [targetNodeIdentifier]: relateParameters.where }, bindParam).statement}`,
                             `CREATE (${identifier})${QueryRunner.getRelationshipDirectionAndName(relationship)}(${targetNodeIdentifier})`
@@ -702,7 +708,7 @@ export const ModelFactory = <
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
             const where = {
                 [normalizedLabel]: {
-                    [modelPrimaryKeyField]: { in: ids },
+                    [modelPrimaryKeyField]: { $in: ids },
                 },
             };
 

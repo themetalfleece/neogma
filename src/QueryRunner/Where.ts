@@ -82,11 +82,11 @@ export class BindParam {
 
 /** the type to be used for "in" */
 interface WhereInI {
-    in: (Neo4jSingleTypes)[];
+    $in: (Neo4jSingleTypes)[];
 }
 
 const isWhereIn = (value: WhereValuesI): value is WhereInI => {
-    return (value as any).in;
+    return (value as any).$in;
 };
 
 /** the type for the accepted values for an attribute */
@@ -168,7 +168,7 @@ export class Where {
                 if (['string', 'number', 'boolean'].includes(typeof value) || value instanceof Array) {
                     this.addAnd(`${nodeAlias}.${key} = ${this.getNameAndAddToParams(key, value)}`);
                 } else if (isWhereIn(value)) {
-                    this.addAnd(`${nodeAlias}.${key} IN ${this.getNameAndAddToParams(key, value.in)}`);
+                    this.addAnd(`${nodeAlias}.${key} IN ${this.getNameAndAddToParams(key, value.$in)}`);
                 }
             }
         }
@@ -201,11 +201,11 @@ export class Where {
     }
 
     /**
-     * if the value is not an array, it gets returned as is. If it's an array, a "in" object ir returned for that value
+     * if the value is not an array, it gets returned as is. If it's an array, a "$in" object ir returned for that value
      */
     public static ensureIn(value: WhereValuesI): WhereValuesI {
         return value instanceof Array ? {
-            in: value,
+            $in: value,
         } : value;
     }
 
