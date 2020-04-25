@@ -66,12 +66,18 @@ export type RelatedNodesCreationParamI<
     };
 
 /** the type of the relationship along with the values, so the proper relationship and/or nodes can be created */
-type RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey extends string, Attributes extends {
-    [key in RelationshipValuesToCreateKey]?: RelationshipValuesI;
-}> =
+type RelationshipTypeValueForCreateI
+    <
+    RelationshipValuesToCreateKey extends string,
+    Attributes extends {
+        [key in RelationshipValuesToCreateKey]?: RelationshipValuesI;
+    }
+    > =
     (
         {
-            attributes?: Attributes[];
+            attributes?: Array<Attributes & {
+                [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+            }>;
             where?: Array<
                 {
                     /** where for the target nodes */
@@ -144,6 +150,8 @@ export const ModelFactory = <
     RelatedNodesToAssociateI extends Record<string, any>,
     /** the string which will be used as a key for Related Nodes creation */
     RelatedNodesToAssociateKey extends string,
+    /** the string which will be used as a key for Relationship Values creation */
+    RelationshipValuesToCreateKey extends string,
     /** interface for the statics of the model */
     StaticsI extends Record<string, any> = {},
     /** interface for the methods of the instance */
@@ -170,7 +178,7 @@ export const ModelFactory = <
 
     /** type used for creating nodes. It includes their Attributes and Related Nodes */
     type CreateDataI = Attributes & {
-        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
+        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
     };
 
     const { label: modelLabel, primaryKeyField: modelPrimaryKeyField, relationshipCreationKeys, schema } = parameters;
@@ -231,17 +239,15 @@ export const ModelFactory = <
         }
 
         /**
-         * validates the given instance, not with the children models
-         * @param {Boolean} params.deep - also validate the children nodes
+         * validates the given instance
          * @throws NeogmaInstanceValidationError
          */
-        public async validate(params?: { deep: boolean }) {
+        public async validate() {
             const validationResult = revalidator.validate(this.getDataValues(), {
                 type: 'object',
                 properties: schema,
             });
 
-            // TODO also implement deep
             if (validationResult.errors.length) {
                 throw new NeogmaInstanceValidationError(null, {
                     model: Model,
@@ -359,20 +365,6 @@ export const ModelFactory = <
             return instances[0];
         }
 
-        public static getRelationshipByAlias = (alias: keyof RelatedNodesToAssociateI) => {
-            const relationship = relationships.find((r) => r.alias === alias);
-
-            if (!alias) {
-                throw new NeogmaNotFoundError(`The relationship of the alias ${alias} can't be found for the model ${modelLabel}`);
-            }
-
-            return {
-                model: relationship.model,
-                direction: relationship.direction,
-                name: relationship.name,
-            };
-        }
-
         public static async createMany(
             data: CreateDataI[] | Instance[],
             configuration?: GenericConfiguration & {
@@ -395,18 +387,27 @@ export const ModelFactory = <
                 /** identifiers and the where/relationship configuration for a relationship to be created */
                 const toRelateByIdentifier: {
                     [identifier: string]: Array<{
+                        /** the where params to use */
                         where: WhereParamsI;
+                        /** relatinship information */
                         relationship: Omit<RelationshipsI<any>[0], 'alias'>;
+                        /** relationship attributes */
+                        values?: object;
                     }>;
                 } = {};
 
                 const instances: Instance[] = [];
                 const bulkCreateData: Attributes[] = [];
 
-                const addCreateToStatement = async <M extends NeogmaModel>(model: M, dataToUse: object[], parentNode?: {
-                    identifier: string;
-                    relationship: Omit<RelationshipsI<any>[0], 'alias'>;
-                }) => {
+                const addCreateToStatement = async <M extends NeogmaModel>(
+                    model: M,
+                    dataToUse: object[],
+                    parentNode?: {
+                        identifier: string;
+                        relationship: Omit<RelationshipsI<any>[0], 'alias'>;
+                        relationshipValuesToCreateKey?: string;
+                    }
+                ) => {
                     for (const createData of dataToUse) {
                         /** identifier for the node to create */
                         const identifier = identifiers.getUniqueNameAndAdd('node', null);
@@ -437,15 +438,25 @@ export const ModelFactory = <
                             /** if it has a parent node, also create a relationship with it */
                             if (parentNode) {
                                 const { relationship, identifier: parentIdentifier } = parentNode;
-                                const relationshipIdentifier = identifiers.getUniqueNameAndAdd('r', null);
+                                const relationshipValues = instance[parentNode.relationshipValuesToCreateKey];
+
+                                /* set an identifier only if we need to create relationship values */
+                                const relationshipIdentifier = relationshipValues && identifiers.getUniqueNameAndAdd('r', null);
                                 const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
                                     direction: relationship.direction,
                                     name: relationship.name,
                                     identifier: relationshipIdentifier,
                                 });
                                 statementParts.push(`
-                                CREATE (${parentIdentifier})${directionAndNameString}(${identifier})
-                            `);
+                                    CREATE (${parentIdentifier})${directionAndNameString}(${identifier})
+                                `);
+                                if (relationshipValues) {
+                                    /* create the relationship values */
+                                    const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relationshipValues);
+                                    statementParts.push(`
+                                        SET ${relationshipIdentifier} += {${relationshipValuesParam}}
+                                    `);
+                                }
                             }
 
                             /** create the related nodes */
@@ -456,12 +467,12 @@ export const ModelFactory = <
                                 const relationship = model.getRelationshipByAlias(relationshipAlias);
                                 const otherModel = model.getRelationshipModel(relationship.model) as NeogmaModel;
 
-                                // FIXME relationshipValues to both cases - the parent needs to pass it
                                 if (relatedNodesData.attributes) {
                                     await addCreateToStatement(otherModel, relatedNodesData.attributes, {
                                         identifier,
-                                        // TODO add relationship.attributes
                                         relationship,
+                                        // use the RelationshipValuesToCreate key of this model
+                                        relationshipValuesToCreateKey: model.getRelationshipCreationKeys().RelationshipValuesToCreate,
                                     });
                                 }
                                 if (relatedNodesData.where) {
@@ -472,9 +483,11 @@ export const ModelFactory = <
                                             toRelateByIdentifier[identifier] = [];
                                         }
 
+                                        // add the info to toRelateByIdentifier
                                         toRelateByIdentifier[identifier].push({
                                             relationship,
                                             where: whereEntry.params,
+                                            values: whereEntry[model.getRelationshipCreationKeys().RelationshipValuesToCreate],
                                         });
                                     }
                                 }
@@ -488,18 +501,20 @@ export const ModelFactory = <
 
                 await addCreateToStatement(Model, data, null);
 
+                // parse data to bulk create
                 if (bulkCreateData.length) {
                     const bulkCreateIdentifier = identifiers.getUniqueNameAndAdd('bulkCreateNodes', null);
                     const bulkCreateOptionsParam = bindParam.getUniqueNameAndAdd('bulkCreateOptions', bulkCreateData);
                     const bulkCreateDataIdentifier = identifiers.getUniqueNameAndAdd('bulkCreateData', null);
                     statementParts.unshift(`
-                    UNWIND {${bulkCreateOptionsParam}} as ${bulkCreateDataIdentifier}
-                `);
+                        UNWIND {${bulkCreateOptionsParam}} as ${bulkCreateDataIdentifier}
+                    `);
                     statementParts.push(`
                         CREATE (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
-                    SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
-                `);
+                        SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
+                    `);
                 }
+
                 // parse toRelateByIdentifier
                 const relationshipByWhereParts = [];
                 for (const identifier of Object.keys(toRelateByIdentifier)) {
@@ -507,6 +522,7 @@ export const ModelFactory = <
                     const allNeededIdentifiers = Object.keys(toRelateByIdentifier);
                     for (const relateParameters of toRelateByIdentifier[identifier]) {
                         const relationship = relateParameters.relationship;
+                        const relationshipIdentifier = identifiers.getUniqueNameAndAdd('r', null);
                         const targetNodeModel = Model.getRelationshipModel(relationship.model);
                         const targetNodeLabel = QueryRunner.getNormalizedLabels(targetNodeModel.getLabel());
                         const targetNodeIdentifier = identifiers.getUniqueNameAndAdd('targetNode', null);
@@ -515,8 +531,19 @@ export const ModelFactory = <
                             `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
                             `MATCH (${QueryRunner.getIdentifierWithLabel(targetNodeIdentifier, targetNodeLabel)})`,
                             `WHERE ${new Where({ [targetNodeIdentifier]: relateParameters.where }, bindParam).statement}`,
-                            `CREATE (${identifier})${QueryRunner.getRelationshipDirectionAndName(relationship)}(${targetNodeIdentifier})`
+                            `CREATE (${identifier})${QueryRunner.getRelationshipDirectionAndName({
+                                direction: relationship.direction,
+                                name: relationship.name,
+                                identifier: relationshipIdentifier,
+                            })}(${targetNodeIdentifier})`
                         );
+                        if (relateParameters.values) {
+                            /* create the relationship values */
+                            const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relateParameters.values);
+                            relationshipByWhereParts.push(`
+                                SET ${relationshipIdentifier} += {${relationshipValuesParam}}
+                            `);
+                        }
 
                         // remove this relateParameters from the array
                         toRelateByIdentifier[identifier] = toRelateByIdentifier[identifier].filter((r) => r !== relateParameters);
@@ -534,6 +561,20 @@ export const ModelFactory = <
 
                 return instances;
             });
+        }
+
+        public static getRelationshipByAlias = (alias: keyof RelatedNodesToAssociateI) => {
+            const relationship = relationships.find((r) => r.alias === alias);
+
+            if (!alias) {
+                throw new NeogmaNotFoundError(`The relationship of the alias ${alias} can't be found for the model ${modelLabel}`);
+            }
+
+            return {
+                model: relationship.model,
+                direction: relationship.direction,
+                name: relationship.name,
+            };
         }
 
         public static async update(

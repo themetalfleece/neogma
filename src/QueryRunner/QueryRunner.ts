@@ -253,10 +253,11 @@ export class QueryRunner {
         direction: CreateRelationshipParamsI['relationship']['direction'];
         /** relationship name */
         name: string;
-        /** relationship identifier */
+        /** relationship identifier. If empty, no identifier will be used */
         identifier?: string;
     }) => {
-        const { direction, name, identifier = 'r' } = params;
+        const { direction, name } = params;
+        const identifier = params.identifier || '';
         return `${direction === 'in' ? '<-' : '-'}[${QueryRunner.getIdentifierWithLabel(identifier, name)}]${direction === 'out' ? '->' : '-'}`;
     }
 
