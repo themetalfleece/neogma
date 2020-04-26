@@ -436,6 +436,11 @@ export const ModelFactory = <
                             createData instanceof model ? createData : model.__build(createData, { status: 'new' })
                         ) as Instance;
                         instance.__existsInDatabase = true;
+                        // set all changed to false as it's going to be saved
+                        for (const key in instance.changed) {
+                            if (!instance.changed.hasOwnProperty(key)) { continue; }
+                            instance.changed[key] = false;
+                        }
 
                         instances.push(instance);
 
