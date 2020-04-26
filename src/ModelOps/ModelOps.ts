@@ -820,8 +820,6 @@ export const ModelFactory = <
                 }, bindParam);
 
                 const statementParts: string[] = [];
-                /** the properties for the return statement */
-                const returnProperties: string[] = [];
 
                 /* match the nodes of this Model */
                 statementParts.push(`
@@ -832,21 +830,24 @@ export const ModelFactory = <
                         WHERE ${rootWhere.statement}
                     `);
                 }
-                returnProperties.push(rootIdentifier);
-
-                /* add the return statement from the returnProperties */
+                /* add the return statement */
                 statementParts.push(`
-                    RETURN ${returnProperties.join(', ')}
+                    RETURN ${rootIdentifier}
                 `);
 
                 if (params?.order) {
                     statementParts.push(`
-                        ORDER BY ${params.order.map(([field, direction]) => `${rootIdentifier}.${field} ${direction}`).join(', ')}
+                        ORDER BY ${params.order
+                            .filter(([field]) => schemaKeys.has(field as string))
+                            .map(([field, direction]) => `${rootIdentifier}.${field} ${direction}`)
+                            .join(', ')
+                        }
                     `);
                 }
 
                 if (params?.limit) {
-                    statementParts.push(`LIMIT ${params.limit}`);
+                    const limitParam = bindParam.getUniqueNameAndAdd('limit', params.limit);
+                    statementParts.push(`LIMIT {${limitParam}}`);
                 }
 
                 const statement = statementParts.join(' ');
