@@ -140,26 +140,28 @@ export class QueryRunner {
         return this.run(session, statement, parameters);
     }
 
-    /**
-     * 
-     * @param session - the session for running this query
-     * @param label - the label of the nodes to create
-     * @param where - the where object for matching the nodes to be deleted
-     * @param identifier - identifier for the nodes
-     */
-    public delete = async (session: Session, label: string, anyWhere?: AnyWhereI, identifier?: string): Promise<QueryResult> => {
+    public delete = async (
+        session: Session,
+        params: {
+            label?: string;
+            anyWhere?: AnyWhereI;
+            identifier?: string;
+            /** detach relationships */
+            detach?: boolean;
+        }
+    ): Promise<QueryResult> => {
+        const { label, anyWhere, detach } = params;
         const where = Where.get(anyWhere);
 
-        identifier = identifier || QueryRunner.defaultIdentifier;
+        const identifier = params.identifier || QueryRunner.defaultIdentifier;
 
         const statementParts: string[] = [];
-        statementParts.push(`MATCH (${identifier}: ${label})`);
+        statementParts.push(`MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`);
         if (where) {
             statementParts.push(`WHERE ${where.statement}`);
         }
         statementParts.push(`
-            OPTIONAL MATCH (${identifier})-[r]-()
-            DELETE ${identifier},r
+            ${detach ? 'DETACH ' : ''}DELETE ${identifier}
         `);
 
         const statement = statementParts.join(' ');
