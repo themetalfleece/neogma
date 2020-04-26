@@ -165,20 +165,22 @@ export const ModelFactory = <
     MethodsI extends Record<string, any> = {},
     >(
         parameters: {
-            /** the id key of this model */
-            primaryKeyField: string;
-            /** the label of the nodes */
-            label: string | string[],
-            /** relationships with other models or itself */
-            relationships?: RelationshipsI<RelatedNodesToAssociateI>;
-            /** the keys which will be used on instance creation for associating related notes and creating relationship values */
-            relationshipCreationKeys: RelationshipCreationKeysI;
             /** the schema for the validation */
             schema: {
                 [index in keyof Attributes]: Revalidator.ISchema<Attributes> | Revalidator.JSONSchema<Attributes>;
             };
+            /** the label of the nodes */
+            label: string | string[];
+            /** statics of the Model */
             statics?: StaticsI;
+            /** method of the Instance */
             methods?: MethodsI;
+            /** the id key of this model. Is required in order to perform specific instance methods */
+            primaryKeyField?: Extract<keyof Attributes, string>;
+            /** relationships with other models or itself */
+            relationships?: RelationshipsI<RelatedNodesToAssociateI>;
+            /** the keys which will be used on instance creation for associating related notes and creating relationship values */
+            relationshipCreationKeys: RelationshipCreationKeysI;
         },
         neogma: Neogma,
 ) => {
@@ -237,7 +239,7 @@ export const ModelFactory = <
          * 
          * @returns {String} - the primary key field of this Model
          */
-        public static getPrimaryKeyField() { return modelPrimaryKeyField; }
+        public static getPrimaryKeyField(): string { return modelPrimaryKeyField as string; }
 
         public static getRelationshipCreationKeys() { return relationshipCreationKeys; }
 
@@ -330,6 +332,7 @@ export const ModelFactory = <
                 }
 
                 if (instance.__existsInDatabase) {
+                    Model.assertPrimaryKeyField('updating via save');
                     // if it exists in the database, update the node by only the fields which have changed
                     const updateData = Object.entries(instance.changed).reduce((val, [key, changed]) => {
                         if (changed && schemaKeys.has(key)) {
@@ -725,12 +728,13 @@ export const ModelFactory = <
                 where: Omit<Parameters<typeof Model.updateRelationship>[1]['where'], 'source'>
             }
         ) {
+            Model.assertPrimaryKeyField('updateRelationship');
             return Model.updateRelationship(data, {
                 ...params,
                 where: {
                     ...params.where,
                     source: {
-                        [modelPrimaryKeyField]: this[modelPrimaryKeyField],
+                        [modelPrimaryKeyField]: this[modelPrimaryKeyField as string],
                     },
                 },
             });
@@ -746,6 +750,8 @@ export const ModelFactory = <
             id: string,
             configuration?: GenericConfiguration
         ): Promise<boolean> {
+            Model.assertPrimaryKeyField('deleteOne');
+
             configuration = configuration || {};
 
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
@@ -775,6 +781,7 @@ export const ModelFactory = <
             ids: string[],
             configuration?: GenericConfiguration
         ): Promise<number> {
+            Model.assertPrimaryKeyField('deleteMany');
             configuration = configuration || {};
 
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
@@ -943,9 +950,11 @@ export const ModelFactory = <
             },
             configuration?: Parameters<typeof Model.relateTo>[1]
         ) {
+            Model.assertPrimaryKeyField('relateTo');
+
             const where: Parameters<typeof Model.relateTo>[0]['where'] = {
                 source: {
-                    _id: this[modelPrimaryKeyField],
+                    _id: this[modelPrimaryKeyField as string],
                 },
                 target: params.where,
             };
@@ -1002,6 +1011,12 @@ export const ModelFactory = <
         /** gets the model of a relationship */
         private static getRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
             return relationshipModel === 'self' ? Model : relationshipModel;
+        }
+
+        private static assertPrimaryKeyField(operation = '') {
+            if (!modelPrimaryKeyField) {
+                throw new NeogmaConstraintError(`This operation (${operation}) required the model to have a primaryKeyField`);
+            }
         }
 
     }
