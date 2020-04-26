@@ -65,6 +65,20 @@ export type RelatedNodesCreationParamI<
         [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI[key]['CreateData']>;
     };
 
+/** the type to be used in RelationshipTypeValueForCreateI.where */
+type RelationshipTypeValueForCreateWhereI<
+    RelationshipValuesToCreateKey extends string,
+    Attributes extends {
+        [key in RelationshipValuesToCreateKey]?: RelationshipValuesI;
+    }
+    > = {
+        /** where for the target nodes */
+        params: WhereParamsI;
+        /** whether to merge instead of create the relationship */
+        merge?: boolean;
+    } & {
+        [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+    };
 /** the type of the relationship along with the values, so the proper relationship and/or nodes can be created */
 type RelationshipTypeValueForCreateI
     <
@@ -72,29 +86,22 @@ type RelationshipTypeValueForCreateI
     Attributes extends {
         [key in RelationshipValuesToCreateKey]?: RelationshipValuesI;
     }
-    > =
-    (
-        {
-            attributes?: Array<Attributes & {
-                [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
-            }>;
-            where?: Array<
-                {
-                    /** where for the target nodes */
-                    params: WhereParamsI;
-                } & {
-                    [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
-                }
-            > | (
-                {
-                    /** where for the target nodes */
-                    params: WhereParamsI;
-                } & {
-                    [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
-                }
-            );
+    > = {
+        /** create new nodes and create a relationshi[] with them */
+        attributes?: Array<Attributes & {
+            [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+        }>;
+        /** configuration for merging instead of creating the attributes/relationships */
+        attributesMergeConfig?: {
+            /** merge the created attributes instead of creating them */
+            attibutes?: boolean;
+            /** merge the relationship with the created attributes instead of creating it */
+            relationship?: boolean;
         }
-    );
+        /** create a relationship with nodes which are matched by the where */
+        where?: RelationshipTypeValueForCreateWhereI<RelationshipValuesToCreateKey, Attributes> |
+        Array<RelationshipTypeValueForCreateWhereI<RelationshipValuesToCreateKey, Attributes>>;
+    };
 
 /** the type for the Relationship configuration of a Model */
 export type RelationshipsI<
@@ -179,6 +186,13 @@ export const ModelFactory = <
     /** type used for creating nodes. It includes their Attributes and Related Nodes */
     type CreateDataI = Attributes & {
         [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
+    };
+    /** parameters when creating nodes */
+    type CreateDataParamsI = GenericConfiguration & {
+        /** whether to merge instead of creating */
+        merge?: boolean;
+        /** validate all parent and children instances. default to true */
+        validate?: boolean;
     };
 
     const { label: modelLabel, primaryKeyField: modelPrimaryKeyField, relationshipCreationKeys, schema } = parameters;
@@ -303,10 +317,7 @@ export const ModelFactory = <
         /**
          * saves an instance to the database. If it's new it creates it, and if it already exists it edits it
          */
-        public save(_configuration?: GenericConfiguration & {
-            /** whether to validate this instance, defaults to true */
-            validate?: boolean;
-        }): Promise<Instance> {
+        public save(_configuration?: CreateDataParamsI): Promise<Instance> {
             const instance = this as unknown as Instance;
             const configuration = {
                 validate: true,
@@ -346,7 +357,10 @@ export const ModelFactory = <
                     return instance;
                 } else {
                     // if it's a new one - it doesn't exist in the database yet, need to create it
-                    return Model.createOne(instance, { session });
+                    return Model.createOne(instance, {
+                        ...configuration,
+                        session,
+                    });
                 }
             });
         }
@@ -358,8 +372,8 @@ export const ModelFactory = <
          * @returns {Attributes} - the created data
          */
         public static async createOne(
-            data: CreateDataI,
-            configuration?: GenericConfiguration,
+            data: Parameters<typeof Model['createMany']>[0][0],
+            configuration?: Parameters<typeof Model['createMany']>[1],
         ): Promise<Instance> {
             const instances = await Model.createMany([data], configuration);
             return instances[0];
@@ -367,13 +381,12 @@ export const ModelFactory = <
 
         public static async createMany(
             data: CreateDataI[] | Instance[],
-            configuration?: GenericConfiguration & {
-                /** validate all parent and children instances. default to true */
-                validate?: boolean;
-            },
+            configuration?: CreateDataParamsI,
         ): Promise<Instance[]> {
             configuration = configuration || {};
             const validate = !(configuration.validate === false);
+
+            const createOrMerge = (merge?: boolean) => merge ? 'MERGE' : 'CREATE';
 
             return getSession(configuration?.session, async (session) => {
 
@@ -393,6 +406,8 @@ export const ModelFactory = <
                         relationship: Omit<RelationshipsI<any>[0], 'alias'>;
                         /** relationship attributes */
                         values?: object;
+                        /** merge the relationship instead of creating it */
+                        merge?: boolean;
                     }>;
                 } = {};
 
@@ -402,10 +417,14 @@ export const ModelFactory = <
                 const addCreateToStatement = async <M extends NeogmaModel>(
                     model: M,
                     dataToUse: object[],
+                    /** whether to merge instead of creating the attributes */
+                    mergeAttributes?: boolean,
                     parentNode?: {
                         identifier: string;
                         relationship: Omit<RelationshipsI<any>[0], 'alias'>;
                         relationshipValuesToCreateKey?: string;
+                        /** whether to merge the relationship instead of creating it */
+                        mergeRelationship?: boolean;
                     }
                 ) => {
                     for (const createData of dataToUse) {
@@ -432,7 +451,7 @@ export const ModelFactory = <
                             const identifierWithLabel = QueryRunner.getIdentifierWithLabel(identifier, label);
 
                             statementParts.push(`
-                                CREATE (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
+                                ${createOrMerge(mergeAttributes)} (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
                             `);
 
                             /** if it has a parent node, also create a relationship with it */
@@ -448,7 +467,7 @@ export const ModelFactory = <
                                     identifier: relationshipIdentifier,
                                 });
                                 statementParts.push(`
-                                    CREATE (${parentIdentifier})${directionAndNameString}(${identifier})
+                                    ${createOrMerge(parentNode.mergeRelationship)} (${parentIdentifier})${directionAndNameString}(${identifier})
                                 `);
                                 if (relationshipValues) {
                                     /* create the relationship values */
@@ -468,12 +487,18 @@ export const ModelFactory = <
                                 const otherModel = model.getRelationshipModel(relationship.model) as NeogmaModel;
 
                                 if (relatedNodesData.attributes) {
-                                    await addCreateToStatement(otherModel, relatedNodesData.attributes, {
-                                        identifier,
-                                        relationship,
-                                        // use the RelationshipValuesToCreate key of this model
-                                        relationshipValuesToCreateKey: model.getRelationshipCreationKeys().RelationshipValuesToCreate,
-                                    });
+                                    await addCreateToStatement(
+                                        otherModel,
+                                        relatedNodesData.attributes,
+                                        relatedNodesData.attributesMergeConfig?.attibutes,
+                                        {
+                                            identifier,
+                                            relationship,
+                                            // use the RelationshipValuesToCreate key of this model
+                                            relationshipValuesToCreateKey: model.getRelationshipCreationKeys().RelationshipValuesToCreate,
+                                            mergeRelationship: relatedNodesData.attributesMergeConfig?.relationship,
+                                        }
+                                    );
                                 }
                                 if (relatedNodesData.where) {
                                     const whereArr = relatedNodesData.where instanceof Array ? relatedNodesData.where : [relatedNodesData.where];
@@ -488,6 +513,7 @@ export const ModelFactory = <
                                             relationship,
                                             where: whereEntry.params,
                                             values: whereEntry[model.getRelationshipCreationKeys().RelationshipValuesToCreate],
+                                            merge: whereEntry.merge,
                                         });
                                     }
                                 }
@@ -499,7 +525,7 @@ export const ModelFactory = <
                     }
                 };
 
-                await addCreateToStatement(Model, data, null);
+                await addCreateToStatement(Model, data, configuration?.merge, null);
 
                 // parse data to bulk create
                 if (bulkCreateData.length) {
@@ -510,7 +536,7 @@ export const ModelFactory = <
                         UNWIND {${bulkCreateOptionsParam}} as ${bulkCreateDataIdentifier}
                     `);
                     statementParts.push(`
-                        CREATE (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
+                        ${createOrMerge(configuration?.merge)} (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
                         SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
                     `);
                 }
@@ -531,7 +557,7 @@ export const ModelFactory = <
                             `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
                             `MATCH (${QueryRunner.getIdentifierWithLabel(targetNodeIdentifier, targetNodeLabel)})`,
                             `WHERE ${new Where({ [targetNodeIdentifier]: relateParameters.where }, bindParam).statement}`,
-                            `CREATE (${identifier})${QueryRunner.getRelationshipDirectionAndName({
+                            `${createOrMerge(relateParameters.merge)} (${identifier})${QueryRunner.getRelationshipDirectionAndName({
                                 direction: relationship.direction,
                                 name: relationship.name,
                                 identifier: relationshipIdentifier,
