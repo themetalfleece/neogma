@@ -740,64 +740,42 @@ export const ModelFactory = <
             });
         }
 
-        /**
-         * 
-         * @param {String} id - the id of the node to delete
-         * @param {GenericConfiguration} configuration - query configuration
-         * @returns {Boolean} - whether the node was successfully deleted
-         */
-        public static async deleteOne(
-            id: string,
-            configuration?: GenericConfiguration
-        ): Promise<boolean> {
-            Model.assertPrimaryKeyField('deleteOne');
-
-            configuration = configuration || {};
-
+        public static async delete(
+            configuration: GenericConfiguration & {
+                where: WhereParamsI,
+                detach?: boolean,
+            }
+        ): Promise<number> {
+            const { detach, where } = configuration;
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
-            const where = {
-                [normalizedLabel]: {
-                    [modelPrimaryKeyField]: id,
-                },
-            };
 
             return getSession(configuration?.session, async (session) => {
+                const identifier = 'node';
                 const res = await queryRunner.delete(
                     session,
-                    normalizedLabel,
-                    where,
+                    {
+                        label: normalizedLabel,
+                        anyWhere: {
+                            [identifier]: where,
+                        },
+                        detach,
+                        identifier,
+                    }
                 );
-                return getNodesDeleted(res) === 1;
+                return getNodesDeleted(res);
             });
         }
 
-        /**
-         * 
-         * @param {String[]} ids - the ids of the nodes to delete
-         * @param {GenericConfiguration} configuration - query configuration
-         * @returns {Number} - the number of deleted nodes
-         */
-        public static async deleteMany(
-            ids: string[],
-            configuration?: GenericConfiguration
-        ): Promise<number> {
-            Model.assertPrimaryKeyField('deleteMany');
-            configuration = configuration || {};
+        public async delete(
+            configuration?: Omit<Parameters<typeof Model['delete']>[0], 'where'>,
+        ) {
+            Model.assertPrimaryKeyField('delete');
 
-            const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
-            const where = {
-                [normalizedLabel]: {
-                    [modelPrimaryKeyField]: { $in: ids },
+            return Model.delete({
+                ...configuration,
+                where: {
+                    [modelPrimaryKeyField]: this[modelPrimaryKeyField as string],
                 },
-            };
-
-            return getSession(configuration?.session, async (session) => {
-                const res = await queryRunner.delete(
-                    session,
-                    normalizedLabel,
-                    where,
-                );
-                return getNodesDeleted(res);
             });
         }
 
@@ -955,7 +933,7 @@ export const ModelFactory = <
 
             const where: Parameters<typeof Model.relateTo>[0]['where'] = {
                 source: {
-                    _id: this[modelPrimaryKeyField as string],
+                    [modelPrimaryKeyField]: this[modelPrimaryKeyField as string],
                 },
                 target: params.where,
             };
