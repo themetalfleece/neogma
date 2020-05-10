@@ -93,8 +93,8 @@ type RelationshipTypeValueForCreateI
         }>;
         /** configuration for merging instead of creating the attributes/relationships */
         attributesMergeConfig?: {
-            /** merge the created attributes instead of creating them */
-            attibutes?: boolean;
+            /** merge the created nodes instead of creating them */
+            nodes?: boolean;
             /** merge the relationship with the created attributes instead of creating it */
             relationship?: boolean;
         }
@@ -498,7 +498,7 @@ export const ModelFactory = <
                                     await addCreateToStatement(
                                         otherModel,
                                         relatedNodesData.attributes,
-                                        relatedNodesData.attributesMergeConfig?.attibutes,
+                                        relatedNodesData.attributesMergeConfig?.nodes,
                                         {
                                             identifier,
                                             relationship,
