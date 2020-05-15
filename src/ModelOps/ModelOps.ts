@@ -755,7 +755,7 @@ export const ModelFactory = <
                     session,
                     {
                         label: normalizedLabel,
-                        anyWhere: {
+                        where: {
                             [identifier]: where,
                         },
                         detach,

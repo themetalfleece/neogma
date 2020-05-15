@@ -10,12 +10,12 @@ export type Neo4jSupportedTypes = Neo4jSingleTypes | (Neo4jSingleTypes)[];
 export interface CreateRelationshipParamsI {
     source: {
         label?: string;
-        /** identifier to be used in the query. defaults to the value of QueryRunner.identifiers.createRelationship.source */
+        /** identifier to be used in the query. Defaults to the value of QueryRunner.identifiers.createRelationship.source */
         identifier?: string;
     };
     target: {
         label?: string;
-        /** identifier to be used in the query. defaults to the value of QueryRunner.identifiers.createRelationship.target */
+        /** identifier to be used in the query. Defaults to the value of QueryRunner.identifiers.createRelationship.target */
         identifier?: string;
     };
     relationship: {
@@ -60,8 +60,6 @@ export class QueryRunner {
         return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
     }
 
-    public static defaultIdentifier = 'nodes';
-
     public create = async <T>(
         /** the session for running this query */
         session: Session,
@@ -75,7 +73,7 @@ export class QueryRunner {
         }
     ): Promise<QueryResult> => {
         const { label, data: options } = params;
-        const identifier = params.identifier || QueryRunner.defaultIdentifier;
+        const identifier = params.identifier || QueryRunner.identifiers.default;
 
         const { getIdentifierWithLabel } = QueryRunner;
         const statement = `
@@ -95,7 +93,7 @@ export class QueryRunner {
         session: Session,
         params: {
             /** the label of the nodes to create */
-            label: string,
+            label?: string,
             /** the where object for matching the nodes to be edited */
             data: Partial<T>,
             /** the new data data, to be edited */
@@ -108,7 +106,7 @@ export class QueryRunner {
     ): Promise<QueryResult> => {
         const { label, data } = params;
 
-        const identifier = params.identifier || QueryRunner.defaultIdentifier;
+        const identifier = params.identifier || QueryRunner.identifiers.default;
 
         const where = Where.get(params.where);
 
@@ -116,7 +114,7 @@ export class QueryRunner {
         const updateBindParam = where.bindParam.clone();
 
         const statementParts: string[] = [];
-        statementParts.push(`MATCH (${identifier}:${label})`);
+        statementParts.push(`MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`);
         if (where) {
             statementParts.push(`WHERE ${where.statement}`);
         }
@@ -144,16 +142,16 @@ export class QueryRunner {
         session: Session,
         params: {
             label?: string;
-            anyWhere?: AnyWhereI;
+            where?: AnyWhereI;
             identifier?: string;
             /** detach relationships */
             detach?: boolean;
         }
     ): Promise<QueryResult> => {
-        const { label, anyWhere, detach } = params;
-        const where = Where.get(anyWhere);
+        const { label, detach } = params;
+        const where = Where.get(params.where);
 
-        const identifier = params.identifier || QueryRunner.defaultIdentifier;
+        const identifier = params.identifier || QueryRunner.identifiers.default;
 
         const statementParts: string[] = [];
         statementParts.push(`MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`);
@@ -248,7 +246,7 @@ export class QueryRunner {
     }
 
     /** 
-     * returns a string in the format -[r: name]->
+     * returns a string in the format -[r:name]->
      */
     public static getRelationshipDirectionAndName = (params: {
         /** relationship direction */
@@ -287,6 +285,8 @@ export class QueryRunner {
 
     /** default identifiers for the queries */
     public static readonly identifiers = {
+        /** general purpose default identifier */
+        default: 'nodes',
         /** default identifiers for createRelationship */
         createRelationship: {
             /** default identifier for the source node */
