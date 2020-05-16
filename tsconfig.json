@@ -4,6 +4,7 @@
         "moduleResolution": "node",
         "pretty": true,
         "resolveJsonModule": true,
+        "declaration": true,
         "sourceMap": true,
         "target": "es2017",
         "outDir": "./dist",

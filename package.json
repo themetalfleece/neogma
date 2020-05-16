@@ -2,9 +2,13 @@
   "name": "neogma",
   "version": "1.0.0",
   "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",
+  "files": [
+    "dist/**/*"
+  ],
   "dependencies": {
     "clone": "^2.1.2",
     "neo4j-driver": "^4.0.1",
@@ -19,5 +23,24 @@
     "tslint": "^6.1.1",
     "typescript": "^3.9.2",
     "typescript-eslint-parser": "^22.0.0"
-  }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/themetalfleece/neogma.git"
+  },
+  "keywords": [
+    "neo4j",
+    "ogm",
+    "graph",
+    "databases",
+    "cypher"
+  ],
+  "bugs": {
+    "url": "https://github.com/themetalfleece/neogma/issues"
+  },
+  "homepage": "https://github.com/themetalfleece/neogma#readme"
 }
