@@ -80,17 +80,17 @@ export class Where {
         // merge all rawParams into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
         const params = Object.assign({}, ...this.rawParams);
 
-        for (const nodeAlias in params) {
-            if (!params.hasOwnProperty(nodeAlias)) { continue; }
-            for (const key in params[nodeAlias]) {
-                if (!params[nodeAlias].hasOwnProperty(key)) { continue; }
+        for (const nodeIdentifier in params) {
+            if (!params.hasOwnProperty(nodeIdentifier)) { continue; }
+            for (const key in params[nodeIdentifier]) {
+                if (!params[nodeIdentifier].hasOwnProperty(key)) { continue; }
 
-                const value = params[nodeAlias][key];
+                const value = params[nodeIdentifier][key];
 
                 if (['string', 'number', 'boolean'].includes(typeof value) || value instanceof Array) {
-                    this.addAnd(`${nodeAlias}.${key} = ${this.getNameAndAddToParams(key, value)}`);
+                    this.addAnd(`${nodeIdentifier}.${key} = ${this.getNameAndAddToParams(key, value)}`);
                 } else if (isWhereIn(value)) {
-                    this.addAnd(`${nodeAlias}.${key} IN ${this.getNameAndAddToParams(key, value.$in)}`);
+                    this.addAnd(`${nodeIdentifier}.${key} IN ${this.getNameAndAddToParams(key, value.$in)}`);
                 }
             }
         }
@@ -111,8 +111,8 @@ export class Where {
         }
     }
 
-    /** returns a Where object if data is specified, else returns null */
-    public static get(params: AnyWhereI, bindParam?: BindParam): Where | null {
+    /** returns a Where object if params is specified, else returns null */
+    public static acquire(params: AnyWhereI, bindParam?: BindParam): Where | null {
         if (!params) { return null; }
 
         if (params instanceof Where) {

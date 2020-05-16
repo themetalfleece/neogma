@@ -109,7 +109,7 @@ export class QueryRunner {
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const where = Where.get(params.where);
+        const where = Where.acquire(params.where);
 
         /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
         const updateBindParam = where.bindParam.clone();
@@ -150,7 +150,7 @@ export class QueryRunner {
         }
     ): Promise<QueryResult> => {
         const { label, detach } = params;
-        const where = Where.get(params.where);
+        const where = Where.acquire(params.where);
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
@@ -172,7 +172,7 @@ export class QueryRunner {
     public createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<QueryResult> => {
 
         const { source, target, relationship, where } = params;
-        const whereInstance = Where.get(where);
+        const whereInstance = Where.acquire(where);
 
         const relationshipIdentifier = 'r';
         const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
