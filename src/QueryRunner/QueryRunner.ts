@@ -1,6 +1,7 @@
 import { QueryResult, Session } from 'neo4j-driver/types';
 import * as uuid from 'uuid';
-import { AnyWhereI, BindParam, Where } from './Where';
+import { BindParam } from './BindParameter';
+import { AnyWhereI, Where } from './Where';
 
 /** the types that Neo4j supports (not including an array of them) */
 export type Neo4jSingleTypes = string | number | boolean | Date;
