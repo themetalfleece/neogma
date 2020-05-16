@@ -1,5 +1,5 @@
 import * as clone from 'clone';
-import { NeogmaConstraintError } from '../errors/NeogmaConstraintError';
+import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { StringSequence } from '../utils/StringSequence';
 
 /**

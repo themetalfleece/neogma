@@ -1,9 +1,9 @@
 import { QueryResult, Session } from 'neo4j-driver';
 import * as revalidator from 'revalidator';
-import { NeogmaConstraintError } from '../errors/NeogmaConstraintError';
-import { NeogmaError } from '../errors/NeogmaError';
-import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidationError';
-import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
+import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
+import { NeogmaError } from '../Errors/NeogmaError';
+import { NeogmaInstanceValidationError } from '../Errors/NeogmaInstanceValidationError';
+import { NeogmaNotFoundError } from '../Errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
 import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
