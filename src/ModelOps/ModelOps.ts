@@ -6,7 +6,7 @@ import { NeogmaInstanceValidationError } from '../errors/NeogmaInstanceValidatio
 import { NeogmaNotFoundError } from '../errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
 import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
-import { BindParam } from '../QueryRunner/BindParameter';
+import { BindParam } from '../QueryRunner/BindParam';
 
 export type NeogmaModel = ReturnType<typeof ModelFactory>;
 
@@ -221,13 +221,13 @@ export const ModelFactory = <
 
     type Instance = NeogmaInstance<typeof Model, Attributes, MethodsI>;
 
-    class Model {
+    const Model = class ModelClass {
 
         /** whether this instance already exists in the database or it new */
-        private __existsInDatabase;
+        public __existsInDatabase;
 
         /** the data of Attributes */
-        private dataValues: Attributes;
+        public dataValues: Attributes;
         /** the changed attributes of this instance, to be taken into account when saving it */
         public changed: Record<keyof Attributes, boolean>;
 
@@ -277,7 +277,7 @@ export const ModelFactory = <
          * builds data Instance by data, setting information fields appropriately
          * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
          */
-        private static __build(data: CreateDataI, { status }: {
+        public static __build(data: CreateDataI, { status }: {
             status: 'new' | 'existing'
         }) {
             const instance = new Model() as Instance;
@@ -984,22 +984,22 @@ export const ModelFactory = <
         }
 
         /** gets the label from the given model for a relationship */
-        private static getLabelFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
+        public static getLabelFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
             return relationshipModel === 'self' ? modelLabel : relationshipModel.getLabel();
         }
 
         /** gets the model of a relationship */
-        private static getRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
+        public static getRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
             return relationshipModel === 'self' ? Model : relationshipModel;
         }
 
-        private static assertPrimaryKeyField(operation = '') {
+        public static assertPrimaryKeyField(operation = '') {
             if (!modelPrimaryKeyField) {
                 throw new NeogmaConstraintError(`This operation (${operation}) required the model to have a primaryKeyField`);
             }
         }
 
-    }
+    };
 
     for (const staticKey in statics) {
         if (!statics.hasOwnProperty(staticKey)) { continue; }

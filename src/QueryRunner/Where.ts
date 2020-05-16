@@ -1,4 +1,4 @@
-import { BindParam } from './BindParameter';
+import { BindParam } from './BindParam';
 import { Neo4jSingleTypes, Neo4jSupportedTypes } from './QueryRunner';
 
 
