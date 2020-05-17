@@ -8,8 +8,6 @@ import { Neogma } from '../Neogma';
 import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
 
-export type NeogmaModel = ReturnType<typeof ModelFactory>;
-
 const getResultsArray = <T>(result: QueryResult, identifier: string): T[] => {
     return result.records.map((v) => v.get(identifier).properties);
 };
@@ -56,7 +54,6 @@ export interface ModelRelatedNodesI<
     };
     Instance: RelatedInstance;
 }
-
 
 /** to be used in create functions where the related nodes can be passed for creation */
 export type RelatedNodesCreationParamI<
@@ -109,18 +106,7 @@ export type RelationshipsI<
     RelatedNodesToAssociateI extends Record<string, any>,
     > = Array<{
         /** the related model. It could be the object of the model, or "self" for this model */
-        model: {
-            createOne: (
-                data: any,
-                configuration?: GenericConfiguration,
-            ) => Promise<any>;
-            createMany: (
-                data: any[],
-                configuration?: GenericConfiguration,
-            ) => Promise<any[]>;
-            getLabel: () => string | string[];
-            getPrimaryKeyField: () => string;
-        } | 'self', // we can't use the actual NeogmaModel type due to circular references
+        model: NeogmaModel<any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
         /** the name of the relationship */
         name: CreateRelationshipParamsI['relationship']['name'];
         /** the direction of the relationship */
@@ -128,15 +114,195 @@ export type RelationshipsI<
         alias: keyof RelatedNodesToAssociateI;
     }>;
 
+/** parameters when creating nodes */
+type CreateDataParamsI = GenericConfiguration & {
+    /** whether to merge instead of creating */
+    merge?: boolean;
+    /** validate all parent and children instances. default to true */
+    validate?: boolean;
+};
+
+/** type used for creating nodes. It includes their Attributes and Related Nodes */
+type CreateDataI<
+    Attributes,
+    RelatedNodesToAssociateKey extends string,
+    RelationshipValuesToCreateKey extends string,
+    RelatedNodesToAssociateI extends Record<string, any>,
+    > = Attributes & {
+        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
+    };
+
+/** the statics of a Neogma Model */
+interface NeogmaModelStaticsI<
+    Attributes,
+    RelatedNodesToAssociateKey extends string,
+    RelationshipValuesToCreateKey extends string,
+    RelatedNodesToAssociateI extends Record<string, any>,
+    MethodsI extends Record<string, any> = {},
+    CreateData = CreateDataI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI>,
+    Instance = NeogmaInstance<Attributes, RelatedNodesToAssociateI, MethodsI>,
+    > {
+    getLabel: () => string | string[];
+    getPrimaryKeyField: () => string;
+    getRelationshipCreationKeys: () => RelationshipCreationKeysI;
+    getModelName: () => string;
+    __build: (
+        data: CreateData,
+        params: {
+            status: 'new' | 'existing'
+        }
+    ) => Instance;
+    build: (
+        data: CreateData,
+    ) => Instance;
+    createOne: (
+        data: CreateData | Instance,
+        configuration?: CreateDataParamsI,
+    ) => Promise<Instance>;
+    createMany: (
+        data: CreateData[] | Instance[],
+        configuration?: CreateDataParamsI,
+    ) => Promise<Instance[]>;
+    getRelationshipByAlias: (
+        alias: keyof RelatedNodesToAssociateI
+    ) => RelationshipsI<any>[0];
+    update: (
+        data: Partial<Attributes>,
+        params?: GenericConfiguration & {
+            where?: WhereParamsI;
+            /** defaults to false. Whether to return the values of the nodes after the update. If it's false, the first entry of the return value of this function will be an empty array */
+            return?: boolean;
+        }
+    ) => Promise<[Instance[], QueryResult]>;
+    updateRelationship: (
+        data: object,
+        params: {
+            alias: keyof RelatedNodesToAssociateI;
+            where?: {
+                source?: WhereParamsI;
+                target?: WhereParamsI;
+                relationship?: WhereParamsI;
+            };
+            session?: GenericConfiguration['session'];
+        }
+    ) => Promise<QueryResult>;
+    delete: (
+        configuration?: GenericConfiguration & {
+            detach?: boolean,
+            where: WhereParamsI;
+        }
+    ) => Promise<number>;
+    findMany: (
+        params?: GenericConfiguration & {
+            /** where params for the nodes of this Model */
+            where?: WhereParamsI;
+            limit?: number;
+            order?: Array<[keyof Attributes, 'ASC' | 'DESC']>;
+        },
+    ) => Promise<Instance[]>;
+    findOne: (
+        params?: GenericConfiguration & {
+            /** where params for the nodes of this Model */
+            where?: WhereParamsI;
+            order?: Array<[keyof Attributes, 'ASC' | 'DESC']>;
+        },
+    ) => Promise<Instance>;
+    relateTo: (
+        params: {
+            alias: keyof RelatedNodesToAssociateI;
+            where: {
+                source: WhereParamsI;
+                target: WhereParamsI;
+            };
+            values?: object;
+        },
+        configuration?: {
+            /** throws an error if the number of created relationships don't equal to this number */
+            assertCreatedRelationships?: number;
+            session?: GenericConfiguration['session'];
+        }
+    ) => Promise<number>;
+    createRelationship: (
+        params: CreateRelationshipParamsI,
+        configuration?: {
+            /** throws an error if the number of created relationships don't equal to this number */
+            assertCreatedRelationships?: number;
+            session?: GenericConfiguration['session'];
+        }
+    ) => Promise<number>;
+    getLabelFromRelationshipModel: (
+        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
+    ) => string | string[];
+    getRelationshipModel: (
+        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
+    ) => NeogmaModel<any, any, any, any>;
+    assertPrimaryKeyField: (
+        operation: string
+    ) => void;
+}
+/** the methods of a Neogma Instance */
+interface NeogmaInstanceMethodsI<
+    Attributes,
+    RelatedNodesToAssociateI extends Record<string, any>,
+    MethodsI extends Record<string, any>,
+    Instance = NeogmaInstance<Attributes, RelatedNodesToAssociateI, MethodsI>
+    > {
+    __existsInDatabase: boolean;
+    dataValues: Attributes;
+    changed: Record<keyof Attributes, boolean>;
+    getDataValues: () => Attributes;
+    save: (
+        configuration?: CreateDataParamsI
+    ) => Promise<Instance>;
+    validate: () => Promise<void>;
+    updateRelationship: (
+        data: object,
+        params: {
+            alias: keyof RelatedNodesToAssociateI;
+            where?: {
+                target?: WhereParamsI;
+                relationship?: WhereParamsI;
+            };
+            session?: GenericConfiguration['session'];
+        }
+    ) => Promise<QueryResult>;
+    delete: (
+        configuration?: GenericConfiguration & {
+            detach?: boolean,
+        }
+    ) => Promise<number>;
+    relateTo: (
+        params: {
+            alias: keyof RelatedNodesToAssociateI;
+            where: WhereParamsI;
+            values?: object;
+        },
+        configuration?: {
+            /** throws an error if the number of created relationships don't equal to this number */
+            assertCreatedRelationships?: number;
+            session?: GenericConfiguration['session'];
+        }
+    ) => Promise<number>;
+}
+
 /** the type of instance of the Model */
 export type NeogmaInstance<
-    /** the Model that this instance belongs to */
-    Model extends new (...args) => any,
     /** the attributes used in the Model */
     Attributes,
+    RelatedNodesToAssociateI extends Record<string, any>,
     /** the Methods used in the Model */
     MethodsI extends Record<string, any> = {},
-    > = Attributes & InstanceType<Model> & MethodsI;
+    > = Attributes & NeogmaInstanceMethodsI<Attributes, RelatedNodesToAssociateI, MethodsI> & MethodsI;
+
+/** the type of a Neogma Model */
+export type NeogmaModel<
+    Attributes,
+    RelatedNodesToAssociateKey extends string,
+    RelationshipValuesToCreateKey extends string,
+    RelatedNodesToAssociateI extends Record<string, any>,
+    MethodsI extends Record<string, any> = {},
+    StaticsI extends Record<string, any> = {},
+    > = NeogmaModelStaticsI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI> & StaticsI;
 
 export type FindManyIncludeI<AliasKeys> = {
     alias: AliasKeys;
@@ -184,19 +350,7 @@ export const ModelFactory = <
             relationshipCreationKeys: RelationshipCreationKeysI;
         },
         neogma: Neogma,
-) => {
-
-    /** type used for creating nodes. It includes their Attributes and Related Nodes */
-    type CreateDataI = Attributes & {
-        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
-    };
-    /** parameters when creating nodes */
-    type CreateDataParamsI = GenericConfiguration & {
-        /** whether to merge instead of creating */
-        merge?: boolean;
-        /** validate all parent and children instances. default to true */
-        validate?: boolean;
-    };
+): NeogmaModel<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI, StaticsI> => {
 
     const { label: modelLabel, primaryKeyField: modelPrimaryKeyField, relationshipCreationKeys, schema } = parameters;
     const statics = parameters.statics || {};
@@ -219,34 +373,46 @@ export const ModelFactory = <
         });
     }
 
-    type Instance = NeogmaInstance<typeof Model, Attributes, MethodsI>;
+    type CreateData = CreateDataI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
 
-    const Model = class ModelClass {
+    type InstanceMethodsI = NeogmaInstanceMethodsI<Attributes, RelatedNodesToAssociateI, MethodsI>;
+    type ModelStaticsI = NeogmaModelStaticsI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI>;
+    type Instance = NeogmaInstance<Attributes, RelatedNodesToAssociateI, MethodsI>;
+
+    const Model = class ModelClass implements InstanceMethodsI {
 
         /** whether this instance already exists in the database or it new */
-        public __existsInDatabase;
+        public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
 
         /** the data of Attributes */
-        public dataValues: Attributes;
+        public dataValues: InstanceMethodsI['dataValues'];
         /** the changed attributes of this instance, to be taken into account when saving it */
-        public changed: Record<keyof Attributes, boolean>;
+        public changed: InstanceMethodsI['changed'];
 
         /**
          * @returns {String} - the label of this Model
          */
-        public static getLabel() { return modelLabel; }
+        public static getLabel(): ReturnType<ModelStaticsI['getLabel']> {
+            return modelLabel;
+        }
 
         /**
          * 
          * @returns {String} - the primary key field of this Model
          */
-        public static getPrimaryKeyField(): string { return modelPrimaryKeyField as string; }
+        public static getPrimaryKeyField(): ReturnType<ModelStaticsI['getPrimaryKeyField']> {
+            return modelPrimaryKeyField;
+        }
 
-        public static getRelationshipCreationKeys() { return relationshipCreationKeys; }
+        public static getRelationshipCreationKeys(): ReturnType<ModelStaticsI['getRelationshipCreationKeys']> {
+            return relationshipCreationKeys;
+        }
 
-        public static getModelName() { return modelName; }
+        public static getModelName(): ReturnType<ModelStaticsI['getModelName']> {
+            return modelName;
+        }
 
-        public getDataValues(): Attributes {
+        public getDataValues(): ReturnType<InstanceMethodsI['getDataValues']> {
             const data: Attributes = Object.keys(schema).reduce((acc, key) => {
                 acc[key] = this[key];
                 return acc;
@@ -259,7 +425,7 @@ export const ModelFactory = <
          * validates the given instance
          * @throws NeogmaInstanceValidationError
          */
-        public async validate() {
+        public async validate(): ReturnType<InstanceMethodsI['validate']> {
             const validationResult = revalidator.validate(this.getDataValues(), {
                 type: 'object',
                 properties: schema,
@@ -277,9 +443,10 @@ export const ModelFactory = <
          * builds data Instance by data, setting information fields appropriately
          * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
          */
-        public static __build(data: CreateDataI, { status }: {
-            status: 'new' | 'existing'
-        }) {
+        public static __build(
+            data: Parameters<ModelStaticsI['__build']>[0],
+            { status }: Parameters<ModelStaticsI['__build']>[1]
+        ): ReturnType<ModelStaticsI['__build']> {
             const instance = new Model() as Instance;
 
             instance.__existsInDatabase = status === 'existing';
@@ -313,21 +480,25 @@ export const ModelFactory = <
         /**
          * creates a new Instance of this Model, which can be saved to the database
          */
-        public static build(data: CreateDataI): Instance {
+        public static build(
+            data: Parameters<ModelStaticsI['build']>[0]
+        ): ReturnType<ModelStaticsI['build']> {
             return Model.__build(data, { status: 'new' });
         }
 
         /**
          * saves an instance to the database. If it's new it creates it, and if it already exists it edits it
          */
-        public save(_configuration?: CreateDataParamsI): Promise<Instance> {
-            const instance = this as unknown as Instance;
+        public save(
+            _configuration?: Parameters<InstanceMethodsI['save']>[0]
+        ): ReturnType<InstanceMethodsI['save']> {
+            const instance = this as Instance;
             const configuration = {
                 validate: true,
                 ..._configuration,
             };
 
-            return getSession<Instance>(_configuration?.session, async (session) => {
+            return getSession(_configuration?.session, async (session) => {
                 if (configuration.validate) {
                     await instance.validate();
                 }
@@ -376,17 +547,17 @@ export const ModelFactory = <
          * @returns {Attributes} - the created data
          */
         public static async createOne(
-            data: Parameters<typeof Model['createMany']>[0][0],
-            configuration?: Parameters<typeof Model['createMany']>[1],
-        ): Promise<Instance> {
+            data: Parameters<ModelStaticsI['createOne']>[0],
+            configuration?: Parameters<ModelStaticsI['createOne']>[1],
+        ): ReturnType<ModelStaticsI['createOne']> {
             const instances = await Model.createMany([data], configuration);
             return instances[0];
         }
 
         public static async createMany(
-            data: CreateDataI[] | Instance[],
-            configuration?: CreateDataParamsI,
-        ): Promise<Instance[]> {
+            data: Parameters<ModelStaticsI['createMany']>[0],
+            configuration?: Parameters<ModelStaticsI['createMany']>[1],
+        ): ReturnType<ModelStaticsI['createMany']> {
             configuration = configuration || {};
             const validate = !(configuration.validate === false);
 
@@ -418,9 +589,9 @@ export const ModelFactory = <
                 const instances: Instance[] = [];
                 const bulkCreateData: Attributes[] = [];
 
-                const addCreateToStatement = async <M extends NeogmaModel>(
-                    model: M,
-                    dataToUse: object[],
+                const addCreateToStatement = async (
+                    model: ModelStaticsI,
+                    dataToUse: Array<CreateData | Instance>,
                     /** whether to merge instead of creating the attributes */
                     mergeAttributes?: boolean,
                     parentNode?: {
@@ -437,7 +608,7 @@ export const ModelFactory = <
                         const label = QueryRunner.getNormalizedLabels(model.getLabel());
 
                         const instance = (
-                            createData instanceof model ? createData : model.__build(createData, { status: 'new' })
+                            createData instanceof (model as any) ? createData : model.__build(createData, { status: 'new' })
                         ) as Instance;
                         instance.__existsInDatabase = true;
                         // set all changed to false as it's going to be saved
@@ -493,7 +664,7 @@ export const ModelFactory = <
 
                                 const relatedNodesData: RelationshipTypeValueForCreateI<any, any> = relatedNodesToAssociate[relationshipAlias];
                                 const relationship = model.getRelationshipByAlias(relationshipAlias);
-                                const otherModel = model.getRelationshipModel(relationship.model) as NeogmaModel;
+                                const otherModel = model.getRelationshipModel(relationship.model) as ModelStaticsI;
 
                                 if (relatedNodesData.attributes) {
                                     await addCreateToStatement(
@@ -598,7 +769,9 @@ export const ModelFactory = <
             });
         }
 
-        public static getRelationshipByAlias = (alias: keyof RelatedNodesToAssociateI) => {
+        public static getRelationshipByAlias = (
+            alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0]
+        ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
             const relationship = relationships.find((r) => r.alias === alias);
 
             if (!alias) {
@@ -609,17 +782,14 @@ export const ModelFactory = <
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
+                alias,
             };
         }
 
         public static async update(
-            data: Partial<Attributes>,
-            params?: GenericConfiguration & {
-                where?: WhereParamsI;
-                /** defaults to false. Whether to return the values of the nodes after the update. If it's false, the first entry of the return value of this function will be an empty array */
-                return?: boolean;
-            }
-        ): Promise<[Instance[], QueryResult]> {
+            data: Parameters<ModelStaticsI['update']>[0],
+            params?: Parameters<ModelStaticsI['update']>[1]
+        ): ReturnType<ModelStaticsI['update']> {
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
             const identifier = 'node';
 
@@ -644,17 +814,9 @@ export const ModelFactory = <
         }
 
         public static async updateRelationship(
-            data: object,
-            params: {
-                alias: keyof RelatedNodesToAssociateI;
-                where?: {
-                    source?: WhereParamsI;
-                    target?: WhereParamsI;
-                    relationship?: WhereParamsI;
-                };
-                session?: GenericConfiguration['session'];
-            }
-        ) {
+            data: Parameters<ModelStaticsI['updateRelationship']>[0],
+            params: Parameters<ModelStaticsI['updateRelationship']>[1]
+        ): ReturnType<ModelStaticsI['updateRelationship']> {
             const relationship = relationships.find((r) => r.alias === params.alias);
 
             if (!relationship) {
@@ -724,11 +886,9 @@ export const ModelFactory = <
         }
 
         public async updateRelationship(
-            data: Parameters<typeof Model.updateRelationship>[0],
-            params: Omit<Parameters<typeof Model.updateRelationship>[1], 'where'> & {
-                where: Omit<Parameters<typeof Model.updateRelationship>[1]['where'], 'source'>
-            }
-        ) {
+            data: Parameters<InstanceMethodsI['updateRelationship']>[0],
+            params: Parameters<InstanceMethodsI['updateRelationship']>[1]
+        ): ReturnType<InstanceMethodsI['updateRelationship']> {
             Model.assertPrimaryKeyField('updateRelationship');
             return Model.updateRelationship(data, {
                 ...params,
@@ -742,11 +902,8 @@ export const ModelFactory = <
         }
 
         public static async delete(
-            configuration: GenericConfiguration & {
-                where: WhereParamsI,
-                detach?: boolean,
-            }
-        ): Promise<number> {
+            configuration?: Parameters<ModelStaticsI['delete']>[0]
+        ): ReturnType<ModelStaticsI['delete']> {
             const { detach, where } = configuration;
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
 
@@ -768,8 +925,8 @@ export const ModelFactory = <
         }
 
         public async delete(
-            configuration?: Omit<Parameters<typeof Model['delete']>[0], 'where'>,
-        ) {
+            configuration?: Parameters<InstanceMethodsI['delete']>[0]
+        ): ReturnType<InstanceMethodsI['delete']> {
             Model.assertPrimaryKeyField('delete');
 
             return Model.delete({
@@ -781,13 +938,8 @@ export const ModelFactory = <
         }
 
         public static async findMany(
-            params?: GenericConfiguration & {
-                /** where params for the nodes of this Model */
-                where?: WhereParamsI;
-                limit?: number;
-                order?: Array<[keyof Attributes, 'ASC' | 'DESC']>;
-            },
-        ): Promise<Instance[]> {
+            params?: Parameters<ModelStaticsI['findMany']>[0],
+        ): ReturnType<ModelStaticsI['findMany']> {
             return getSession(params?.session, async (session) => {
                 const normalizedLabel = QueryRunner.getNormalizedLabels(this.getLabel());
 
@@ -845,8 +997,8 @@ export const ModelFactory = <
         }
 
         public static async findOne(
-            params?: Omit<Parameters<typeof Model.findMany>[0], 'limit'>
-        ): Promise<Instance> {
+            params?: Parameters<ModelStaticsI['findOne']>[0],
+        ): ReturnType<ModelStaticsI['findOne']> {
             return getSession(params?.session, async (session) => {
                 const instances = await Model.findMany({
                     ...params,
@@ -859,20 +1011,9 @@ export const ModelFactory = <
 
         /** creates a relationship by using the configuration specified in "relationships" from the given alias */
         public static async relateTo(
-            params: {
-                alias: keyof RelatedNodesToAssociateI;
-                where: {
-                    source: WhereParamsI;
-                    target: WhereParamsI;
-                };
-                values?: object;
-            },
-            configuration?: {
-                /** throws an error if the number of created relationships don't equal to this number */
-                assertCreatedRelationships?: number;
-                session?: GenericConfiguration['session'];
-            }
-        ) {
+            params: Parameters<ModelStaticsI['relateTo']>[0],
+            configuration?: Parameters<ModelStaticsI['relateTo']>[1],
+        ): ReturnType<ModelStaticsI['relateTo']> {
             configuration = configuration || {};
 
             const relationship = relationships.find((r) => r.alias === params.alias);
@@ -925,24 +1066,20 @@ export const ModelFactory = <
 
         /** wrapper for the static relateTo, where the source is always this node */
         public async relateTo(
-            params: Omit<Parameters<typeof Model.relateTo>[0], 'where'> & {
-                where: WhereParamsI;
-            },
-            configuration?: Parameters<typeof Model.relateTo>[1]
-        ) {
+            params: Parameters<InstanceMethodsI['relateTo']>[0],
+            configuration?: Parameters<InstanceMethodsI['relateTo']>[1],
+        ): ReturnType<InstanceMethodsI['relateTo']> {
             Model.assertPrimaryKeyField('relateTo');
-
-            const where: Parameters<typeof Model.relateTo>[0]['where'] = {
-                source: {
-                    [modelPrimaryKeyField]: this[modelPrimaryKeyField as string],
-                },
-                target: params.where,
-            };
 
             return Model.relateTo(
                 {
                     ...params,
-                    where,
+                    where: {
+                        source: {
+                            [modelPrimaryKeyField]: this[modelPrimaryKeyField as string],
+                        },
+                        target: params.where,
+                    },
                 },
                 configuration,
             );
@@ -954,13 +1091,9 @@ export const ModelFactory = <
          * @returns {Number} - the number of created relationships
          */
         public static async createRelationship(
-            params: CreateRelationshipParamsI,
-            configuration?: {
-                /** throws an error if the number of created relationships don't equal to this number */
-                assertCreatedRelationships?: number;
-                session?: GenericConfiguration['session'];
-            }
-        ): Promise<number> {
+            params: Parameters<ModelStaticsI['createRelationship']>[0],
+            configuration?: Parameters<ModelStaticsI['createRelationship']>[1],
+        ): ReturnType<ModelStaticsI['createRelationship']> {
             configuration = configuration || {};
 
             return getSession(configuration?.session, async (session) => {
@@ -984,16 +1117,22 @@ export const ModelFactory = <
         }
 
         /** gets the label from the given model for a relationship */
-        public static getLabelFromRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
+        public static getLabelFromRelationshipModel(
+            relationshipModel: Parameters<ModelStaticsI['getLabelFromRelationshipModel']>[0]
+        ): ReturnType<ModelStaticsI['getLabelFromRelationshipModel']> {
             return relationshipModel === 'self' ? modelLabel : relationshipModel.getLabel();
         }
 
         /** gets the model of a relationship */
-        public static getRelationshipModel(relationshipModel: typeof relationships[0]['model']) {
+        public static getRelationshipModel(
+            relationshipModel: Parameters<ModelStaticsI['getRelationshipModel']>[0]
+        ): ReturnType<ModelStaticsI['getRelationshipModel']> {
             return relationshipModel === 'self' ? Model : relationshipModel;
         }
 
-        public static assertPrimaryKeyField(operation = '') {
+        public static assertPrimaryKeyField(
+            operation: Parameters<ModelStaticsI['assertPrimaryKeyField']>[0]
+        ): ReturnType<ModelStaticsI['assertPrimaryKeyField']> {
             if (!modelPrimaryKeyField) {
                 throw new NeogmaConstraintError(`This operation (${operation}) required the model to have a primaryKeyField`);
             }
@@ -1014,5 +1153,5 @@ export const ModelFactory = <
     // add to modelsByName
     neogma.modelsByName[modelName] = Model;
 
-    return Model as (typeof Model) & StaticsI;
+    return Model as unknown as NeogmaModel<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI, StaticsI>;
 };
