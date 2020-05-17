@@ -11,7 +11,7 @@
   ],
   "dependencies": {
     "clone": "^2.1.2",
-    "neo4j-driver": "^4.0.1",
+    "neo4j-driver": "^4.0.2",
     "revalidator": "^0.3.1",
     "uuid": "^7.0.2"
   },

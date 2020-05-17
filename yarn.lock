@@ -230,7 +230,7 @@ mkdirp@^0.5.3:
   dependencies:
     minimist "^1.2.5"
 
-neo4j-driver@^4.0.1:
+neo4j-driver@^4.0.2:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/neo4j-driver/-/neo4j-driver-4.0.2.tgz#78de3b91e91572bcbd9d2e02554322fe1ab399ea"
   integrity sha512-xQN4BZZsweaNNac7FDYAV6f/JybghwY3lk4fwblS8V5KQ+DBMPe4Pthh672mp+wEYZGyzPalq5CfpcBrWaZ4Gw==
