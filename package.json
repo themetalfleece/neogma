@@ -25,6 +25,7 @@
     "typescript-eslint-parser": "^22.0.0"
   },
   "scripts": {
+    "prepare": "rm -rf dist && tsc",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
