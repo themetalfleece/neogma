@@ -24,7 +24,7 @@ export class Neogma {
 
     /**
      * 
-     * @param {ConnectParamsI} params - the connection params. If specified, they will be used. Else, the connection params will be taken from the environmental variables
+     * @param {ConnectParamsI} params - the connection params
      * @param {ConnectOptionsI} options - additional options for the QueryRunner
      */
     constructor(params: ConnectParamsI, options?: ConnectOptionsI) {
