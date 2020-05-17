@@ -1,4 +1,4 @@
-import { QueryResult, Session } from 'neo4j-driver';
+import { int, QueryResult, Session } from 'neo4j-driver';
 import * as revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { NeogmaError } from '../Errors/NeogmaError';
@@ -631,7 +631,7 @@ export const ModelFactory = <
                             const identifierWithLabel = QueryRunner.getIdentifierWithLabel(identifier, label);
 
                             statementParts.push(`
-                                ${createOrMerge(mergeAttributes)} (${identifierWithLabel}) SET ${identifier} += {${dataParam}}
+                                ${createOrMerge(mergeAttributes)} (${identifierWithLabel}) SET ${identifier} += $${dataParam}
                             `);
 
                             /** if it has a parent node, also create a relationship with it */
@@ -653,7 +653,7 @@ export const ModelFactory = <
                                     /* create the relationship values */
                                     const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relationshipValues);
                                     statementParts.push(`
-                                        SET ${relationshipIdentifier} += {${relationshipValuesParam}}
+                                        SET ${relationshipIdentifier} += $${relationshipValuesParam}
                                     `);
                                 }
                             }
@@ -713,7 +713,7 @@ export const ModelFactory = <
                     const bulkCreateOptionsParam = bindParam.getUniqueNameAndAdd('bulkCreateOptions', bulkCreateData);
                     const bulkCreateDataIdentifier = identifiers.getUniqueNameAndAdd('bulkCreateData', null);
                     statementParts.unshift(`
-                        UNWIND {${bulkCreateOptionsParam}} as ${bulkCreateDataIdentifier}
+                        UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
                     `);
                     statementParts.push(`
                         ${createOrMerge(configuration?.merge)} (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
@@ -747,7 +747,7 @@ export const ModelFactory = <
                             /* create the relationship values */
                             const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relateParameters.values);
                             relationshipByWhereParts.push(`
-                                SET ${relationshipIdentifier} += {${relationshipValuesParam}}
+                                SET ${relationshipIdentifier} += $${relationshipValuesParam}
                             `);
                         }
 
@@ -977,8 +977,8 @@ export const ModelFactory = <
                 }
 
                 if (params?.limit) {
-                    const limitParam = bindParam.getUniqueNameAndAdd('limit', params.limit);
-                    statementParts.push(`LIMIT {${limitParam}}`);
+                    const limitParam = bindParam.getUniqueNameAndAdd('limit', int(params.limit));
+                    statementParts.push(`LIMIT $${limitParam}`);
                 }
 
                 const statement = statementParts.join(' ');

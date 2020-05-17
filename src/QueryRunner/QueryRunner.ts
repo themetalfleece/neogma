@@ -190,7 +190,7 @@ export class QueryRunner {
                 if (!relationship.values.hasOwnProperty(key)) { continue; }
 
                 const paramName = relationshipAttributesParams.getUniqueNameAndAdd(key, relationship.values[key]);
-                relationshipValues.push(`${relationshipIdentifier}.${key} = {${paramName}}`);
+                relationshipValues.push(`${relationshipIdentifier}.${key} = $${paramName}`);
             }
         }
 
@@ -237,7 +237,7 @@ export class QueryRunner {
         for (const key in data) {
             if (!data.hasOwnProperty(key)) { continue; }
             const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
-            setParts.push(`${identifier}.${key} = {${paramKey}}`);
+            setParts.push(`${identifier}.${key} = $${paramKey}`);
         }
 
         return {

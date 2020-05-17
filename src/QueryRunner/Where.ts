@@ -99,7 +99,7 @@ export class Where {
     /** generates a variable name, adds the value to the params under this name and returns it */
     private getNameAndAddToParams = (prefix, value: Neo4jSupportedTypes) => {
         const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
-        return `{${name}}`;
+        return `$${name}`;
     }
 
     /** adds a value to the statement by prepending AND if the statement already has a value */
