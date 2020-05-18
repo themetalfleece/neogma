@@ -11,6 +11,6 @@ export class NeogmaError extends Error {
         this.message = message || 'General neogma error';
         this.data = data;
 
-        Object.setPrototypeOf(this, Error.prototype);
+        Object.setPrototypeOf(this, NeogmaError.prototype);
     }
 }

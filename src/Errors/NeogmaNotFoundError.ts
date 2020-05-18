@@ -13,6 +13,6 @@ export class NeogmaNotFoundError extends NeogmaError {
         this.message = message || 'neogma not found error';
         this.data = data;
 
-        Object.setPrototypeOf(this, NeogmaError.prototype);
+        Object.setPrototypeOf(this, NeogmaNotFoundError.prototype);
     }
 }

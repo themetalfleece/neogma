@@ -17,6 +17,6 @@ export class NeogmaInstanceValidationError extends NeogmaError {
         this.message = message || 'neogma validation error';
         this.data = data;
 
-        Object.setPrototypeOf(this, NeogmaError.prototype);
+        Object.setPrototypeOf(this, NeogmaInstanceValidationError.prototype);
     }
 }

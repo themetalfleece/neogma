@@ -946,8 +946,8 @@ export const ModelFactory = <
                 const rootIdentifier = modelName;
 
                 const bindParam = new BindParam();
-                const rootWhere = params.where && new Where({
-                    [rootIdentifier]: params.where,
+                const rootWhere = params?.where && new Where({
+                    [rootIdentifier]: params?.where,
                 }, bindParam);
 
                 const statementParts: string[] = [];
@@ -968,7 +968,7 @@ export const ModelFactory = <
 
                 if (params?.order) {
                     statementParts.push(`
-                        ORDER BY ${params.order
+                        ORDER BY ${params?.order
                             .filter(([field]) => schemaKeys.has(field as string))
                             .map(([field, direction]) => `${rootIdentifier}.${field} ${direction}`)
                             .join(', ')
@@ -977,7 +977,7 @@ export const ModelFactory = <
                 }
 
                 if (params?.limit) {
-                    const limitParam = bindParam.getUniqueNameAndAdd('limit', int(params.limit));
+                    const limitParam = bindParam.getUniqueNameAndAdd('limit', int(params?.limit));
                     statementParts.push(`LIMIT $${limitParam}`);
                 }
 
