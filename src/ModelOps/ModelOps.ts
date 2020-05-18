@@ -106,7 +106,7 @@ export type RelationshipsI<
     RelatedNodesToAssociateI extends Record<string, any>,
     > = Array<{
         /** the related model. It could be the object of the model, or "self" for this model */
-        model: NeogmaModel<any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
+        model: NeogmaModel<any, any, any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
         /** the name of the relationship */
         name: CreateRelationshipParamsI['relationship']['name'];
         /** the direction of the relationship */
@@ -231,11 +231,11 @@ interface NeogmaModelStaticsI<
         }
     ) => Promise<number>;
     getLabelFromRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
+        relationshipModel: NeogmaModel<any, any, any, any, any, any> | 'self',
     ) => string | string[];
     getRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
-    ) => NeogmaModel<any, any, any, any>;
+        relationshipModel: NeogmaModel<any, any, any, any, any, any> | 'self',
+    ) => NeogmaModel<any, any, any, any, any, any>;
     assertPrimaryKeyField: (
         operation: string
     ) => void;
