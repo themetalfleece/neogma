@@ -617,7 +617,10 @@ export const ModelFactory = <
                             instance.changed[key] = false;
                         }
 
-                        instances.push(instance);
+                        // push to instances only if it's the root node
+                        if (!parentNode) {
+                            instances.push(instance);
+                        }
 
                         if (validate) {
                             await instance.validate();
