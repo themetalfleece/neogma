@@ -1,9 +1,9 @@
-# neogma
+![neogma logo](https://themetalfleece.github.io/neogma-docs/docs/assets/images/logo-text-horizontal.svg)
+
+Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and flexible node and relationship operations
 
 [![npm version](https://badgen.net/npm/v/neogma)](https://www.npmjs.com/package/neogma)
 [![types includes](https://badgen.net/npm/types/tslib)](https://www.typescriptlang.org/)
-
-Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and flexible node and relationship operations
 
 ## Overview
 Neogma uses Model definitions to simplify and automate lots of operations. Alternatively, a query runner is also provided for running operations directly with Javascript object, without a Model definition.
@@ -71,6 +71,8 @@ const createAndUpdateUser = async () => {
     // updates the node's name in the database
     await user.save();
     console.log(user.name); // 'Alex'
+
+    await neogma.getDriver().close();
 }
 
 createAndUpdateUser();
@@ -81,7 +83,7 @@ The Cypher which runs in `createAndUpdateUser` is the following:
 Statement: UNWIND {bulkCreateOptions} as bulkCreateData CREATE (bulkCreateNodes:`User`) SET bulkCreateNodes += bulkCreateData
 Parameters: { bulkCreateOptions: [ { name: 'John', age: 38, id: '1' } ] }
 
-Statement: MATCH (node:`User`) WHERE node.id = {id} SET node.name = {name}
+Statement: MATCH (node:`User`) WHERE node.id = $id SET node.name = $name
 Parameters: { id: '1', name: 'Jack' }
 ```
 
@@ -124,7 +126,7 @@ console.log(order.status); // confirmed
 
 The cypher which runs in `Users.createMany` is the following:
 ```sql
-Statement: CREATE (node:`User`) SET node += {data} CREATE (node__aaaa:`Order`) SET node__aaaa += {data__aaaa} CREATE (node)-[:CREATES]->(node__aaaa) WITH DISTINCT node MATCH (targetNode:`Order`) WHERE targetNode.id = {id} CREATE (node)-[r:CREATES]->(targetNode)
+Statement: CREATE (node:`User`) SET node += $data CREATE (node__aaaa:`Order`) SET node__aaaa += $data__aaaa CREATE (node)-[:CREATES]->(node__aaaa) WITH DISTINCT node MATCH (targetNode:`Order`) WHERE targetNode.id = $id CREATE (node)-[r:CREATES]->(targetNode)
 
 Parameters: {
   data: { name: 'John', age: 38, id: '1' },
