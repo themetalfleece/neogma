@@ -1,8 +1,8 @@
 import * as neo4j_driver from 'neo4j-driver';
-import { Session } from 'neo4j-driver/types';
+import { Session, Transaction } from 'neo4j-driver/types';
 import { NeogmaModel } from './ModelOps';
-import { QueryRunner } from './QueryRunner';
-import { getSession } from './Sessions/Sessions';
+import { QueryRunner, Runnable } from './QueryRunner';
+import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -55,6 +55,20 @@ export class Neogma {
         callback: (s: Session) => Promise<T>,
     ) => {
         return getSession<T>(runInSession, callback, this.driver);
+    }
+
+    public getTransaction = <T>(
+        runInTransaction: Transaction,
+        callback: (s: Transaction) => Promise<T>,
+    ) => {
+        return getTransaction<T>(runInTransaction, callback, this.driver);
+    }
+
+    public getRunnable = <T>(
+        runInExisting: Runnable | null,
+        callback: (tx: Runnable) => Promise<T>,
+    ) => {
+        return getRunnable<T>(runInExisting, callback, this.driver);
     }
 
 }

@@ -1,11 +1,11 @@
-import { int, QueryResult, Session } from 'neo4j-driver';
+import { int, QueryResult } from 'neo4j-driver';
 import revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { NeogmaError } from '../Errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../Errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../Errors/NeogmaNotFoundError';
 import { Neogma } from '../Neogma';
-import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
+import { CreateRelationshipParamsI, Neo4jSupportedTypes, QueryRunner, Runnable, Where, WhereParamsByIdentifierI, WhereParamsI, WhereValuesI } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
 
 const getResultsArray = <T>(result: QueryResult, identifier: string): T[] => {
@@ -30,7 +30,7 @@ interface RelationshipCreationKeysI {
 }
 
 interface GenericConfiguration {
-    session?: Session;
+    session?: Runnable;
 }
 
 /** used for defining the type of the RelatedNodesToAssociate interface, to be passed as the second generic to ModelFactory */
@@ -361,7 +361,7 @@ export const ModelFactory = <
     const schemaKeys = new Set(Object.keys(schema));
 
     const queryRunner = neogma.getQueryRunner();
-    const getSession = neogma.getSession;
+    const getRunnable = neogma.getRunnable;
 
     // enforce unique relationship aliases
     const allRelationshipAlias = relationships.map(({ alias }) => alias);
@@ -498,7 +498,7 @@ export const ModelFactory = <
                 ..._configuration,
             };
 
-            return getSession(_configuration?.session, async (session) => {
+            return getRunnable(_configuration?.session, async (session) => {
                 if (configuration.validate) {
                     await instance.validate();
                 }
@@ -563,7 +563,7 @@ export const ModelFactory = <
 
             const createOrMerge = (merge?: boolean) => merge ? 'MERGE' : 'CREATE';
 
-            return getSession(configuration?.session, async (session) => {
+            return getRunnable(configuration?.session, async (session) => {
 
                 const statementParts: string[] = [];
 
@@ -800,7 +800,7 @@ export const ModelFactory = <
                 [identifier]: params.where,
             } : null;
 
-            return getSession(params?.session, async (session) => {
+            return getRunnable(params?.session, async (session) => {
                 const res = await queryRunner.update(session,
                     {
                         label: normalizedLabel,
@@ -826,7 +826,7 @@ export const ModelFactory = <
                 throw new NeogmaNotFoundError(`The relationship of the alias ${params.alias} can't be found for the model ${modelLabel}`);
             }
 
-            return getSession(params?.session, async (session) => {
+            return getRunnable(params?.session, async (session) => {
                 const identifiers = {
                     source: 'source',
                     target: 'target',
@@ -910,7 +910,7 @@ export const ModelFactory = <
             const { detach, where } = configuration;
             const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
 
-            return getSession(configuration?.session, async (session) => {
+            return getRunnable(configuration?.session, async (session) => {
                 const identifier = 'node';
                 const res = await queryRunner.delete(
                     session,
@@ -943,7 +943,7 @@ export const ModelFactory = <
         public static async findMany(
             params?: Parameters<ModelStaticsI['findMany']>[0],
         ): ReturnType<ModelStaticsI['findMany']> {
-            return getSession(params?.session, async (session) => {
+            return getRunnable(params?.session, async (session) => {
                 const normalizedLabel = QueryRunner.getNormalizedLabels(this.getLabel());
 
                 const rootIdentifier = modelName;
@@ -1002,7 +1002,7 @@ export const ModelFactory = <
         public static async findOne(
             params?: Parameters<ModelStaticsI['findOne']>[0],
         ): ReturnType<ModelStaticsI['findOne']> {
-            return getSession(params?.session, async (session) => {
+            return getRunnable(params?.session, async (session) => {
                 const instances = await Model.findMany({
                     ...params,
                     session,
@@ -1025,7 +1025,7 @@ export const ModelFactory = <
                 throw new NeogmaNotFoundError(`The relationship of the alias ${params.alias} can't be found for the model ${modelLabel}`);
             }
 
-            return getSession(configuration?.session, async (session) => {
+            return getRunnable(configuration?.session, async (session) => {
                 const where: WhereParamsByIdentifierI = {};
                 if (params.where) {
                     where[QueryRunner.identifiers.createRelationship.source] = params.where.source;
@@ -1099,7 +1099,7 @@ export const ModelFactory = <
         ): ReturnType<ModelStaticsI['createRelationship']> {
             configuration = configuration || {};
 
-            return getSession(configuration?.session, async (session) => {
+            return getRunnable(configuration?.session, async (session) => {
                 const res = await queryRunner.createRelationship(session, params);
                 const relationshipsCreated = res.summary.counters.updates().relationshipsCreated;
 

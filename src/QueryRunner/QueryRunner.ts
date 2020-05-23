@@ -1,4 +1,4 @@
-import { QueryResult, Session } from 'neo4j-driver/types';
+import { QueryResult, Session, Transaction } from 'neo4j-driver/types';
 import * as uuid from 'uuid';
 import { BindParam } from './BindParam';
 import { AnyWhereI, Where } from './Where';
@@ -7,6 +7,9 @@ import { AnyWhereI, Where } from './Where';
 export type Neo4jSingleTypes = string | number | boolean | Date;
 /** the types that Neo4j supports (including an array of them) */
 export type Neo4jSupportedTypes = Neo4jSingleTypes | (Neo4jSingleTypes)[];
+
+/** can run queries, is either a Session or a Transaction */
+export type Runnable = Session | Transaction;
 
 export interface CreateRelationshipParamsI {
     source: {
@@ -62,8 +65,8 @@ export class QueryRunner {
     }
 
     public create = async <T>(
-        /** the session for running this query */
-        session: Session,
+        /** the session or transaction for running this query */
+        session: Runnable,
         params: {
             /** the label of the nodes to create */
             label: string,
@@ -90,8 +93,8 @@ export class QueryRunner {
     }
 
     public update = async <T>(
-        /** the session for running this query */
-        session: Session,
+        /** the session or transaction for running this query */
+        session: Runnable,
         params: {
             /** the label of the nodes to create */
             label?: string,
@@ -140,7 +143,8 @@ export class QueryRunner {
     }
 
     public delete = async (
-        session: Session,
+        /** the session or transaction for running this query */
+        session: Runnable,
         params: {
             label?: string;
             where?: AnyWhereI;
@@ -169,7 +173,11 @@ export class QueryRunner {
         return this.run(session, statement, parameters);
     }
 
-    public createRelationship = async (session: Session, params: CreateRelationshipParamsI): Promise<QueryResult> => {
+    public createRelationship = async (
+        /** the session or transaction for running this query */
+        session: Runnable,
+        params: CreateRelationshipParamsI
+    ): Promise<QueryResult> => {
 
         const { source, target, relationship, where } = params;
         const whereInstance = Where.acquire(where);
@@ -263,10 +271,17 @@ export class QueryRunner {
     }
 
     /** maps a session object to a uuid, for logging purposes */
-    private sessionIdentifiers = new WeakMap<Session, string>([]);
+    private sessionIdentifiers = new WeakMap<Runnable, string>([]);
 
     /** runs the statement */
-    public run(session: Session, statement: string, parameters: Record<string, any>) {
+    public run(
+        /** the session or transaction for running this query */
+        session: Runnable | null,
+        /** the statement to run */
+        statement: string,
+        /** parameters for the query */
+        parameters: Record<string, any>
+    ) {
         /** an identifier to be used for logging purposes */
         let sessionIdentifier = 'Default';
         if (this.sessionIdentifiers.has(session)) {
