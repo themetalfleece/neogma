@@ -1,4 +1,5 @@
-import { QueryResult, Session, Transaction } from 'neo4j-driver/types';
+import { Driver, QueryResult, Session, Transaction } from 'neo4j-driver/types';
+import { getRunnable } from 'Sessions';
 import * as uuid from 'uuid';
 import { BindParam } from './BindParam';
 import { AnyWhereI, Where } from './Where';
@@ -30,16 +31,21 @@ export interface CreateRelationshipParamsI {
     };
     /** can access query identifiers by setting the "identifier" property of source/target, else by the values of QueryRunnder.identifiers.createRelationship */
     where?: AnyWhereI;
+    /** the session or transaction for running this query */
+    session?: Runnable | null;
 }
 
 export class QueryRunner {
 
+    private driver: Driver;
     /** whether to log the statements and parameters with the given function */
     private logger: (...val: Array<string | boolean | object | number>) => any;
 
     constructor(params?: {
+        driver: QueryRunner['driver'];
         logger?: QueryRunner['logger'];
     }) {
+        this.driver = params.driver;
         this.logger = params?.logger || null;
     }
 
@@ -64,18 +70,16 @@ export class QueryRunner {
         return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
     }
 
-    public create = async <T>(
+    public create = async <T>(params: {
+        /** the label of the nodes to create */
+        label: string,
+        /** the data to create */
+        data: T[],
+        /** identifier for the nodes */
+        identifier?: string,
         /** the session or transaction for running this query */
-        session: Runnable,
-        params: {
-            /** the label of the nodes to create */
-            label: string,
-            /** the data to create */
-            data: T[],
-            /** identifier for the nodes */
-            identifier?: string
-        }
-    ): Promise<QueryResult> => {
+        session?: Runnable | null,
+    }): Promise<QueryResult> => {
         const { label, data: options } = params;
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
@@ -89,25 +93,23 @@ export class QueryRunner {
 
         const parameters = { options };
 
-        return this.run(session, statement, parameters);
+        return this.run(statement, parameters, params.session);
     }
 
-    public update = async <T>(
+    public update = async <T>(params: {
+        /** the label of the nodes to create */
+        label?: string,
+        /** the where object for matching the nodes to be edited */
+        data: Partial<T>,
+        /** the new data data, to be edited */
+        where?: AnyWhereI,
+        /** identifier for the nodes */
+        identifier?: string;
+        /** whether to return the nodes */
+        return?: boolean;
         /** the session or transaction for running this query */
-        session: Runnable,
-        params: {
-            /** the label of the nodes to create */
-            label?: string,
-            /** the where object for matching the nodes to be edited */
-            data: Partial<T>,
-            /** the new data data, to be edited */
-            where?: AnyWhereI,
-            /** identifier for the nodes */
-            identifier?: string;
-            /** whether to return the nodes */
-            return?: boolean;
-        }
-    ): Promise<QueryResult> => {
+        session?: Runnable | null,
+    }): Promise<QueryResult> => {
         const { label, data } = params;
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
@@ -139,20 +141,18 @@ export class QueryRunner {
         const statement = statementParts.join(' ');
         const parameters = updateBindParam.get();
 
-        return this.run(session, statement, parameters);
+        return this.run(statement, parameters, params.session);
     }
 
-    public delete = async (
+    public delete = async (params: {
+        label?: string;
+        where?: AnyWhereI;
+        identifier?: string;
+        /** detach relationships */
+        detach?: boolean;
         /** the session or transaction for running this query */
-        session: Runnable,
-        params: {
-            label?: string;
-            where?: AnyWhereI;
-            identifier?: string;
-            /** detach relationships */
-            detach?: boolean;
-        }
-    ): Promise<QueryResult> => {
+        session?: Runnable | null,
+    }): Promise<QueryResult> => {
         const { label, detach } = params;
         const where = Where.acquire(params.where);
 
@@ -170,12 +170,10 @@ export class QueryRunner {
         const statement = statementParts.join(' ');
         const parameters = { ...where?.bindParam.get() };
 
-        return this.run(session, statement, parameters);
+        return this.run(statement, parameters, params.session);
     }
 
     public createRelationship = async (
-        /** the session or transaction for running this query */
-        session: Runnable,
         params: CreateRelationshipParamsI
     ): Promise<QueryResult> => {
 
@@ -227,7 +225,7 @@ export class QueryRunner {
         const statement = statementParts.join(' ');
         const parameters = relationshipAttributesParams.get();
 
-        return this.run(session, statement, parameters);
+        return this.run(statement, parameters, params.session);
     }
 
     /** returns the parts and the statement for a SET operation with the given params  */
@@ -273,30 +271,37 @@ export class QueryRunner {
     /** maps a session object to a uuid, for logging purposes */
     private sessionIdentifiers = new WeakMap<Runnable, string>([]);
 
-    /** runs the statement */
+    /** runs a statement */
     public run(
-        /** the session or transaction for running this query */
-        session: Runnable | null,
         /** the statement to run */
         statement: string,
         /** parameters for the query */
-        parameters: Record<string, any>
+        parameters?: Record<string, any>,
+        /** the session or transaction for running this query */
+        existingSession?: Runnable | null,
     ) {
-        /** an identifier to be used for logging purposes */
-        let sessionIdentifier = 'Default';
-        if (this.sessionIdentifiers.has(session)) {
-            sessionIdentifier = this.sessionIdentifiers.get(session);
-        } else {
-            sessionIdentifier = uuid.v4();
-            this.sessionIdentifiers.set(session, sessionIdentifier);
-        }
+        return getRunnable(
+            existingSession,
+            async (session) => {
+                parameters = parameters || {};
+                /** an identifier to be used for logging purposes */
+                let sessionIdentifier = 'Default';
+                if (this.sessionIdentifiers.has(session)) {
+                    sessionIdentifier = this.sessionIdentifiers.get(session);
+                } else {
+                    sessionIdentifier = uuid.v4();
+                    this.sessionIdentifiers.set(session, sessionIdentifier);
+                }
 
-        const trimmedStatement = statement.replace(/\s+/g, ' ');
-        this.log(sessionIdentifier);
-        this.log(`\tStatement:`, trimmedStatement);
-        this.log(`\tParameters:`, parameters);
+                const trimmedStatement = statement.replace(/\s+/g, ' ');
+                this.log(sessionIdentifier);
+                this.log(`\tStatement:`, trimmedStatement);
+                this.log(`\tParameters:`, parameters);
+                return session.run(trimmedStatement, parameters);
+            },
+            this.driver
+        );
 
-        return session.run(trimmedStatement, parameters);
     }
 
     /** default identifiers for the queries */

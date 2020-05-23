@@ -1,5 +1,5 @@
 import * as neo4j_driver from 'neo4j-driver';
-import { Session, Transaction } from 'neo4j-driver/types';
+import { Driver, Session, Transaction } from 'neo4j-driver/types';
 import { NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
@@ -17,7 +17,7 @@ interface ConnectOptionsI {
 }
 
 export class Neogma {
-    private driver: neo4j_driver.Driver;
+    private driver: Driver;
     private queryRunner: QueryRunner;
     /** a map between each Model's modelName and the Model itself */
     public modelsByName: Record<string, NeogmaModel<any, any, any, any, any, any>> = {};
@@ -42,6 +42,7 @@ export class Neogma {
         }
 
         this.queryRunner = new QueryRunner({
+            driver: this.driver,
             logger: options?.logger,
         });
     }
