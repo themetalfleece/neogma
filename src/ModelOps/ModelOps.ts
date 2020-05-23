@@ -134,7 +134,7 @@ type CreateDataI<
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
-    Attributes,
+    Attributes extends object,
     RelatedNodesToAssociateKey extends string,
     RelationshipValuesToCreateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
@@ -290,7 +290,7 @@ export type NeogmaInstance<
 
 /** the type of a Neogma Model */
 export type NeogmaModel<
-    Attributes,
+    Attributes extends object,
     RelatedNodesToAssociateKey extends string,
     RelationshipValuesToCreateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
@@ -313,7 +313,7 @@ export type FindManyIncludeI<AliasKeys> = {
  */
 export const ModelFactory = <
     /** the base Attribute of the node */
-    Attributes,
+    Attributes extends object,
     /** related nodes to associate. Label-ModelRelatedNodesI pairs */
     RelatedNodesToAssociateI extends Record<string, any>,
     /** the string which will be used as a key for Related Nodes creation */
@@ -613,15 +613,14 @@ export const ModelFactory = <
                     }
 
                     const relatedNodesToAssociate = instance[model.getRelationshipCreationKeys().RelatedNodesToAssociate];
-                    if (relatedNodesToAssociate || parentNode) {
-                        /* if it has related nodes to associated or it has a parent node, create it with an identifier */
-                        const dataParam = bindParam.getUniqueNameAndAdd('data', instance.getDataValues());
+                    if (relatedNodesToAssociate || parentNode || mergeAttributes) {
+                        /* if it has related nodes to associated or it has a parent node or it's to be merged, create it as a single node, with an identifier */
 
                         const identifierWithLabel = QueryRunner.getIdentifierWithLabel(identifier, label);
 
                         statementParts.push(`
-                                ${createOrMerge(mergeAttributes)} (${identifierWithLabel}) SET ${identifier} += $${dataParam}
-                            `);
+                            ${createOrMerge(mergeAttributes)} (${identifierWithLabel} ${QueryRunner.getPropertiesWithParams(instance.getDataValues(), bindParam)})
+                        `);
 
                         /** if it has a parent node, also create a relationship with it */
                         if (parentNode) {
@@ -636,14 +635,14 @@ export const ModelFactory = <
                                 identifier: relationshipIdentifier,
                             });
                             statementParts.push(`
-                                    ${createOrMerge(parentNode.mergeRelationship)} (${parentIdentifier})${directionAndNameString}(${identifier})
-                                `);
+                                ${createOrMerge(parentNode.mergeRelationship)} (${parentIdentifier})${directionAndNameString}(${identifier})
+                            `);
                             if (relationshipValues) {
                                 /* create the relationship values */
                                 const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relationshipValues);
                                 statementParts.push(`
-                                        SET ${relationshipIdentifier} += $${relationshipValuesParam}
-                                    `);
+                                    SET ${relationshipIdentifier} += $${relationshipValuesParam}
+                                `);
                             }
                         }
 
@@ -702,12 +701,12 @@ export const ModelFactory = <
                 const bulkCreateOptionsParam = bindParam.getUniqueNameAndAdd('bulkCreateOptions', bulkCreateData);
                 const bulkCreateDataIdentifier = identifiers.getUniqueNameAndAdd('bulkCreateData', null);
                 statementParts.unshift(`
-                        UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
-                    `);
+                    UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
+                `);
                 statementParts.push(`
-                        ${createOrMerge(configuration?.merge)} (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
-                        SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
-                    `);
+                    CREATE (${QueryRunner.getIdentifierWithLabel(bulkCreateIdentifier, QueryRunner.getNormalizedLabels(modelLabel))})
+                    SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
+                `);
             }
 
             // parse toRelateByIdentifier
