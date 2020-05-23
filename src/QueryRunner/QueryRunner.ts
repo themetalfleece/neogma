@@ -1,6 +1,6 @@
 import { Driver, QueryResult, Session, Transaction } from 'neo4j-driver/types';
-import { getRunnable } from 'Sessions';
 import * as uuid from 'uuid';
+import { getRunnable } from '../Sessions';
 import { BindParam } from './BindParam';
 import { AnyWhereI, Where } from './Where';
 
@@ -250,6 +250,22 @@ export class QueryRunner {
             parts: setParts,
             statement: `SET ${setParts.join(', ')}`,
         };
+    }
+
+    /** returns an object with replacing its values with a bind param value */
+    public static getPropertiesWithParams = (
+        /** data to set */
+        data: object,
+        /** bind param to use and mutate */
+        bindParam: BindParam,
+    ) => {
+        const parts: string[] = [];
+
+        for (const key of Object.keys(data)) {
+            parts.push(`${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`);
+        }
+
+        return `{${parts.join(',')}}`;
     }
 
     /** 
