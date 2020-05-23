@@ -1,5 +1,5 @@
 import { int, QueryResult, Session } from 'neo4j-driver';
-import * as revalidator from 'revalidator';
+import revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { NeogmaError } from '../Errors/NeogmaError';
 import { NeogmaInstanceValidationError } from '../Errors/NeogmaInstanceValidationError';

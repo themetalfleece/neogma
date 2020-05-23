@@ -6,13 +6,20 @@
         "resolveJsonModule": true,
         "declaration": true,
         "sourceMap": true,
+        "esModuleInterop": true,
         "target": "es2017",
+        "lib": [
+            "es6",
+            "es2015"
+        ],
         "outDir": "./dist",
-        "baseUrl": "./src"
+        "baseUrl": "./src",
+        "typeRoots": [
+            "./node_modules/@types"
+        ]
     },
     "include": [
-        "src/**/*.ts",
-        "examples/**/*.ts"
+        "src/**/*.ts"
     ],
     "exclude": [
         "node_modules"
