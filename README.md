@@ -139,3 +139,7 @@ Parameters: {
 All of the above run in a single statement for max performance.
 
 All the user-specified values are automatically used in the query with bind parameters. Neogma also offers helpers to easily create your own queries with generated where clauses and bind parameters.
+
+## Acknowledgements
+* Neogma logo created by Greg Magkos
+* Development was made possible thanks to these open source libraries: [typescript](https://www.npmjs.com/package/typescript), [neo4j-driver](https://www.npmjs.com/package/neo4j-driver), [revalidator](https://www.npmjs.com/package/revalidator), [clone](https://www.npmjs.com/package/clone), [uuid](https://www.npmjs.com/package/uuid)
