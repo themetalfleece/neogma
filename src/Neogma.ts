@@ -1,5 +1,5 @@
 import * as neo4j_driver from 'neo4j-driver';
-import { Driver, Session, Transaction } from 'neo4j-driver/types';
+import { Config, Driver, Session, Transaction } from 'neo4j-driver/types';
 import { NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
@@ -11,7 +11,7 @@ interface ConnectParamsI {
     password: string;
 }
 
-interface ConnectOptionsI {
+interface ConnectOptionsI extends Config {
     /** whether to log the statements and parameters to the console */
     logger?: QueryRunner['logger'];
 }
@@ -34,6 +34,7 @@ export class Neogma {
             this.driver = neo4j.driver(
                 url,
                 neo4j.auth.basic(username, password),
+                options,
             );
         } catch (err) {
             console.error(`Error while connecting to the neo4j database`);
