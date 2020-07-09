@@ -21,12 +21,11 @@ const getNodesDeleted = (result: QueryResult): number => {
 };
 
 /** the type of the values to be added to a relationship */
-export type RelationshipValuesI = Record<string, Neo4jSupportedTypes>;
+export type RelationshipPropertiesI = Record<string, Neo4jSupportedTypes>;
 
 /** interface used for the keys which will be used on instance creation for associating related notes and creating relationship values */
 interface RelationshipCreationKeysI {
     RelatedNodesToAssociate: string;
-    RelationshipValuesToCreate: string;
 }
 
 interface GenericConfiguration {
@@ -44,51 +43,42 @@ export interface ModelRelatedNodesI<
     },
     /** the instance of the related model */
     RelatedInstance,
-    /** the string which will be used as a key for Relationship Value creation */
-    RelationshipValuesToCreateKey extends string,
     /** values for the relationship */
-    RelationshipValues extends RelationshipValuesI = {}
+    RelationshipProperties extends RelationshipPropertiesI = {}
     > {
-    CreateData: Parameters<RelatedModel['createOne']>[0] & {
-        [key in RelationshipValuesToCreateKey]?: RelationshipValues
-    };
+    /** interface of the data to create */
+    CreateData: Parameters<RelatedModel['createOne']>[0] & RelationshipProperties;
+    /** interface of the properties of the relationship */
+    RelationshipProperties: RelationshipProperties;
     Instance: RelatedInstance;
 }
 
 /** to be used in create functions where the related nodes can be passed for creation */
 export type RelatedNodesCreationParamI<
-    RelationshipValuesToCreateKey extends string,
+    Attributes,
     RelatedNodesToAssociateI extends Record<string, any>
     > = {
-        [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypeValueForCreateI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI[key]['CreateData']>;
+        [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypeValueForCreateI<Attributes, RelatedNodesToAssociateI[key]['RelationshipProperties']>;
     };
 
 /** the type to be used in RelationshipTypeValueForCreateI.where */
 type RelationshipTypeValueForCreateWhereI<
-    RelationshipValuesToCreateKey extends string,
-    Attributes extends {
-        [key in RelationshipValuesToCreateKey]?: RelationshipValuesI;
-    }
+    RelationshipProperties extends RelationshipPropertiesI,
     > = {
         /** where for the target nodes */
         params: WhereParamsI;
         /** whether to merge instead of create the relationship */
         merge?: boolean;
-    } & {
-        [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
+        relationshipProperties?: RelationshipProperties;
     };
 /** the type of the relationship along with the values, so the proper relationship and/or nodes can be created */
 type RelationshipTypeValueForCreateI
     <
-    RelationshipValuesToCreateKey extends string,
-    Attributes extends {
-        [key in RelationshipValuesToCreateKey]?: RelationshipValuesI;
-    }
+    Attributes,
+    RelationshipProperties extends RelationshipPropertiesI
     > = {
-        /** create new nodes and create a relationshi[] with them */
-        attributes?: Array<Attributes & {
-            [key in RelationshipValuesToCreateKey]?: Attributes[RelationshipValuesToCreateKey];
-        }>;
+        /** create new nodes and create a relationship with them */
+        attributes?: Array<Attributes & RelationshipProperties>;
         /** configuration for merging instead of creating the attributes/relationships */
         attributesMergeConfig?: {
             /** merge the created nodes instead of creating them */
@@ -97,8 +87,8 @@ type RelationshipTypeValueForCreateI
             relationship?: boolean;
         }
         /** create a relationship with nodes which are matched by the where */
-        where?: RelationshipTypeValueForCreateWhereI<RelationshipValuesToCreateKey, Attributes> |
-        Array<RelationshipTypeValueForCreateWhereI<RelationshipValuesToCreateKey, Attributes>>;
+        where?: RelationshipTypeValueForCreateWhereI<RelationshipProperties> |
+        Array<RelationshipTypeValueForCreateWhereI<RelationshipProperties>>;
     };
 
 /** the type for the Relationship configuration of a Model */
@@ -106,12 +96,16 @@ export type RelationshipsI<
     RelatedNodesToAssociateI extends Record<string, any>,
     > = Array<{
         /** the related model. It could be the object of the model, or "self" for this model */
-        model: NeogmaModel<any, any, any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
+        model: NeogmaModel<any, any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
         /** the name of the relationship */
         name: CreateRelationshipParamsI['relationship']['name'];
         /** the direction of the relationship */
         direction: 'out' | 'in' | 'none';
         alias: keyof RelatedNodesToAssociateI;
+        properties: Record<string, {
+            property: string, // TODO property is keyof...
+            schema: any
+        }>;
     }>;
 
 /** parameters when creating nodes */
@@ -126,20 +120,18 @@ type CreateDataParamsI = GenericConfiguration & {
 type CreateDataI<
     Attributes,
     RelatedNodesToAssociateKey extends string,
-    RelationshipValuesToCreateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
     > = Attributes & {
-        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
+        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<Attributes, RelatedNodesToAssociateI>;
     };
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
     Attributes extends object,
     RelatedNodesToAssociateKey extends string,
-    RelationshipValuesToCreateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
     MethodsI extends Record<string, any> = {},
-    CreateData = CreateDataI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI>,
+    CreateData = CreateDataI<Attributes, RelatedNodesToAssociateKey, RelatedNodesToAssociateI>,
     Instance = NeogmaInstance<Attributes, RelatedNodesToAssociateI, MethodsI>,
     > {
     getLabel: () => string | string[];
@@ -227,11 +219,11 @@ interface NeogmaModelStaticsI<
         }
     ) => Promise<number>;
     getLabelFromRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any, any, any> | 'self',
+        relationshipModel: NeogmaModel<any, any, any, any, any> | 'self',
     ) => string | string[];
     getRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any, any, any> | 'self',
-    ) => NeogmaModel<any, any, any, any, any, any>;
+        relationshipModel: NeogmaModel<any, any, any, any, any> | 'self',
+    ) => NeogmaModel<any, any, any, any, any>;
     assertPrimaryKeyField: (
         operation: string
     ) => void;
@@ -292,11 +284,10 @@ export type NeogmaInstance<
 export type NeogmaModel<
     Attributes extends object,
     RelatedNodesToAssociateKey extends string,
-    RelationshipValuesToCreateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
     MethodsI extends Record<string, any> = {},
     StaticsI extends Record<string, any> = {},
-    > = NeogmaModelStaticsI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI> & StaticsI;
+    > = NeogmaModelStaticsI<Attributes, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI> & StaticsI;
 
 export type FindManyIncludeI<AliasKeys> = {
     alias: AliasKeys;
@@ -318,8 +309,6 @@ export const ModelFactory = <
     RelatedNodesToAssociateI extends Record<string, any>,
     /** the string which will be used as a key for Related Nodes creation */
     RelatedNodesToAssociateKey extends string,
-    /** the string which will be used as a key for Relationship Values creation */
-    RelationshipValuesToCreateKey extends string,
     /** interface for the statics of the model */
     StaticsI extends Record<string, any> = {},
     /** interface for the methods of the instance */
@@ -344,7 +333,7 @@ export const ModelFactory = <
             relationshipCreationKeys: RelationshipCreationKeysI;
         },
         neogma: Neogma,
-): NeogmaModel<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI, StaticsI> => {
+): NeogmaModel<Attributes, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI, StaticsI> => {
 
     const { label: modelLabel, primaryKeyField: modelPrimaryKeyField, relationshipCreationKeys, schema } = parameters;
     const statics = parameters.statics || {};
@@ -366,10 +355,10 @@ export const ModelFactory = <
         });
     }
 
-    type CreateData = CreateDataI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI>;
+    type CreateData = CreateDataI<Attributes, RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
 
     type InstanceMethodsI = NeogmaInstanceMethodsI<Attributes, RelatedNodesToAssociateI, MethodsI>;
-    type ModelStaticsI = NeogmaModelStaticsI<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI>;
+    type ModelStaticsI = NeogmaModelStaticsI<Attributes, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI>;
     type Instance = NeogmaInstance<Attributes, RelatedNodesToAssociateI, MethodsI>;
 
     const Model = class ModelClass implements InstanceMethodsI {
@@ -583,7 +572,6 @@ export const ModelFactory = <
                 parentNode?: {
                     identifier: string;
                     relationship: Omit<RelationshipsI<any>[0], 'alias'>;
-                    relationshipValuesToCreateKey?: string;
                     /** whether to merge the relationship instead of creating it */
                     mergeRelationship?: boolean;
                 }
@@ -625,10 +613,15 @@ export const ModelFactory = <
                         /** if it has a parent node, also create a relationship with it */
                         if (parentNode) {
                             const { relationship, identifier: parentIdentifier } = parentNode;
-                            const relationshipValues = instance[parentNode.relationshipValuesToCreateKey];
+                            const keysToUse = Object.keys(relationship.properties);
+                            const relationshipProperties = {};
+                            // tslint:disable-next-line:forin
+                            for (const key in keysToUse) {
+                                relationshipProperties[relationship.properties[key].property] = instance[key];
+                            }
 
                             /* set an identifier only if we need to create relationship values */
-                            const relationshipIdentifier = relationshipValues && identifiers.getUniqueNameAndAdd('r', null);
+                            const relationshipIdentifier = relationshipProperties && identifiers.getUniqueNameAndAdd('r', null);
                             const directionAndNameString = QueryRunner.getRelationshipDirectionAndName({
                                 direction: relationship.direction,
                                 name: relationship.name,
@@ -637,11 +630,11 @@ export const ModelFactory = <
                             statementParts.push(`
                                 ${createOrMerge(parentNode.mergeRelationship)} (${parentIdentifier})${directionAndNameString}(${identifier})
                             `);
-                            if (relationshipValues) {
+                            if (relationshipProperties) {
                                 /* create the relationship values */
-                                const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relationshipValues);
+                                const relationshipPropertiesParam = bindParam.getUniqueNameAndAdd('relationshipProperty', relationshipProperties);
                                 statementParts.push(`
-                                    SET ${relationshipIdentifier} += $${relationshipValuesParam}
+                                    SET ${relationshipIdentifier} += $${relationshipPropertiesParam}
                                 `);
                             }
                         }
@@ -662,8 +655,6 @@ export const ModelFactory = <
                                     {
                                         identifier,
                                         relationship,
-                                        // use the RelationshipValuesToCreate key of this model
-                                        relationshipValuesToCreateKey: model.getRelationshipCreationKeys().RelationshipValuesToCreate,
                                         mergeRelationship: relatedNodesData.attributesMergeConfig?.relationship,
                                     }
                                 );
@@ -680,7 +671,7 @@ export const ModelFactory = <
                                     toRelateByIdentifier[identifier].push({
                                         relationship,
                                         where: whereEntry.params,
-                                        values: whereEntry[model.getRelationshipCreationKeys().RelationshipValuesToCreate],
+                                        values: whereEntry.relationshipProperties,
                                         merge: whereEntry.merge,
                                     });
                                 }
@@ -733,9 +724,9 @@ export const ModelFactory = <
                     );
                     if (relateParameters.values) {
                         /* create the relationship values */
-                        const relationshipValuesParam = bindParam.getUniqueNameAndAdd('relationshipValue', relateParameters.values);
+                        const relationshipPropertiesParam = bindParam.getUniqueNameAndAdd('relationshipProperty', relateParameters.values);
                         relationshipByWhereParts.push(`
-                                SET ${relationshipIdentifier} += $${relationshipValuesParam}
+                                SET ${relationshipIdentifier} += $${relationshipPropertiesParam}
                             `);
                     }
 
@@ -770,6 +761,7 @@ export const ModelFactory = <
                 direction: relationship.direction,
                 name: relationship.name,
                 alias,
+                properties: relationship.properties,
             };
         }
 
@@ -1114,5 +1106,5 @@ export const ModelFactory = <
     // add to modelsByName
     neogma.modelsByName[modelName] = Model;
 
-    return Model as unknown as NeogmaModel<Attributes, RelatedNodesToAssociateKey, RelationshipValuesToCreateKey, RelatedNodesToAssociateI, MethodsI, StaticsI>;
+    return Model as unknown as NeogmaModel<Attributes, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI, StaticsI>;
 };
