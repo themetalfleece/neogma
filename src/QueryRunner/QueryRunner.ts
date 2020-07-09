@@ -26,10 +26,10 @@ export interface CreateRelationshipParamsI {
     relationship: {
         name: string;
         direction: 'out' | 'in' | 'none',
-        /** values to be set as relationship attributes */
-        values?: object;
+        /** properties to be set as relationship attributes */
+        properties?: object;
     };
-    /** can access query identifiers by setting the "identifier" property of source/target, else by the values of QueryRunnder.identifiers.createRelationship */
+    /** can access query identifiers by setting the "identifier" property of source/target, else by the values of QueryRunner.identifiers.createRelationship */
     where?: AnyWhereI;
     /** the session or transaction for running this query */
     session?: Runnable | null;
@@ -189,19 +189,19 @@ export class QueryRunner {
 
         /** the params of the relationship value */
         const relationshipAttributesParams = BindParam.acquire(whereInstance?.bindParam).clone();
-        /** the values to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
-        const relationshipValues: string[] = [];
-        if (relationship.values) {
-            for (const key in relationship.values) {
-                if (!relationship.values.hasOwnProperty(key)) { continue; }
+        /** the properties to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
+        const relationshipProperties: string[] = [];
+        if (relationship.properties) {
+            for (const key in relationship.properties) {
+                if (!relationship.properties.hasOwnProperty(key)) { continue; }
 
-                const paramName = relationshipAttributesParams.getUniqueNameAndAdd(key, relationship.values[key]);
-                relationshipValues.push(`${relationshipIdentifier}.${key} = $${paramName}`);
+                const paramName = relationshipAttributesParams.getUniqueNameAndAdd(key, relationship.properties[key]);
+                relationshipProperties.push(`${relationshipIdentifier}.${key} = $${paramName}`);
             }
         }
 
-        /** the relationship values statement to be inserted into the final statement string */
-        const relationshipValuesStatement = relationshipValues.length ? 'SET ' + relationshipValues.join(', ') : '';
+        /** the relationship properties statement to be inserted into the final statement string */
+        const relationshipPropertiesStatement = relationshipProperties.length ? 'SET ' + relationshipProperties.join(', ') : '';
 
         const identifiers = {
             source: source.identifier || QueryRunner.identifiers.createRelationship.source,
@@ -219,7 +219,7 @@ export class QueryRunner {
         }
         statementParts.push(`CREATE
             (${identifiers.source})${directionAndNameString}(${identifiers.target})
-            ${relationshipValuesStatement}
+            ${relationshipPropertiesStatement}
         `);
 
         const statement = statementParts.join(' ');
