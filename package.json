@@ -1,47 +1,58 @@
 {
-  "name": "neogma",
-  "version": "1.2.2",
-  "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
-  "license": "MIT",
-  "files": [
-    "dist/**/*"
-  ],
-  "dependencies": {
-    "clone": "^2.1.2",
-    "neo4j-driver": "^4.0.2",
-    "revalidator": "^0.3.1",
-    "uuid": "^7.0.2",
-    "@types/revalidator": "^0.3.7"
-  },
-  "devDependencies": {
-    "@types/clone": "^0.1.30",
-    "@types/node": "^12.6.4",
-    "@types/uuid": "^7.0.2",
-    "tslint": "^6.1.1",
-    "typescript": "^3.9.2",
-    "typescript-eslint-parser": "^22.0.0"
-  },
-  "scripts": {
-    "prepare": "rm -rf dist && tsc",
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/themetalfleece/neogma.git"
-  },
-  "keywords": [
-    "neo4j",
-    "ogm",
-    "graph",
-    "databases",
-    "cypher"
-  ],
-  "bugs": {
-    "url": "https://github.com/themetalfleece/neogma/issues"
-  },
-  "homepage": "https://github.com/themetalfleece/neogma#readme"
+    "name": "neogma",
+    "version": "1.2.2",
+    "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
+    "license": "MIT",
+    "files": [
+        "dist/**/*"
+    ],
+    "dependencies": {
+        "@types/revalidator": "^0.3.7",
+        "clone": "^2.1.2",
+        "neo4j-driver": "^4.0.2",
+        "revalidator": "^0.3.1",
+        "uuid": "^7.0.2"
+    },
+    "devDependencies": {
+        "@types/clone": "^0.1.30",
+        "@types/node": "^12.6.4",
+        "@types/uuid": "^7.0.2",
+        "@typescript-eslint/eslint-plugin": "^3.6.0",
+        "@typescript-eslint/parser": "^3.6.0",
+        "eslint": "^7.4.0",
+        "eslint-config-prettier": "^6.11.0",
+        "eslint-plugin-prettier": "^3.1.4",
+        "jest": "^26.1.0",
+        "prettier": "^2.0.5",
+        "tslint-config-prettier": "^1.18.0",
+        "tslint-plugin-prettier": "^2.3.0",
+        "typescript": "^3.9.2"
+    },
+    "scripts": {
+        "lint": "eslint --fix --quiet src/**/*.ts",
+        "format": "prettier --write src/**/*.ts",
+        "prepare": "rm -rf dist && tsc",
+        "prebuild": "yarn lint && yarn format",
+        "build": "tsc",
+        "build-tests": "tsc -p tsconfig.spec.json",
+        "test": "jest"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/themetalfleece/neogma.git"
+    },
+    "keywords": [
+        "neo4j",
+        "ogm",
+        "graph",
+        "databases",
+        "cypher"
+    ],
+    "bugs": {
+        "url": "https://github.com/themetalfleece/neogma/issues"
+    },
+    "homepage": "https://github.com/themetalfleece/neogma#readme"
 }
