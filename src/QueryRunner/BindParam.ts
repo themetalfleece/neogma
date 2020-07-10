@@ -7,8 +7,10 @@ import { StringSequence } from '../utils/StringSequence';
  */
 export class BindParam {
     /** acquires a BindParam, so it ensures that a BindParam is always returned. If it's passed, it will be returned as is. Else, a new one will be created and returned */
-    public static acquire(bindParam: BindParam | null) {
-        if (bindParam) { return bindParam; }
+    public static acquire(bindParam: BindParam | null): BindParam {
+        if (bindParam) {
+            return bindParam;
+        }
         return new BindParam();
     }
 
@@ -23,12 +25,16 @@ export class BindParam {
     /**
      * adds objects to the bind attribute, throwing an error if a given key already exists in the bind param
      */
-    public add(...objects: Array<BindParam['bind']>) {
+    public add(...objects: Array<BindParam['bind']>): BindParam {
         for (const object of objects) {
             for (const key in object) {
-                if (!object.hasOwnProperty(key)) { continue; }
+                if (!object.hasOwnProperty(key)) {
+                    continue;
+                }
                 if (this.bind.hasOwnProperty(key)) {
-                    throw new NeogmaConstraintError(`key ${key} already in the bind param`);
+                    throw new NeogmaConstraintError(
+                        `key ${key} already in the bind param`,
+                    );
                 }
                 this.bind[key] = object[key];
             }
@@ -40,14 +46,14 @@ export class BindParam {
     /**
      * returns a new BindParam instance with a clone of the bind property
      */
-    public clone() {
+    public clone(): BindParam {
         return new BindParam(clone(this.get()));
     }
 
     /**
      * returns the bind attribute
      */
-    public get() {
+    public get(): BindParam['bind'] {
         return this.bind;
     }
 
@@ -58,7 +64,8 @@ export class BindParam {
         } else {
             const stringSequence = new StringSequence('a', 'zzzz', 4);
             while (true) {
-                const newKey = suffix + '__' + stringSequence.getNextString(true);
+                const newKey =
+                    suffix + '__' + stringSequence.getNextString(true);
                 if (!this.bind.hasOwnProperty(newKey)) {
                     return newKey;
                 }
@@ -69,7 +76,7 @@ export class BindParam {
     /** returns a name which isn't a key of bind and adds the value to the bind param with the created name */
     public getUniqueNameAndAdd(
         suffix: Parameters<typeof BindParam['prototype']['getUniqueName']>[0],
-        value: Parameters<typeof BindParam['prototype']['add']>[0][0]
+        value: Parameters<typeof BindParam['prototype']['add']>[0][0],
     ): string {
         const name = this.getUniqueName(suffix);
         this.add({
