@@ -31,7 +31,7 @@
     },
     "scripts": {
         "lint": "eslint --fix --quiet src/**/*.ts",
-        "format": "prettier --write src/**/*.ts",
+        "format": "prettier --loglevel silent --write src/**/*.ts",
         "prepare": "rm -rf dist && tsc",
         "prebuild": "yarn lint && yarn format",
         "build": "tsc",
