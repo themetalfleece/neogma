@@ -23,11 +23,6 @@ const getNodesDeleted = (result: QueryResult): number => {
 /** the type of the properties to be added to a relationship */
 export type RelationshipPropertiesI = Record<string, Neo4jSupportedTypes>;
 
-/** interface used for the keys which will be used on instance creation for associating related notes and creating relationship properties */
-interface RelationshipCreationKeysI {
-    RelatedNodesToAssociate: string;
-}
-
 interface GenericConfiguration {
     session?: Runnable | null;
 }
@@ -96,7 +91,7 @@ export type RelationshipsI<
     RelatedNodesToAssociateI extends Record<string, any>,
     > = Array<{
         /** the related model. It could be the object of the model, or "self" for this model */
-        model: NeogmaModel<any, any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
+        model: NeogmaModel<any, any, any, any> | 'self', // we can't use the actual NeogmaModel type due to circular references
         /** the name of the relationship */
         name: CreateRelationshipParamsI['relationship']['name'];
         /** the direction of the relationship */
@@ -119,40 +114,35 @@ type CreateDataParamsI = GenericConfiguration & {
 /** type used for creating nodes. It includes their Properties and Related Nodes */
 type CreateDataI<
     Properties,
-    RelatedNodesToAssociateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
-    > = Properties & {
-        [key in RelatedNodesToAssociateKey]?: RelatedNodesCreationParamI<Properties, RelatedNodesToAssociateI>;
-    };
+    > = Properties & Partial<RelatedNodesCreationParamI<Properties, RelatedNodesToAssociateI>>;
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
     Properties extends object,
-    RelatedNodesToAssociateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
     MethodsI extends Record<string, any> = {},
-    CreateData = CreateDataI<Properties, RelatedNodesToAssociateKey, RelatedNodesToAssociateI>,
+    CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
     > {
     getLabel: () => string | string[];
     getPrimaryKeyField: () => string;
-    getRelationshipCreationKeys: () => RelationshipCreationKeysI;
     getModelName: () => string;
     __build: (
         data: CreateData,
         params: {
             status: 'new' | 'existing'
         }
-    ) => Instance;
+    ) => Instance & Partial<RelatedNodesToAssociateI>;
     build: (
         data: CreateData,
     ) => Instance;
     createOne: (
-        data: CreateData | Instance,
+        data: CreateData,
         configuration?: CreateDataParamsI,
     ) => Promise<Instance>;
     createMany: (
-        data: CreateData[] | Instance[],
+        data: CreateData[],
         configuration?: CreateDataParamsI,
     ) => Promise<Instance[]>;
     getRelationshipByAlias: (
@@ -219,11 +209,11 @@ interface NeogmaModelStaticsI<
         }
     ) => Promise<number>;
     getLabelFromRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any, any> | 'self',
+        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
     ) => string | string[];
     getRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any, any> | 'self',
-    ) => NeogmaModel<any, any, any, any, any>;
+        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
+    ) => NeogmaModel<any, any, any, any>;
     assertPrimaryKeyField: (
         operation: string
     ) => void;
@@ -283,11 +273,10 @@ export type NeogmaInstance<
 /** the type of a Neogma Model */
 export type NeogmaModel<
     Properties extends object,
-    RelatedNodesToAssociateKey extends string,
     RelatedNodesToAssociateI extends Record<string, any>,
     MethodsI extends Record<string, any> = {},
     StaticsI extends Record<string, any> = {},
-    > = NeogmaModelStaticsI<Properties, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI> & StaticsI;
+    > = NeogmaModelStaticsI<Properties, RelatedNodesToAssociateI, MethodsI> & StaticsI;
 
 export type FindManyIncludeI<AliasKeys> = {
     alias: AliasKeys;
@@ -307,8 +296,6 @@ export const ModelFactory = <
     Properties extends object,
     /** related nodes to associate. Label-ModelRelatedNodesI pairs */
     RelatedNodesToAssociateI extends Record<string, any>,
-    /** the string which will be used as a key for Related Nodes creation */
-    RelatedNodesToAssociateKey extends string,
     /** interface for the statics of the model */
     StaticsI extends Record<string, any> = {},
     /** interface for the methods of the instance */
@@ -329,19 +316,18 @@ export const ModelFactory = <
             primaryKeyField?: Extract<keyof Properties, string>;
             /** relationships with other models or itself */
             relationships?: RelationshipsI<RelatedNodesToAssociateI>;
-            /** the keys which will be used on instance creation for associating related notes and creating relationship properties */
-            relationshipCreationKeys: RelationshipCreationKeysI;
         },
         neogma: Neogma,
-): NeogmaModel<Properties, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI, StaticsI> => {
+): NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, StaticsI> => {
 
-    const { label: modelLabel, primaryKeyField: modelPrimaryKeyField, relationshipCreationKeys, schema } = parameters;
+    const { label: modelLabel, primaryKeyField: modelPrimaryKeyField, schema } = parameters;
     const statics = parameters.statics || {};
     const methods = parameters.methods || {};
     const relationships = parameters.relationships || [];
     /* helper name for queries */
     const modelName = (modelLabel instanceof Array ? modelLabel : [modelLabel]).join('');
     const schemaKeys = new Set(Object.keys(schema));
+    const relationshipAliases = relationships.map(({ alias }) => alias);
 
     const queryRunner = neogma.getQueryRunner();
 
@@ -355,10 +341,10 @@ export const ModelFactory = <
         });
     }
 
-    type CreateData = CreateDataI<Properties, RelatedNodesToAssociateKey, RelatedNodesToAssociateI>;
+    type CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>;
 
     type InstanceMethodsI = NeogmaInstanceMethodsI<Properties, RelatedNodesToAssociateI, MethodsI>;
-    type ModelStaticsI = NeogmaModelStaticsI<Properties, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI>;
+    type ModelStaticsI = NeogmaModelStaticsI<Properties, RelatedNodesToAssociateI, MethodsI>;
     type Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
 
     const Model = class ModelClass implements InstanceMethodsI {
@@ -384,10 +370,6 @@ export const ModelFactory = <
          */
         public static getPrimaryKeyField(): ReturnType<ModelStaticsI['getPrimaryKeyField']> {
             return modelPrimaryKeyField;
-        }
-
-        public static getRelationshipCreationKeys(): ReturnType<ModelStaticsI['getRelationshipCreationKeys']> {
-            return relationshipCreationKeys;
         }
 
         public static getModelName(): ReturnType<ModelStaticsI['getModelName']> {
@@ -436,7 +418,7 @@ export const ModelFactory = <
             instance.dataValues = {} as Properties;
             instance.changed = {} as Record<keyof Properties, boolean>;
 
-            for (const _key of [...Object.keys(schema), ...Object.values(relationshipCreationKeys)]) {
+            for (const _key of [...Object.keys(schema), ...Object.values(relationshipAliases)]) {
                 const key = _key as keyof typeof schema;
 
                 /* set dataValues using data */
@@ -583,7 +565,8 @@ export const ModelFactory = <
 
                     const instance = (
                         createData instanceof (model as any) ? createData : model.__build(createData, { status: 'new' })
-                    ) as Instance;
+                    ) as Instance & Partial<RelatedNodesToAssociateI>;
+
                     instance.__existsInDatabase = true;
                     // set all changed to false as it's going to be saved
                     for (const key in instance.changed) {
@@ -600,7 +583,15 @@ export const ModelFactory = <
                         await instance.validate();
                     }
 
-                    const relatedNodesToAssociate = instance[model.getRelationshipCreationKeys().RelatedNodesToAssociate];
+                    const relatedNodesToAssociate: {
+                        [key in keyof RelatedNodesToAssociateI]?: RelationshipTypePropertyForCreateI<any, any>
+                    } = {};
+                    for (const alias of relationshipAliases) {
+                        if (instance[alias]) {
+                            relatedNodesToAssociate[alias] = instance[alias];
+                        }
+                    }
+
                     if (relatedNodesToAssociate || parentNode || mergeProperties) {
                         /* if it has related nodes to associated or it has a parent node or it's to be merged, create it as a single node, with an identifier */
 
@@ -1106,5 +1097,5 @@ export const ModelFactory = <
     // add to modelsByName
     neogma.modelsByName[modelName] = Model;
 
-    return Model as unknown as NeogmaModel<Properties, RelatedNodesToAssociateKey, RelatedNodesToAssociateI, MethodsI, StaticsI>;
+    return Model as unknown as NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, StaticsI>;
 };

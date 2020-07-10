@@ -20,7 +20,7 @@ export class Neogma {
     private driver: Driver;
     private queryRunner: QueryRunner;
     /** a map between each Model's modelName and the Model itself */
-    public modelsByName: Record<string, NeogmaModel<any, any, any, any, any>> = {};
+    public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
 
     /**
      * 
