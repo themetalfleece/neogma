@@ -17,8 +17,8 @@ interface ConnectOptionsI extends Config {
 }
 
 export class Neogma {
-    private driver: Driver;
-    private queryRunner: QueryRunner;
+    public readonly driver: Driver;
+    public readonly queryRunner: QueryRunner;
     /** a map between each Model's modelName and the Model itself */
     public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
 
@@ -47,10 +47,6 @@ export class Neogma {
             logger: options?.logger,
         });
     }
-
-    public getDriver = (): Driver => this.driver;
-
-    public getQueryRunner = (): QueryRunner => this.queryRunner;
 
     public getSession = <T>(
         runInSession: Session,
