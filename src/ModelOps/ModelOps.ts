@@ -16,11 +16,14 @@ import {
 } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
 
-const getResultArray = <T>(result: QueryResult, identifier: string): T[] => {
+export const getResultArray = <T>(
+    result: QueryResult,
+    identifier: string,
+): T[] => {
     return result.records.map((v) => v.get(identifier).properties);
 };
 
-const getNodesDeleted = (result: QueryResult): number => {
+export const getNodesDeleted = (result: QueryResult): number => {
     return result.summary.counters.updates().nodesDeleted;
 };
 
@@ -47,7 +50,7 @@ export interface ModelRelatedNodesI<
 > {
     /** interface of the data to create */
     CreateData: Parameters<RelatedModel['createOne']>[0] &
-        RelationshipProperties;
+        Partial<RelationshipProperties>;
     /** interface of the properties of the relationship */
     RelationshipProperties: RelationshipProperties;
     Instance: RelatedInstance;
@@ -61,7 +64,7 @@ export type RelatedNodesCreationParamI<
     [key in keyof Partial<
         RelatedNodesToAssociateI
     >]: RelationshipTypePropertyForCreateI<
-        Properties,
+        RelatedNodesToAssociateI[key]['CreateData'],
         RelatedNodesToAssociateI[key]['RelationshipProperties']
     >;
 };
@@ -74,7 +77,7 @@ type RelationshipTypePropertyForCreateWhereI<
     params: WhereParamsI;
     /** whether to merge instead of create the relationship */
     merge?: boolean;
-    relationshipProperties?: RelationshipProperties;
+    relationshipProperties?: Partial<RelationshipProperties>;
 };
 /** the type of the relationship along with the properties, so the proper relationship and/or nodes can be created */
 type RelationshipTypePropertyForCreateI<
@@ -82,7 +85,7 @@ type RelationshipTypePropertyForCreateI<
     RelationshipProperties extends RelationshipPropertiesI
 > = {
     /** create new nodes and create a relationship with them */
-    properties?: Array<Properties & RelationshipProperties>;
+    properties?: Array<Properties & Partial<RelationshipProperties>>;
     /** configuration for merging instead of creating the properties/relationships */
     propertiesMergeConfig?: {
         /** merge the created nodes instead of creating them */
@@ -344,7 +347,7 @@ export const ModelFactory = <
     const schemaKeys = new Set(Object.keys(schema));
     const relationshipAliases = relationships.map(({ alias }) => alias);
 
-    const queryRunner = neogma.getQueryRunner();
+    const queryRunner = neogma.queryRunner;
 
     // enforce unique relationship aliases
     const allRelationshipAlias = relationships.map(({ alias }) => alias);
@@ -664,13 +667,32 @@ export const ModelFactory = <
                         );
 
                         statementParts.push(`
-                            ${createOrMerge(
-                                mergeProperties,
-                            )} (${identifierWithLabel} ${QueryRunner.getPropertiesWithParams(
-                            instance.getDataValues(),
-                            bindParam,
-                        )})
+                            ${createOrMerge(mergeProperties)} 
+                            (
+                                ${identifierWithLabel} 
+                                ${QueryRunner.getPropertiesWithParams(
+                                    instance.getDataValues(),
+                                    bindParam,
+                                )}
+                            )
                         `);
+
+                        /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
+                        const getRelationshipProperties = (
+                            relationship: Omit<RelationshipsI<any>[0], 'alias'>,
+                            dataToUse,
+                        ) => {
+                            const keysToUse = Object.keys(
+                                relationship.properties,
+                            );
+                            const relationshipProperties = {};
+                            for (const key of keysToUse) {
+                                relationshipProperties[
+                                    relationship.properties[key].property
+                                ] = dataToUse[key];
+                            }
+                            return relationshipProperties;
+                        };
 
                         /** if it has a parent node, also create a relationship with it */
                         if (parentNode) {
@@ -678,15 +700,11 @@ export const ModelFactory = <
                                 relationship,
                                 identifier: parentIdentifier,
                             } = parentNode;
-                            const keysToUse = Object.keys(
-                                relationship.properties,
+
+                            const relationshipProperties = getRelationshipProperties(
+                                relationship,
+                                createData,
                             );
-                            const relationshipProperties = {};
-                            for (const key in keysToUse) {
-                                relationshipProperties[
-                                    relationship.properties[key].property
-                                ] = instance[key];
-                            }
 
                             /* set an identifier only if we need to create relationship properties */
                             const relationshipIdentifier =
@@ -764,12 +782,15 @@ export const ModelFactory = <
                                         toRelateByIdentifier[identifier] = [];
                                     }
 
-                                    // add the info to toRelateByIdentifier
+                                    const relationshipProperties = getRelationshipProperties(
+                                        relationship,
+                                        whereEntry.relationshipProperties,
+                                    );
+
                                     toRelateByIdentifier[identifier].push({
                                         relationship,
                                         where: whereEntry.params,
-                                        properties:
-                                            whereEntry.relationshipProperties,
+                                        properties: relationshipProperties,
                                         merge: whereEntry.merge,
                                     });
                                 }
