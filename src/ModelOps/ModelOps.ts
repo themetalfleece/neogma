@@ -103,10 +103,8 @@ export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = Array<{
     alias: keyof RelatedNodesToAssociateI;
     properties: {
         [key in keyof RelatedNodesToAssociateI[keyof RelatedNodesToAssociateI]['RelationshipProperties']]?: {
-            property: keyof NeogmaModel<any, any, any, any>; // TODO property is keyof the Model
-            schema:
-                | Revalidator.ISchema<AnyObject>
-                | Revalidator.JSONSchema<AnyObject>;
+            property: Extract<keyof NeogmaModel<any, any, any, any>, string>; // TODO property is keyof the Model
+            schema: Revalidator.ISchema<AnyObject>;
         };
     };
 }>;
@@ -677,11 +675,39 @@ export const ModelFactory = <
                             const keysToUse = Object.keys(
                                 relationship.properties,
                             );
+                            /** properties to be used in the relationship */
                             const relationshipProperties = {};
+                            /** total validation for the properties */
+                            const validationSchema: Record<
+                                string,
+                                Revalidator.ISchema<AnyObject>
+                            > = {};
+
                             for (const key of keysToUse) {
-                                relationshipProperties[
-                                    relationship.properties[key].property
-                                ] = dataToUse[key];
+                                const property =
+                                    relationship.properties[key].property;
+                                relationshipProperties[property] =
+                                    dataToUse[key];
+                                validationSchema[property] =
+                                    relationship.properties[key].schema;
+                            }
+
+                            const validationResult = revalidator.validate(
+                                relationshipProperties,
+                                {
+                                    type: 'object',
+                                    properties: validationSchema,
+                                },
+                            );
+
+                            if (validationResult.errors.length) {
+                                throw new NeogmaInstanceValidationError(
+                                    `Could not validate relationship property`,
+                                    {
+                                        model: Model,
+                                        errors: validationResult.errors,
+                                    },
+                                );
                             }
                             return relationshipProperties;
                         };

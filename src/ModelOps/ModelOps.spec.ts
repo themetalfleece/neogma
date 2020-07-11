@@ -378,6 +378,8 @@ describe('createOne', () => {
                                 property: 'rating',
                                 schema: {
                                     type: 'number',
+                                    minimum: 0,
+                                    maximum: 5,
                                 },
                             },
                         },
