@@ -66,6 +66,7 @@ describe('ModelFactory', () => {
 
         expect(Orders).toBeTruthy();
     });
+
     it('defines a 2 associated Models', () => {
         /* Orders */
         interface OrderAttributesI {
@@ -461,6 +462,130 @@ describe('createOne', () => {
         const relationshipFromExistingResult = await neogma.queryRunner.run(
             `MATCH (o:Order {id: $orderId})<-[r:CREATES]-(u:User {id: $userId}) RETURN r`,
             { orderId: existingOrder.id, userId: user.id },
+        );
+        const relationshipFromExistingData = getResultProperties<{
+            rating: number;
+        }>(relationshipFromExistingResult, 'r')[0];
+        expect(relationshipFromExistingData).toBeTruthy();
+        expect(relationshipFromExistingData.rating).toBe(1);
+    });
+
+    it('creates nodes of a Model which is associated with itself', async () => {
+        interface OrderAttributesI {
+            name: string;
+            id: string;
+        }
+        interface OrdersRelatedNodesI {
+            Parent: ModelRelatedNodesI<
+                { createOne: typeof Orders['createOne'] },
+                OrdersInstance,
+                {
+                    Rating: number;
+                }
+            >;
+        }
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [
+                    {
+                        alias: 'Parent',
+                        direction: 'out',
+                        model: 'self',
+                        name: 'HAS',
+                        properties: {
+                            Rating: {
+                                property: 'rating',
+                                schema: {
+                                    type: 'number',
+                                },
+                            },
+                        },
+                    },
+                ],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        expect(Orders).toBeTruthy();
+
+        const childOrderData: OrderAttributesI = {
+            id: Math.random().toString(),
+            name: 'Child Order',
+        };
+
+        const parentOrderData: OrderAttributesI = {
+            id: Math.random().toString(),
+            name: 'Parent Order',
+        };
+
+        await Orders.createOne({
+            ...childOrderData,
+            Parent: {
+                properties: [{ ...parentOrderData, Rating: 1 }],
+            },
+        });
+
+        const childOrderInDbResult = await neogma.queryRunner.run(
+            `MATCH (n:Order {id: $id}) RETURN n`,
+            { id: childOrderData.id },
+        );
+        const childOrderInDbData = getResultProperties<typeof childOrderData>(
+            childOrderInDbResult,
+            'n',
+        )[0];
+        expect(childOrderInDbData).toBeTruthy();
+        expect(childOrderInDbData.id).toEqual(childOrderData.id);
+        expect(childOrderInDbData.name).toEqual(childOrderData.name);
+
+        const parentOrderInDbResult = await neogma.queryRunner.run(
+            `MATCH (n:Order {id: $id}) RETURN n`,
+            { id: parentOrderData.id },
+        );
+        const parentOrderInDbData = getResultProperties<typeof parentOrderData>(
+            parentOrderInDbResult,
+            'n',
+        )[0];
+        expect(parentOrderInDbData).toBeTruthy();
+        expect(parentOrderInDbData.id).toEqual(parentOrderData.id);
+        expect(parentOrderInDbData.name).toEqual(parentOrderData.name);
+
+        const relationshipFromExistingResult = await neogma.queryRunner.run(
+            `MATCH (o:Order {id: $childOrderId})-[r:HAS]->(u:Order {id: $parentOrderId}) RETURN r`,
+            {
+                childOrderId: childOrderData.id,
+                parentOrderId: parentOrderData.id,
+            },
         );
         const relationshipFromExistingData = getResultProperties<{
             rating: number;
