@@ -18,6 +18,8 @@ import {
 } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
 
+type AnyObject = Record<string, any>;
+
 /** the type of the properties to be added to a relationship */
 export type RelationshipPropertiesI = Record<string, Neo4jSupportedTypes>;
 

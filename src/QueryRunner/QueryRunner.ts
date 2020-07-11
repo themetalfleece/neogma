@@ -4,6 +4,8 @@ import { getRunnable } from '../Sessions';
 import { BindParam } from './BindParam';
 import { AnyWhereI, Where } from './Where';
 
+type AnyObject = Record<string, any>;
+
 export const getResultProperties = <T>(
     result: QueryResult,
     identifier: string,

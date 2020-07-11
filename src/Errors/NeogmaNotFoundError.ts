@@ -3,7 +3,7 @@ import { NeogmaError } from './NeogmaError';
 /** General constraint error */
 export class NeogmaNotFoundError extends NeogmaError {
     public message: NeogmaError['message'];
-    public data: AnyObject;
+    public data: Record<string, any>;
 
     constructor(
         message: NeogmaNotFoundError['message'],

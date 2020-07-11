@@ -13,7 +13,6 @@
         "baseUrl": "./src",
         "typeRoots": ["./node_modules/@types"]
     },
-    "files": ["./types/index.d.ts"],
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules", "**/*.spec.ts"]
 }
