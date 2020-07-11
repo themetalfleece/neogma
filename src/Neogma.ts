@@ -17,13 +17,13 @@ interface ConnectOptionsI extends Config {
 }
 
 export class Neogma {
-    private driver: Driver;
-    private queryRunner: QueryRunner;
+    public readonly driver: Driver;
+    public readonly queryRunner: QueryRunner;
     /** a map between each Model's modelName and the Model itself */
-    public modelsByName: Record<string, NeogmaModel<any, any, any, any, any, any>> = {};
+    public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
 
     /**
-     * 
+     *
      * @param {ConnectParamsI} params - the connection params
      * @param {ConnectOptionsI} options - additional options for the QueryRunner
      */
@@ -48,29 +48,24 @@ export class Neogma {
         });
     }
 
-    public getDriver = () => this.driver;
-
-    public getQueryRunner = () => this.queryRunner;
-
     public getSession = <T>(
         runInSession: Session,
         callback: (s: Session) => Promise<T>,
-    ) => {
+    ): Promise<T> => {
         return getSession<T>(runInSession, callback, this.driver);
-    }
+    };
 
     public getTransaction = <T>(
         runInTransaction: Transaction,
         callback: (s: Transaction) => Promise<T>,
-    ) => {
+    ): Promise<T> => {
         return getTransaction<T>(runInTransaction, callback, this.driver);
-    }
+    };
 
     public getRunnable = <T>(
         runInExisting: Runnable | null,
         callback: (tx: Runnable) => Promise<T>,
-    ) => {
+    ): Promise<T> => {
         return getRunnable<T>(runInExisting, callback, this.driver);
-    }
-
+    };
 }

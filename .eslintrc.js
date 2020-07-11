@@ -15,6 +15,7 @@ module.exports = {
     },
     rules: {
         '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+        '@typescript-eslint/no-explicit-any': ['off'],
         semi: ['error', 'always'],
     },
 };

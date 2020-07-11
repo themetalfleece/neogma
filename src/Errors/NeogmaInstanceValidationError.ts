@@ -5,8 +5,8 @@ import { NeogmaError } from './NeogmaError';
 export class NeogmaInstanceValidationError extends NeogmaError {
     public message: NeogmaError['message'];
     public data: {
-        model: NeogmaModel<any, any, any, any, any>,
-        errors: Revalidator.IErrrorProperty[],
+        model: NeogmaModel<any, any, any, any>;
+        errors: Revalidator.IErrrorProperty[];
     };
 
     constructor(

@@ -12,12 +12,15 @@
     "dependencies": {
         "@types/revalidator": "^0.3.7",
         "clone": "^2.1.2",
+        "dotenv": "^8.2.0",
         "neo4j-driver": "^4.0.2",
         "revalidator": "^0.3.1",
         "uuid": "^7.0.2"
     },
     "devDependencies": {
         "@types/clone": "^0.1.30",
+        "@types/dotenv": "^8.2.0",
+        "@types/jest": "^26.0.4",
         "@types/node": "^12.6.4",
         "@types/uuid": "^7.0.2",
         "@typescript-eslint/eslint-plugin": "^3.6.0",
@@ -27,13 +30,11 @@
         "eslint-plugin-prettier": "^3.1.4",
         "jest": "^26.1.0",
         "prettier": "^2.0.5",
-        "tslint-config-prettier": "^1.18.0",
-        "tslint-plugin-prettier": "^2.3.0",
         "typescript": "^3.9.2"
     },
     "scripts": {
         "lint": "eslint --fix --quiet src/**/*.ts",
-        "format": "prettier --write src/**/*.ts",
+        "format": "prettier --loglevel silent --write src/**/*.ts",
         "prepare": "rm -rf dist && tsc",
         "prebuild": "yarn lint && yarn format",
         "build": "tsc",

@@ -1,10 +1,9 @@
 import { BindParam } from './BindParam';
 import { Neo4jSingleTypes, Neo4jSupportedTypes } from './QueryRunner';
 
-
 /** the type to be used for "in" */
 interface WhereInI {
-    $in: (Neo4jSingleTypes)[];
+    $in: Neo4jSingleTypes[];
 }
 
 const isWhereIn = (value: WhereValuesI): value is WhereInI => {
@@ -58,7 +57,7 @@ export class Where {
         whereParams: WhereParamsByIdentifierI,
         /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
         bindOrWhere?: BindParam | Where,
-    ) {
+    ): Where {
         this.bindParam = new BindParam();
         if (bindOrWhere instanceof BindParam) {
             this.bindParam = BindParam.acquire(bindOrWhere);
@@ -71,6 +70,8 @@ export class Where {
 
         // set the statement and bindParams fields
         this.setFieldsByRawParams();
+
+        return this;
     }
 
     /** sets the statement, bindParams fields by the rawParams */
@@ -81,16 +82,33 @@ export class Where {
         const params = Object.assign({}, ...this.rawParams);
 
         for (const nodeIdentifier in params) {
-            if (!params.hasOwnProperty(nodeIdentifier)) { continue; }
+            if (!params.hasOwnProperty(nodeIdentifier)) {
+                continue;
+            }
             for (const key in params[nodeIdentifier]) {
-                if (!params[nodeIdentifier].hasOwnProperty(key)) { continue; }
+                if (!params[nodeIdentifier].hasOwnProperty(key)) {
+                    continue;
+                }
 
                 const value = params[nodeIdentifier][key];
 
-                if (['string', 'number', 'boolean'].includes(typeof value) || value instanceof Array) {
-                    this.addAnd(`${nodeIdentifier}.${key} = ${this.getNameAndAddToParams(key, value)}`);
+                if (
+                    ['string', 'number', 'boolean'].includes(typeof value) ||
+                    value instanceof Array
+                ) {
+                    this.addAnd(
+                        `${nodeIdentifier}.${key} = ${this.getNameAndAddToParams(
+                            key,
+                            value,
+                        )}`,
+                    );
                 } else if (isWhereIn(value)) {
-                    this.addAnd(`${nodeIdentifier}.${key} IN ${this.getNameAndAddToParams(key, value.$in)}`);
+                    this.addAnd(
+                        `${nodeIdentifier}.${key} IN ${this.getNameAndAddToParams(
+                            key,
+                            value.$in,
+                        )}`,
+                    );
                 }
             }
         }
@@ -100,7 +118,7 @@ export class Where {
     private getNameAndAddToParams = (prefix, value: Neo4jSupportedTypes) => {
         const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
         return `$${name}`;
-    }
+    };
 
     /** adds a value to the statement by prepending AND if the statement already has a value */
     private addAnd = (value: string) => {
@@ -109,11 +127,16 @@ export class Where {
         } else {
             this.statement += ` AND ${value}`;
         }
-    }
+    };
 
     /** returns a Where object if params is specified, else returns null */
-    public static acquire(params: AnyWhereI, bindParam?: BindParam): Where | null {
-        if (!params) { return null; }
+    public static acquire(
+        params: AnyWhereI,
+        bindParam?: BindParam,
+    ): Where | null {
+        if (!params) {
+            return null;
+        }
 
         if (params instanceof Where) {
             return params;
@@ -126,9 +149,10 @@ export class Where {
      * if the value is not an array, it gets returned as is. If it's an array, a "$in" object ir returned for that value
      */
     public static ensureIn(value: WhereValuesI): WhereValuesI {
-        return value instanceof Array ? {
-            $in: value,
-        } : value;
+        return value instanceof Array
+            ? {
+                  $in: value,
+              }
+            : value;
     }
-
 }

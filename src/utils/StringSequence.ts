@@ -9,7 +9,12 @@ export class StringSequence {
     private currentNumber = 0;
     private targetNumber = 0;
 
-    constructor(from: string, to: string, private padSize = 4, private alphabetSize = 26) {
+    constructor(
+        from: string,
+        to: string,
+        private padSize = 4,
+        private alphabetSize = 26,
+    ) {
         this.initialNumber = this.stringToNumber(from);
         this.currentNumber = this.initialNumber - 1;
         this.targetNumber = this.stringToNumber(to);
@@ -17,8 +22,8 @@ export class StringSequence {
 
     public getNextString = (
         /** throws if the current string if the target one */
-        throwOnTargetExcceeded?: boolean
-    ) => {
+        throwOnTargetExcceeded?: boolean,
+    ): string => {
         this.currentNumber++;
         if (this.currentNumber > this.targetNumber) {
             if (throwOnTargetExcceeded) {
@@ -27,7 +32,7 @@ export class StringSequence {
             this.currentNumber = this.initialNumber;
         }
         return this.pad(this.numberToString(this.currentNumber));
-    }
+    };
 
     private stringToNumber(string: string) {
         let power = 0;
@@ -42,10 +47,13 @@ export class StringSequence {
 
     private numberToString(number?: number) {
         let string = '';
-        if (!number) { string = 'a'; }
-        else {
+        if (!number) {
+            string = 'a';
+        } else {
             while (number) {
-                string = String.fromCharCode(97 + number % this.alphabetSize) + string;
+                string =
+                    String.fromCharCode(97 + (number % this.alphabetSize)) +
+                    string;
                 number = Math.floor(number / this.alphabetSize);
             }
         }
@@ -55,11 +63,10 @@ export class StringSequence {
     /**
      * pads the string by prepending 'a' at the start of it until the padSize is reached
      */
-    private pad(string) {
+    private pad(string): string {
         while (string.length < this.padSize) {
             string = 'a' + string;
         }
         return string;
     }
-
 }
