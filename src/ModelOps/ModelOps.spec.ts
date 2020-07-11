@@ -1,12 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { Neogma } from '../Neogma';
-import {
-    ModelFactory,
-    ModelRelatedNodesI,
-    NeogmaInstance,
-    getResultArray,
-} from './ModelOps';
+import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 import * as dotenv from 'dotenv';
+import { getResultProperties } from '../QueryRunner';
 
 let neogma: Neogma;
 
@@ -265,7 +261,7 @@ describe('createOne', () => {
             { id: orderData.id },
         );
 
-        const orderInDbData = getResultArray<typeof orderData>(
+        const orderInDbData = getResultProperties<typeof orderData>(
             orderInDbResult,
             'n',
         )[0];
@@ -429,7 +425,7 @@ describe('createOne', () => {
             `MATCH (n:User {id: $id}) RETURN n`,
             { id: userData.id },
         );
-        const userInDbData = getResultArray<typeof userData>(
+        const userInDbData = getResultProperties<typeof userData>(
             userInDbResult,
             'n',
         )[0];
@@ -442,7 +438,7 @@ describe('createOne', () => {
             `MATCH (n:Order {id: $id}) RETURN n`,
             { id: orderToAssociateData.id },
         );
-        const orderInDbData = getResultArray<typeof orderToAssociateData>(
+        const orderInDbData = getResultProperties<typeof orderToAssociateData>(
             orderInDbResult,
             'n',
         )[0];
@@ -454,7 +450,7 @@ describe('createOne', () => {
             `MATCH (o:Order {id: $orderId})<-[r:CREATES]-(u:User {id: $userId}) RETURN r`,
             { orderId: orderToAssociateData.id, userId: user.id },
         );
-        const relationshipFromAssociationData = getResultArray<{
+        const relationshipFromAssociationData = getResultProperties<{
             rating: number;
         }>(relationshipFromAssociationResult, 'r')[0];
         expect(relationshipFromAssociationData).toBeTruthy();
@@ -464,7 +460,7 @@ describe('createOne', () => {
             `MATCH (o:Order {id: $orderId})<-[r:CREATES]-(u:User {id: $userId}) RETURN r`,
             { orderId: existingOrder.id, userId: user.id },
         );
-        const relationshipFromExistingData = getResultArray<{
+        const relationshipFromExistingData = getResultProperties<{
             rating: number;
         }>(relationshipFromExistingResult, 'r')[0];
         expect(relationshipFromExistingData).toBeTruthy();

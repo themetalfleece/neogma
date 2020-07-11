@@ -13,19 +13,10 @@ import {
     Where,
     WhereParamsByIdentifierI,
     WhereParamsI,
+    getResultProperties,
+    getNodesDeleted,
 } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
-
-export const getResultArray = <T>(
-    result: QueryResult,
-    identifier: string,
-): T[] => {
-    return result.records.map((v) => v.get(identifier).properties);
-};
-
-export const getNodesDeleted = (result: QueryResult): number => {
-    return result.summary.counters.updates().nodesDeleted;
-};
 
 /** the type of the properties to be added to a relationship */
 export type RelationshipPropertiesI = Record<string, Neo4jSupportedTypes>;
@@ -956,7 +947,7 @@ export const ModelFactory = <
                 session: params?.session,
             });
             const nodeProperties = params?.return
-                ? getResultArray<Properties>(res, identifier)
+                ? getResultProperties<Properties>(res, identifier)
                 : [];
 
             const instances = nodeProperties.map((v) =>

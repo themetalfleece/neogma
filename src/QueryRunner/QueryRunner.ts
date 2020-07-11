@@ -4,6 +4,17 @@ import { getRunnable } from '../Sessions';
 import { BindParam } from './BindParam';
 import { AnyWhereI, Where } from './Where';
 
+export const getResultProperties = <T>(
+    result: QueryResult,
+    identifier: string,
+): T[] => {
+    return result.records.map((v) => v.get(identifier).properties);
+};
+
+export const getNodesDeleted = (result: QueryResult): number => {
+    return result.summary.counters.updates().nodesDeleted;
+};
+
 /** the types that Neo4j supports (not including an array of them) */
 export type Neo4jSingleTypes = string | number | boolean | Date;
 /** the types that Neo4j supports (including an array of them) */
