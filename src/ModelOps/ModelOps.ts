@@ -110,13 +110,14 @@ export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = Array<{
     /** the direction of the relationship */
     direction: 'out' | 'in' | 'none';
     alias: keyof RelatedNodesToAssociateI;
-    properties: Record<
-        string,
-        {
-            property: string; // TODO property is keyof...
-            schema: any;
-        }
-    >;
+    properties: {
+        [key in keyof RelatedNodesToAssociateI[keyof RelatedNodesToAssociateI]['RelationshipProperties']]?: {
+            property: keyof NeogmaModel<any, any, any, any>; // TODO property is keyof the Model
+            schema:
+                | Revalidator.ISchema<AnyObject>
+                | Revalidator.JSONSchema<AnyObject>;
+        };
+    };
 }>;
 
 /** parameters when creating nodes */
