@@ -165,12 +165,11 @@ describe('ModelFactory', () => {
                         required: true,
                     },
                 },
-                relationships: [
-                    {
+                relationships: {
+                    Orders: {
                         model: Orders,
                         direction: 'out',
                         name: 'CREATES',
-                        alias: 'Orders',
                         properties: {
                             Rating: {
                                 property: 'rating',
@@ -180,7 +179,7 @@ describe('ModelFactory', () => {
                             },
                         },
                     },
-                ],
+                },
                 primaryKeyField: 'id',
                 statics: {
                     foo: () => {
@@ -368,12 +367,11 @@ describe('createOne', () => {
                         required: true,
                     },
                 },
-                relationships: [
-                    {
+                relationships: {
+                    Orders: {
                         model: Orders,
                         direction: 'out',
                         name: 'CREATES',
-                        alias: 'Orders',
                         properties: {
                             Rating: {
                                 property: 'rating',
@@ -385,7 +383,7 @@ describe('createOne', () => {
                             },
                         },
                     },
-                ],
+                },
                 primaryKeyField: 'id',
                 statics: {},
                 methods: {},
@@ -514,9 +512,8 @@ describe('createOne', () => {
                         required: true,
                     },
                 },
-                relationships: [
-                    {
-                        alias: 'Parent',
+                relationships: {
+                    Parent: {
                         direction: 'out',
                         model: 'self',
                         name: 'HAS',
@@ -529,7 +526,7 @@ describe('createOne', () => {
                             },
                         },
                     },
-                ],
+                },
                 primaryKeyField: 'id',
                 statics: {},
                 methods: {},

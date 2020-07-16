@@ -95,21 +95,27 @@ type RelationshipTypePropertyForCreateI<
 };
 
 /** the type for the Relationship configuration of a Model */
-export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = Array<{
-    /** the related model. It could be the object of the model, or "self" for this model */
-    model: NeogmaModel<any, any, any, any> | 'self'; // we can't use the actual NeogmaModel type due to circular references
-    /** the name of the relationship */
-    name: CreateRelationshipParamsI['relationship']['name'];
-    /** the direction of the relationship */
-    direction: 'out' | 'in' | 'none';
-    alias: keyof RelatedNodesToAssociateI;
-    properties: {
-        [key in keyof RelatedNodesToAssociateI[keyof RelatedNodesToAssociateI]['RelationshipProperties']]?: {
-            property: Extract<keyof NeogmaModel<any, any, any, any>, string>; // TODO property is keyof the Model
-            schema: Revalidator.ISchema<AnyObject>;
+export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
+    /** the alias of the relationship definitions is the key */
+    [alias in keyof RelatedNodesToAssociateI]: {
+        /** the related model. It could be the object of the model, or "self" for this model */
+        model: NeogmaModel<any, any, any, any> | 'self';
+        /** the name of the relationship */
+        name: CreateRelationshipParamsI['relationship']['name'];
+        /** the direction of the relationship */
+        direction: 'out' | 'in' | 'none';
+        /** relationship properties */
+        properties?: {
+            /** the alias of the relationship property is the key */
+            [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['RelationshipProperties']]?: {
+                /** the actual property to be used on the relationship */
+                property: string;
+                /** validation for the property */
+                schema: Revalidator.ISchema<AnyObject>;
+            };
         };
     };
-}>;
+};
 
 /** parameters when creating nodes */
 type CreateDataParamsI = GenericConfiguration & {
@@ -330,26 +336,18 @@ export const ModelFactory = <
     } = parameters;
     const statics = parameters.statics || {};
     const methods = parameters.methods || {};
-    const relationships = parameters.relationships || [];
+    const relationships = parameters.relationships;
     /* helper name for queries */
     const modelName = (modelLabel instanceof Array
         ? modelLabel
         : [modelLabel]
     ).join('');
     const schemaKeys = new Set(Object.keys(schema));
-    const relationshipAliases = relationships.map(({ alias }) => alias);
+    const relationshipAliases: Array<
+        keyof RelatedNodesToAssociateI
+    > = Object.keys(relationships || {});
 
     const queryRunner = neogma.queryRunner;
-
-    // enforce unique relationship aliases
-    const allRelationshipAlias = relationships.map(({ alias }) => alias);
-    if (allRelationshipAlias.length !== new Set(allRelationshipAlias).size) {
-        throw new NeogmaConstraintError(`Relationship aliases must be unique`, {
-            description: relationships,
-            actual: allRelationshipAlias,
-            expected: [...new Set(allRelationshipAlias)],
-        });
-    }
 
     type CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>;
 
@@ -577,7 +575,7 @@ export const ModelFactory = <
                     /** the where params to use */
                     where: WhereParamsI;
                     /** relatinship information */
-                    relationship: Omit<RelationshipsI<any>[0], 'alias'>;
+                    relationship: RelationshipsI<any>[0];
                     /** relationship properties */
                     properties?: AnyObject;
                     /** merge the relationship instead of creating it */
@@ -595,7 +593,7 @@ export const ModelFactory = <
                 mergeProperties?: boolean,
                 parentNode?: {
                     identifier: string;
-                    relationship: Omit<RelationshipsI<any>[0], 'alias'>;
+                    relationship: RelationshipsI<any>[0];
                     /** whether to merge the relationship instead of creating it */
                     mergeRelationship?: boolean;
                 },
@@ -671,11 +669,11 @@ export const ModelFactory = <
 
                         /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
                         const getRelationshipProperties = (
-                            relationship: Omit<RelationshipsI<any>[0], 'alias'>,
+                            relationship: RelationshipsI<any>[0],
                             dataToUse,
                         ) => {
                             const keysToUse = Object.keys(
-                                relationship.properties,
+                                relationship.properties || {},
                             );
                             /** properties to be used in the relationship */
                             const relationshipProperties = {};
@@ -937,9 +935,15 @@ export const ModelFactory = <
         public static getRelationshipByAlias = (
             alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
         ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
-            const relationship = relationships.find((r) => r.alias === alias);
+            if (!relationships) {
+                throw new NeogmaNotFoundError(
+                    `Relationship definitions can't be found for the model ${modelLabel}`,
+                );
+            }
 
-            if (!alias) {
+            const relationship = relationships[alias];
+
+            if (!relationship) {
                 throw new NeogmaNotFoundError(
                     `The relationship of the alias ${alias} can't be found for the model ${modelLabel}`,
                 );
@@ -949,7 +953,6 @@ export const ModelFactory = <
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
-                alias,
                 properties: relationship.properties,
             };
         };
@@ -988,15 +991,7 @@ export const ModelFactory = <
             data: Parameters<ModelStaticsI['updateRelationship']>[0],
             params: Parameters<ModelStaticsI['updateRelationship']>[1],
         ): ReturnType<ModelStaticsI['updateRelationship']> {
-            const relationship = relationships.find(
-                (r) => r.alias === params.alias,
-            );
-
-            if (!relationship) {
-                throw new NeogmaNotFoundError(
-                    `The relationship of the alias ${params.alias} can't be found for the model ${modelLabel}`,
-                );
-            }
+            const relationship = Model.getRelationshipByAlias(params.alias);
 
             const identifiers = {
                 source: 'source',
@@ -1211,15 +1206,7 @@ export const ModelFactory = <
         public static async relateTo(
             params: Parameters<ModelStaticsI['relateTo']>[0],
         ): ReturnType<ModelStaticsI['relateTo']> {
-            const relationship = relationships.find(
-                (r) => r.alias === params.alias,
-            );
-
-            if (!relationship) {
-                throw new NeogmaNotFoundError(
-                    `The relationship of the alias ${params.alias} can't be found for the model ${modelLabel}`,
-                );
-            }
+            const relationship = Model.getRelationshipByAlias(params.alias);
 
             const where: WhereParamsByIdentifierI = {};
             if (params.where) {
