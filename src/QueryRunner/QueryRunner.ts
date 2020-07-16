@@ -1,4 +1,17 @@
-import { Driver, QueryResult, Session, Transaction } from 'neo4j-driver/types';
+import {
+    Driver,
+    QueryResult,
+    Session,
+    Transaction,
+    DateTime as Neo4jDateTime,
+    Date as Neo4jDate,
+    Point as Neo4jPoint,
+    Time as Neo4jTime,
+    Integer as Neo4jInteger,
+    LocalDateTime as Neo4jLocalDateTime,
+    LocalTime as Neo4jLocalTime,
+    Duration as Neo4jDuration,
+} from 'neo4j-driver/types';
 import * as uuid from 'uuid';
 import { getRunnable } from '../Sessions';
 import { BindParam } from './BindParam';
@@ -17,9 +30,20 @@ export const getNodesDeleted = (result: QueryResult): number => {
     return result.summary.counters.updates().nodesDeleted;
 };
 
-/** the types that Neo4j supports (not including an array of them) */
-export type Neo4jSingleTypes = string | number | boolean | Date;
-/** the types that Neo4j supports (including an array of them) */
+/** the single types that Neo4j supports (not including an array of them) */
+export type Neo4jSingleTypes =
+    | number
+    | Neo4jInteger
+    | string
+    | boolean
+    | Neo4jPoint
+    | Neo4jDate
+    | Neo4jTime
+    | Neo4jLocalTime
+    | Neo4jDateTime
+    | Neo4jLocalDateTime
+    | Neo4jDuration;
+/** all the types that Neo4j supports (single or array) */
 export type Neo4jSupportedTypes = Neo4jSingleTypes | Neo4jSingleTypes[];
 
 /** can run queries, is either a Session or a Transaction */

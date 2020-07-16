@@ -134,7 +134,7 @@ type CreateDataI<
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
-    Properties extends AnyObject,
+    Properties extends Record<string, Neo4jSupportedTypes>,
     RelatedNodesToAssociateI extends AnyObject,
     MethodsI extends AnyObject = AnyObject,
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
@@ -279,7 +279,7 @@ export type NeogmaInstance<
 
 /** the type of a Neogma Model */
 export type NeogmaModel<
-    Properties extends AnyObject,
+    Properties extends Record<string, Neo4jSupportedTypes>,
     RelatedNodesToAssociateI extends AnyObject,
     MethodsI extends AnyObject = AnyObject,
     StaticsI extends AnyObject = AnyObject
@@ -301,7 +301,7 @@ export type FindManyIncludeI<AliasKeys> = {
  */
 export const ModelFactory = <
     /** the base Properties of the node */
-    Properties extends AnyObject,
+    Properties extends Record<string, Neo4jSupportedTypes>,
     /** related nodes to associate. Label-ModelRelatedNodesI pairs */
     RelatedNodesToAssociateI extends AnyObject,
     /** interface for the statics of the model */
@@ -982,7 +982,13 @@ export const ModelFactory = <
                 : [];
 
             const instances = nodeProperties.map((v) =>
-                Model.__build(v, { status: 'existing' }),
+                Model.__build(
+                    (v as unknown) as CreateDataI<
+                        Properties,
+                        RelatedNodesToAssociateI
+                    >,
+                    { status: 'existing' },
+                ),
             );
             return [instances, res] as [Instance[], QueryResult];
         }
@@ -1184,7 +1190,13 @@ export const ModelFactory = <
             const instances = res.records.map((record) => {
                 const node = record.get(rootIdentifier);
                 const data: Properties = node.properties;
-                const instance = Model.__build(data, { status: 'existing' });
+                const instance = Model.__build(
+                    (data as unknown) as CreateDataI<
+                        Properties,
+                        RelatedNodesToAssociateI
+                    >,
+                    { status: 'existing' },
+                );
                 instance.__existsInDatabase = true;
                 return instance;
             });
