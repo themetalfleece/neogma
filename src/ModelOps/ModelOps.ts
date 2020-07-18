@@ -975,6 +975,7 @@ export const ModelFactory = <
                 data,
                 where,
                 identifier,
+                return: params.return,
                 session: params?.session,
             });
             const nodeProperties = params?.return
