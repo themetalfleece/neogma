@@ -165,6 +165,9 @@ interface NeogmaModelStaticsI<
     getRelationshipByAlias: (
         alias: keyof RelatedNodesToAssociateI,
     ) => RelationshipsI<any>[0];
+    reverseRelationshipByAlias: (
+        alias: keyof RelatedNodesToAssociateI,
+    ) => RelationshipsI<any>[0];
     update: (
         data: Partial<Properties>,
         params?: GenericConfiguration & {
@@ -976,6 +979,34 @@ export const ModelFactory = <
             return {
                 model: relationship.model,
                 direction: relationship.direction,
+                name: relationship.name,
+                properties: relationship.properties,
+            };
+        };
+
+        /**
+         * reverses the configuration of a relationship, so it can be easily duplicated when defining another Model.
+         */
+        public static reverseRelationshipByAlias = (
+            alias: Parameters<ModelStaticsI['reverseRelationshipByAlias']>[0],
+        ): ReturnType<ModelStaticsI['reverseRelationshipByAlias']> => {
+            const relationship = Model.getRelationshipByAlias(alias);
+
+            const reverseDirection = (
+                d: typeof relationship['direction'],
+            ): typeof relationship['direction'] => {
+                if (d === 'in') {
+                    return 'out';
+                }
+                if (d === 'out') {
+                    return 'in';
+                }
+                return 'none';
+            };
+
+            return {
+                model: Model,
+                direction: reverseDirection(relationship.direction),
                 name: relationship.name,
                 properties: relationship.properties,
             };
