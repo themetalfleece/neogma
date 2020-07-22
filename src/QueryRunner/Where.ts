@@ -1,13 +1,19 @@
 import { BindParam } from './BindParam';
 import { Neo4jSingleTypes, Neo4jSupportedTypes } from './QueryRunner';
 
+/** symbols for Where operations */
+const OpIn: unique symbol = Symbol('in');
+export const Op = {
+    in: OpIn,
+} as const;
+
 /** the type to be used for "in" */
 interface WhereInI {
-    $in: Neo4jSingleTypes[];
+    [Op.in]: Neo4jSingleTypes[];
 }
 
 const isWhereIn = (value: WhereValuesI): value is WhereInI => {
-    return (value as any).$in;
+    return (value as any)[Op.in];
 };
 
 /** the type for the accepted values for an attribute */
@@ -106,7 +112,7 @@ export class Where {
                     this.addAnd(
                         `${nodeIdentifier}.${key} IN ${this.getNameAndAddToParams(
                             key,
-                            value.$in,
+                            value[Op.in],
                         )}`,
                     );
                 }
@@ -146,12 +152,12 @@ export class Where {
     }
 
     /**
-     * if the value is not an array, it gets returned as is. If it's an array, a "$in" object ir returned for that value
+     * if the value is not an array, it gets returned as is. If it's an array, a "[Op.in]" object is returned for that value
      */
     public static ensureIn(value: WhereValuesI): WhereValuesI {
         return value instanceof Array
             ? {
-                  $in: value,
+                  [Op.in]: value,
               }
             : value;
     }
