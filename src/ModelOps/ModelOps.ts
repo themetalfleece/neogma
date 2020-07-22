@@ -740,7 +740,10 @@ export const ModelFactory = <
                                     parentNode.mergeRelationship,
                                 )} (${parentIdentifier})${directionAndNameString}(${identifier})
                             `);
-                            if (relationshipProperties) {
+                            if (
+                                relationshipProperties &&
+                                Object.keys(relationshipProperties).length > 0
+                            ) {
                                 /* create the relationship properties */
                                 const relationshipPropertiesParam = bindParam.getUniqueNameAndAdd(
                                     'relationshipProperty',
@@ -898,7 +901,10 @@ export const ModelFactory = <
                             },
                         )}(${targetNodeIdentifier})`,
                     );
-                    if (relateParameters.properties) {
+                    if (
+                        relateParameters.properties &&
+                        Object.keys(relateParameters.properties).length > 0
+                    ) {
                         /* create the relationship properties */
                         const relationshipPropertiesParam = bindParam.getUniqueNameAndAdd(
                             'relationshipProperty',
