@@ -271,6 +271,8 @@ describe('createOne', () => {
         type OrderAttributesI = {
             name: string;
             id: string;
+            optionalWillBeSet?: string;
+            optionalWillNotBeSet?: string;
         };
         interface OrdersRelatedNodesI {}
 
@@ -302,6 +304,14 @@ describe('createOne', () => {
                         type: 'string',
                         required: true,
                     },
+                    optionalWillBeSet: {
+                        type: 'string',
+                        required: false,
+                },
+                    optionalWillNotBeSet: {
+                        type: 'string',
+                        required: false,
+                    },
                 },
                 relationships: [],
                 primaryKeyField: 'id',
@@ -314,6 +324,7 @@ describe('createOne', () => {
         const orderData: OrderAttributesI = {
             id: Math.random().toString(),
             name: 'My Order',
+            optionalWillBeSet: 'set',
         };
 
         const order = await Orders.createOne(orderData);

@@ -404,7 +404,9 @@ export const ModelFactory = <
         ): ReturnType<InstanceMethodsI['getDataValues']> {
             const data: Properties = Object.keys(schema).reduce(
                 (acc, key: keyof Properties) => {
+                    if (this[key] !== undefined) {
                     acc[key] = this[key];
+                    }
                     return acc;
                 },
                 {} as Properties,
