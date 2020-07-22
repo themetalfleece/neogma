@@ -206,13 +206,13 @@ interface NeogmaModelStaticsI<
             order?: Array<[keyof Properties, 'ASC' | 'DESC']>;
         },
     ) => Promise<Instance>;
-    relateTo: (params: {
-        alias: keyof RelatedNodesToAssociateI;
+    relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
+        alias: Alias;
         where: {
             source: WhereParamsI;
             target: WhereParamsI;
         };
-        properties?: AnyObject;
+        properties?: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
         /** throws an error if the number of created relationships don't equal to this number */
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
@@ -260,10 +260,10 @@ interface NeogmaInstanceMethodsI<
             detach?: boolean;
         },
     ) => Promise<number>;
-    relateTo: (params: {
-        alias: keyof RelatedNodesToAssociateI;
+    relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
+        alias: Alias;
         where: WhereParamsI;
-        properties?: AnyObject;
+        properties?: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
         /** throws an error if the number of created relationships don't equal to this number */
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
@@ -1243,7 +1243,9 @@ export const ModelFactory = <
         public static async relateTo(
             params: Parameters<ModelStaticsI['relateTo']>[0],
         ): ReturnType<ModelStaticsI['relateTo']> {
-            const relationship = Model.getRelationshipByAlias(params.alias);
+            const relationship = Model.getRelationshipByAlias(
+                params.alias as keyof RelatedNodesToAssociateI,
+            );
 
             const where: WhereParamsByIdentifierI = {};
             if (params.where) {
