@@ -135,7 +135,7 @@ type CreateDataI<
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
     Properties extends Record<string, Neo4jSupportedTypes>,
-    RelatedNodesToAssociateI extends AnyObject,
+    RelatedNodesToAssociateI extends AnyObject = AnyObject,
     MethodsI extends AnyObject = AnyObject,
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
@@ -911,8 +911,8 @@ export const ModelFactory = <
                             relateParameters.properties,
                         );
                         relationshipByWhereParts.push(`
-                                SET ${relationshipIdentifier} += $${relationshipPropertiesParam}
-                            `);
+                            SET ${relationshipIdentifier} += $${relationshipPropertiesParam}
+                        `);
                     }
 
                     // remove this relateParameters from the array
@@ -1247,7 +1247,7 @@ export const ModelFactory = <
                 relationship: {
                     name: relationship.name,
                     direction: relationship.direction,
-                    properties: {},
+                    properties: params.properties,
                 },
                 where,
                 session: params.session,
