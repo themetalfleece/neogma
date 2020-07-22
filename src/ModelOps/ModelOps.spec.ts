@@ -810,7 +810,7 @@ describe('addRelationships', () => {
         });
 
         // create a user node and associate it with both associations
-        await Users.createOne({
+        const userWithOrdersData: Parameters<typeof Users['createOne']>[0] = {
             id: Math.random().toString(),
             name: 'User',
             MoreOrders: {
@@ -831,7 +831,72 @@ describe('addRelationships', () => {
                     },
                 ],
             },
-        });
+        };
+        await Users.createOne(userWithOrdersData);
+
+        const userInDbResult = await neogma.queryRunner.run(
+            `MATCH (n:User {id: $id}) RETURN n`,
+            { id: userWithOrdersData.id },
+        );
+        const userInDbData = getResultProperties<typeof userWithOrdersData>(
+            userInDbResult,
+            'n',
+        )[0];
+        expect(userInDbData).toBeTruthy();
+        expect(userInDbData.id).toEqual(userWithOrdersData.id);
+        expect(userInDbData.name).toEqual(userWithOrdersData.name);
+
+        const orderData = userWithOrdersData.Orders.properties[0];
+        const orderInDbResult = await neogma.queryRunner.run(
+            `MATCH (n:Order {id: $id}) RETURN n`,
+            { id: orderData.id },
+        );
+        const orderInDbData = getResultProperties<typeof orderData>(
+            orderInDbResult,
+            'n',
+        )[0];
+        expect(orderInDbData).toBeTruthy();
+        expect(orderInDbData.id).toEqual(orderData.id);
+        expect(orderInDbData.name).toEqual(orderData.name);
+
+        const moreOrderData = userWithOrdersData.MoreOrders.properties[0];
+        const moreOrderInDbResult = await neogma.queryRunner.run(
+            `MATCH (n:Order {id: $id}) RETURN n`,
+            { id: moreOrderData.id },
+        );
+        const moreOrderInDbData = getResultProperties<typeof moreOrderData>(
+            moreOrderInDbResult,
+            'n',
+        )[0];
+        expect(moreOrderInDbData).toBeTruthy();
+        expect(moreOrderInDbData.id).toEqual(moreOrderData.id);
+        expect(moreOrderInDbData.name).toEqual(moreOrderData.name);
+
+        const userOrderRelationshipResult = await neogma.queryRunner.run(
+            `MATCH (o:Order {id: $orderId})<-[r:CREATES]-(u:User {id: $userId}) RETURN r`,
+            {
+                orderId: orderData.id,
+                userId: userWithOrdersData.id,
+            },
+        );
+        const userOrderRelationshipData = getResultProperties<{
+            rating: number;
+        }>(userOrderRelationshipResult, 'r')[0];
+        expect(userOrderRelationshipData).toBeTruthy();
+        expect(userOrderRelationshipData.rating).toBe(4);
+
+        const userModeOrderRelationshipResult = await neogma.queryRunner.run(
+            `MATCH (o:Order {id: $orderId})-[r:MORE]->(u:User {id: $userId}) RETURN r`,
+            {
+                orderId: moreOrderData.id,
+                userId: userWithOrdersData.id,
+            },
+        );
+        const userModeOrderRelationshipData = getResultProperties<{
+            more: boolean;
+        }>(userModeOrderRelationshipResult, 'r')[0];
+        expect(userModeOrderRelationshipData).toBeTruthy();
+        expect(userModeOrderRelationshipData.more).toBe(true);
     });
 });
 
