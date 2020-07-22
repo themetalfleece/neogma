@@ -17,6 +17,7 @@ import {
     getNodesDeleted,
 } from '../QueryRunner';
 import { BindParam } from '../QueryRunner/BindParam';
+import clone from 'clone';
 
 type AnyObject = Record<string, any>;
 
@@ -140,6 +141,9 @@ interface NeogmaModelStaticsI<
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
 > {
+    addRelationships: (
+        relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
+    ) => void;
     getLabel: () => string | string[];
     getPrimaryKeyField: () => string;
     getModelName: () => string;
@@ -324,8 +328,8 @@ export const ModelFactory = <
         methods?: MethodsI;
         /** the id key of this model. Is required in order to perform specific instance methods */
         primaryKeyField?: Extract<keyof Properties, string>;
-        /** relationships with other models or itself */
-        relationships?: RelationshipsI<RelatedNodesToAssociateI>;
+        /** relationships with other models or itself. Alternatively, relationships can be added using Model.addRelationships */
+        relationships?: Partial<RelationshipsI<RelatedNodesToAssociateI>>;
     },
     neogma: Neogma,
 ): NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, StaticsI> => {
@@ -336,16 +340,12 @@ export const ModelFactory = <
     } = parameters;
     const statics = parameters.statics || {};
     const methods = parameters.methods || {};
-    const relationships = parameters.relationships;
     /* helper name for queries */
     const modelName = (modelLabel instanceof Array
         ? modelLabel
         : [modelLabel]
     ).join('');
     const schemaKeys = new Set(Object.keys(schema));
-    const relationshipAliases: Array<
-        keyof RelatedNodesToAssociateI
-    > = Object.keys(relationships || {});
 
     const queryRunner = neogma.queryRunner;
 
@@ -367,6 +367,7 @@ export const ModelFactory = <
         MethodsI
     >;
 
+    const _relationships = clone(parameters.relationships);
     const Model = class ModelClass implements InstanceMethodsI {
         /** whether this instance already exists in the database or it new */
         public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
@@ -375,6 +376,21 @@ export const ModelFactory = <
         public dataValues: InstanceMethodsI['dataValues'];
         /** the changed properties of this instance, to be taken into account when saving it */
         public changed: InstanceMethodsI['changed'];
+
+        private static relationships = _relationships;
+        private static relationshipAliases: Array<
+            keyof RelatedNodesToAssociateI
+        > = Object.keys(_relationships || {});
+
+        /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
+        public static addRelationships(
+            relationships: Parameters<ModelStaticsI['addRelationships']>[0],
+        ): ReturnType<ModelStaticsI['addRelationships']> {
+            for (const key in relationships) {
+                Model.relationships[key] = relationships[key];
+            }
+            Model.relationshipAliases = Object.keys(Model.relationships);
+        }
 
         /**
          * @returns {String} - the label of this Model
@@ -405,7 +421,7 @@ export const ModelFactory = <
             const data: Properties = Object.keys(schema).reduce(
                 (acc, key: keyof Properties) => {
                     if (this[key] !== undefined) {
-                    acc[key] = this[key];
+                        acc[key] = this[key];
                     }
                     return acc;
                 },
@@ -446,7 +462,7 @@ export const ModelFactory = <
             data: Parameters<ModelStaticsI['__build']>[0],
             { status }: Parameters<ModelStaticsI['__build']>[1],
         ): ReturnType<ModelStaticsI['__build']> {
-            const instance = new Model() as Instance &
+            const instance = (new Model() as unknown) as Instance &
                 Partial<RelatedNodesToAssociateI>;
 
             instance.__existsInDatabase = status === 'existing';
@@ -456,7 +472,7 @@ export const ModelFactory = <
 
             for (const _key of [
                 ...Object.keys(schema),
-                ...Object.values(relationshipAliases),
+                ...Object.values(Model.relationshipAliases),
             ]) {
                 const key = _key as keyof typeof schema;
 
@@ -640,7 +656,7 @@ export const ModelFactory = <
                             any
                         >;
                     } = {};
-                    for (const alias of relationshipAliases) {
+                    for (const alias of Model.relationshipAliases) {
                         if (instance[alias]) {
                             relatedNodesToAssociate[alias] = instance[alias];
                         }
@@ -943,13 +959,13 @@ export const ModelFactory = <
         public static getRelationshipByAlias = (
             alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
         ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
-            if (!relationships) {
+            if (!Model.relationships) {
                 throw new NeogmaNotFoundError(
                     `Relationship definitions can't be found for the model ${modelLabel}`,
                 );
             }
 
-            const relationship = relationships[alias];
+            const relationship = Model.relationships[alias];
 
             if (!relationship) {
                 throw new NeogmaNotFoundError(
