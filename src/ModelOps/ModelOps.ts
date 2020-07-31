@@ -229,7 +229,7 @@ interface NeogmaModelStaticsI<
     ) => Promise<number>;
     getLabelFromRelationshipModel: (
         relationshipModel: NeogmaModel<any, any, any, any> | 'self',
-    ) => string | string[];
+    ) => string;
     getRelationshipModel: (
         relationshipModel: NeogmaModel<any, any, any, any> | 'self',
     ) => NeogmaModel<any, any, any, any>;
@@ -637,9 +637,7 @@ export const ModelFactory = <
                         'node',
                         null,
                     );
-                    const label = QueryRunner.getNormalizedLabels(
-                        model.getLabel(),
-                    );
+                    const label = model.getLabel();
 
                     const instance = (createData instanceof (model as any)
                         ? createData
@@ -879,7 +877,7 @@ export const ModelFactory = <
                 statementParts.push(`
                     CREATE (${QueryRunner.getIdentifierWithLabel(
                         bulkCreateIdentifier,
-                        QueryRunner.getNormalizedLabels(modelLabel),
+                        this.getLabel(),
                     )})
                     SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
                 `);
@@ -901,9 +899,7 @@ export const ModelFactory = <
                     const targetNodeModel = Model.getRelationshipModel(
                         relationship.model,
                     );
-                    const targetNodeLabel = QueryRunner.getNormalizedLabels(
-                        targetNodeModel.getLabel(),
-                    );
+                    const targetNodeLabel = targetNodeModel.getLabel();
                     const targetNodeIdentifier = identifiers.getUniqueNameAndAdd(
                         'targetNode',
                         null,
@@ -976,7 +972,7 @@ export const ModelFactory = <
         ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
             if (!Model.relationships) {
                 throw new NeogmaNotFoundError(
-                    `Relationship definitions can't be found for the model ${modelLabel}`,
+                    `Relationship definitions can't be found for the model ${modelName}`,
                 );
             }
 
@@ -984,7 +980,7 @@ export const ModelFactory = <
 
             if (!relationship) {
                 throw new NeogmaNotFoundError(
-                    `The relationship of the alias ${alias} can't be found for the model ${modelLabel}`,
+                    `The relationship of the alias ${alias} can't be found for the model ${modelName}`,
                 );
             }
 
@@ -1028,7 +1024,7 @@ export const ModelFactory = <
             data: Parameters<ModelStaticsI['update']>[0],
             params?: Parameters<ModelStaticsI['update']>[1],
         ): ReturnType<ModelStaticsI['update']> {
-            const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
+            const label = Model.getLabel();
             const identifier = 'node';
 
             const where = params?.where
@@ -1038,7 +1034,7 @@ export const ModelFactory = <
                 : null;
 
             const res = await queryRunner.update({
-                label: normalizedLabel,
+                label,
                 data,
                 where,
                 identifier,
@@ -1073,10 +1069,8 @@ export const ModelFactory = <
                 relationship: 'r',
             };
             const labels = {
-                source: QueryRunner.getNormalizedLabels(modelLabel),
-                target: QueryRunner.getNormalizedLabels(
-                    Model.getLabelFromRelationshipModel(relationship.model),
-                ),
+                source: Model.getLabel(),
+                target: relationship.model.getLabel(),
             };
 
             const where: Where = new Where({});
@@ -1161,11 +1155,11 @@ export const ModelFactory = <
             configuration?: Parameters<ModelStaticsI['delete']>[0],
         ): ReturnType<ModelStaticsI['delete']> {
             const { detach, where } = configuration;
-            const normalizedLabel = QueryRunner.getNormalizedLabels(modelLabel);
+            const label = Model.getLabel();
 
             const identifier = 'node';
             const res = await queryRunner.delete({
-                label: normalizedLabel,
+                label,
                 where: {
                     [identifier]: where,
                 },
@@ -1194,9 +1188,7 @@ export const ModelFactory = <
         public static async findMany(
             params?: Parameters<ModelStaticsI['findMany']>[0],
         ): ReturnType<ModelStaticsI['findMany']> {
-            const normalizedLabel = QueryRunner.getNormalizedLabels(
-                this.getLabel(),
-            );
+            const label = this.getLabel();
 
             const rootIdentifier = modelName;
 
@@ -1214,7 +1206,7 @@ export const ModelFactory = <
 
             /* match the nodes of this Model */
             statementParts.push(`
-                    MATCH (${rootIdentifier}:${normalizedLabel})
+                    MATCH (${rootIdentifier}:${label})
                 `);
             if (rootWhere) {
                 statementParts.push(`
@@ -1300,12 +1292,10 @@ export const ModelFactory = <
 
             const res = await queryRunner.createRelationship({
                 source: {
-                    label: QueryRunner.getNormalizedLabels(modelLabel),
+                    label: this.getLabel(),
                 },
                 target: {
-                    label: QueryRunner.getNormalizedLabels(
-                        Model.getLabelFromRelationshipModel(relationship.model),
-                    ),
+                    label: relationship.model.getLabel(),
                 },
                 relationship: {
                     name: relationship.name,
@@ -1390,7 +1380,7 @@ export const ModelFactory = <
             >[0],
         ): ReturnType<ModelStaticsI['getLabelFromRelationshipModel']> {
             return relationshipModel === 'self'
-                ? modelLabel
+                ? Model.getLabel()
                 : relationshipModel.getLabel();
         }
 
