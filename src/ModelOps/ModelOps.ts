@@ -326,9 +326,9 @@ export const ModelFactory = <
         /** the label of the nodes */
         label: string | string[];
         /** statics of the Model */
-        statics?: StaticsI;
+        statics?: Partial<StaticsI>;
         /** method of the Instance */
-        methods?: MethodsI;
+        methods?: Partial<MethodsI>;
         /** the id key of this model. Is required in order to perform specific instance methods */
         primaryKeyField?: Extract<keyof Properties, string>;
         /** relationships with other models or itself. Alternatively, relationships can be added using Model.addRelationships */
