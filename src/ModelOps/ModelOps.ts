@@ -144,7 +144,8 @@ interface NeogmaModelStaticsI<
     addRelationships: (
         relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
     ) => void;
-    getLabel: () => string | string[];
+    getLabel: () => string;
+    getRawLabels: () => string | string[];
     getPrimaryKeyField: () => string;
     getModelName: () => string;
     __build: (
@@ -396,9 +397,20 @@ export const ModelFactory = <
         }
 
         /**
-         * @returns {String} - the label of this Model
+         * @returns {String} - the normalized label of this Model
          */
-        public static getLabel(): ReturnType<ModelStaticsI['getLabel']> {
+        public static getLabel(
+            operation?: Parameters<typeof QueryRunner.getNormalizedLabels>[1],
+        ): ReturnType<ModelStaticsI['getLabel']> {
+            return QueryRunner.getNormalizedLabels(modelLabel, operation);
+        }
+
+        /**
+         * @returns {String} - the label or labels of this Model as given in its definition
+         */
+        public static getRawLabels(): ReturnType<
+            ModelStaticsI['getRawLabels']
+        > {
             return modelLabel;
         }
 
