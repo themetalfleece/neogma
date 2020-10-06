@@ -209,7 +209,7 @@ interface NeogmaModelStaticsI<
             where?: WhereParamsI;
             order?: Array<[keyof Properties, 'ASC' | 'DESC']>;
         },
-    ) => Promise<Instance>;
+    ) => Promise<Instance | null>;
     relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
         alias: Alias;
         where: {
@@ -1271,7 +1271,7 @@ export const ModelFactory = <
                 ...params,
                 limit: 1,
             });
-            return instances[0];
+            return instances?.[0] || null;
         }
 
         /** creates a relationship by using the configuration specified in "relationships" from the given alias */
