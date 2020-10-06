@@ -34,6 +34,7 @@ export const getNodesDeleted = (result: QueryResult): number => {
 export type Neo4jSingleTypes =
     | number
     | Neo4jInteger
+    | null
     | string
     | boolean
     | Neo4jPoint

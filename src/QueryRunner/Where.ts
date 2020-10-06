@@ -1,5 +1,6 @@
 import { BindParam } from './BindParam';
 import { Neo4jSingleTypes, Neo4jSupportedTypes } from './QueryRunner';
+import { neo4jDriver } from '..';
 
 /** symbols for Where operations */
 const OpIn: unique symbol = Symbol('in');
@@ -13,7 +14,36 @@ interface WhereInI {
 }
 
 const isWhereIn = (value: WhereValuesI): value is WhereInI => {
-    return (value as any)[Op.in];
+    return value?.[Op.in];
+};
+
+const isNeo4jSupportedTypes = (
+    value: WhereValuesI,
+): value is Neo4jSupportedTypes => {
+    const isSupportedSingleType = (value: WhereValuesI): boolean => {
+        return (
+            typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'boolean' ||
+            value === null ||
+            neo4jDriver.isInt(value) ||
+            neo4jDriver.isPoint(value) ||
+            neo4jDriver.isDate(value) ||
+            neo4jDriver.isTime(value) ||
+            neo4jDriver.isLocalTime(value) ||
+            neo4jDriver.isDateTime(value) ||
+            neo4jDriver.isLocalDateTime(value) ||
+            neo4jDriver.isDuration(value)
+        );
+    };
+
+    if (Array.isArray(value)) {
+        return (
+            value.findIndex((element) => !isSupportedSingleType(element)) === -1
+        );
+    }
+
+    return isSupportedSingleType(value);
 };
 
 /** the type for the accepted values for an attribute */
@@ -85,23 +115,16 @@ export class Where {
         this.statement = '';
 
         // merge all rawParams into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
-        const params = Object.assign({}, ...this.rawParams);
+        const params: WhereParamsByIdentifierI = Object.assign(
+            {},
+            ...this.rawParams,
+        );
 
         for (const nodeIdentifier in params) {
-            if (!params.hasOwnProperty(nodeIdentifier)) {
-                continue;
-            }
             for (const key in params[nodeIdentifier]) {
-                if (!params[nodeIdentifier].hasOwnProperty(key)) {
-                    continue;
-                }
-
                 const value = params[nodeIdentifier][key];
 
-                if (
-                    ['string', 'number', 'boolean'].includes(typeof value) ||
-                    value instanceof Array
-                ) {
+                if (isNeo4jSupportedTypes(value)) {
                     this.addAnd(
                         `${nodeIdentifier}.${key} = ${this.getNameAndAddToParams(
                             key,
@@ -120,7 +143,7 @@ export class Where {
         }
     }
 
-    /** generates a variable name, adds the value to the params under this name and returns it */
+    /** generates a variable name, adds the value to the params under this name and returns it to be added directly to a query */
     private getNameAndAddToParams = (prefix, value: Neo4jSupportedTypes) => {
         const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
         return `$${name}`;

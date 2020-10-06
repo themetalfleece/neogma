@@ -968,6 +968,7 @@ describe('Neo4jSupportedTypes', () => {
             boolean: boolean;
             point: neo4jDriver.Point<any>;
             date: neo4jDriver.Date<any>;
+            time: neo4jDriver.Time<any>;
             localTime: neo4jDriver.LocalTime<any>;
             dateTime: neo4jDriver.DateTime<any>;
             localDateTime: neo4jDriver.LocalDateTime<any>;
@@ -978,6 +979,7 @@ describe('Neo4jSupportedTypes', () => {
             booleanArr: boolean[];
             pointArr: Array<neo4jDriver.Point<any>>;
             dateArr: Array<neo4jDriver.Date<any>>;
+            timeArr: Array<neo4jDriver.Time<any>>;
             localTimeArr: Array<neo4jDriver.LocalTime<any>>;
             dateTimeArr: Array<neo4jDriver.DateTime<any>>;
             localDateTimeArr: Array<neo4jDriver.LocalDateTime<any>>;
@@ -1052,6 +1054,11 @@ describe('Neo4jSupportedTypes', () => {
                         conform: (v) => neo4jDriver.isLocalDateTime(v),
                         required: true,
                     },
+                    time: {
+                        type: 'any',
+                        conform: (v) => neo4jDriver.isTime(v),
+                        required: true,
+                    },
                     duration: {
                         type: 'any',
                         conform: (v) => neo4jDriver.isDuration(v),
@@ -1109,6 +1116,15 @@ describe('Neo4jSupportedTypes', () => {
                             required: true,
                         },
                     },
+                    timeArr: {
+                        type: 'array',
+                        required: true,
+                        items: {
+                            type: 'any',
+                            conform: (v) => neo4jDriver.isTime(v),
+                            required: true,
+                        },
+                    },
                     localTimeArr: {
                         type: 'array',
                         required: true,
@@ -1161,6 +1177,7 @@ describe('Neo4jSupportedTypes', () => {
             boolean: true,
             point: new neo4jDriver.types.Point(4326, 1, 1),
             date: neo4jDriver.types.Date.fromStandardDate(new Date()),
+            time: new neo4jDriver.types.Time(6, 4, 3, 2, 1),
             localTime: neo4jDriver.types.LocalTime.fromStandardDate(new Date()),
             dateTime: neo4jDriver.types.DateTime.fromStandardDate(new Date()),
             localDateTime: neo4jDriver.types.LocalDateTime.fromStandardDate(
@@ -1181,6 +1198,10 @@ describe('Neo4jSupportedTypes', () => {
             dateArr: [
                 neo4jDriver.types.Date.fromStandardDate(new Date()),
                 neo4jDriver.types.Date.fromStandardDate(new Date()),
+            ],
+            timeArr: [
+                new neo4jDriver.types.Time(6, 4, 3, 2, 1),
+                new neo4jDriver.types.Time(7, 6, 5, 4, 3),
             ],
             localTimeArr: [
                 neo4jDriver.types.LocalTime.fromStandardDate(new Date()),
