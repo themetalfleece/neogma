@@ -49,14 +49,14 @@ export class Neogma {
     }
 
     public getSession = <T>(
-        runInSession: Session,
+        runInSession: Session | null,
         callback: (s: Session) => Promise<T>,
     ): Promise<T> => {
         return getSession<T>(runInSession, callback, this.driver);
     };
 
     public getTransaction = <T>(
-        runInTransaction: Transaction,
+        runInTransaction: Transaction | null,
         callback: (s: Transaction) => Promise<T>,
     ): Promise<T> => {
         return getTransaction<T>(runInTransaction, callback, this.driver);
