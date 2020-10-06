@@ -264,6 +264,64 @@ describe('ModelFactory', () => {
         expect(Orders).toBeTruthy();
         expect(Users).toBeTruthy();
     });
+
+    it('defines prototype methods', () => {
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {
+            foo: () => string;
+        }
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        Orders.prototype.foo = () => 'bar';
+
+        const order = Orders.build({
+            id: Math.random().toString(),
+            name: Math.random().toString(),
+        });
+
+        expect(order.foo()).toBe('bar');
+
+        expect(Orders).toBeTruthy();
+    });
 });
 
 describe('createOne', () => {

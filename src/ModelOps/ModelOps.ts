@@ -141,6 +141,7 @@ interface NeogmaModelStaticsI<
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
 > {
+    prototype: MethodsI;
     addRelationships: (
         relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
     ) => void;
@@ -620,7 +621,7 @@ export const ModelFactory = <
             const bulkCreateData: Properties[] = [];
 
             const addCreateToStatement = async (
-                model: ModelStaticsI,
+                model: NeogmaModel<any, any>,
                 dataToUse: Array<CreateData | Instance>,
                 /** whether to merge instead of creating the properties */
                 mergeProperties?: boolean,
