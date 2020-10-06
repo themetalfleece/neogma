@@ -640,7 +640,8 @@ export const ModelFactory = <
                     );
                     const label = model.getLabel();
 
-                    const instance = (createData instanceof (model as any)
+                    const instance = (createData instanceof
+                    ((model as unknown) as () => void)
                         ? createData
                         : model.__build(createData, {
                               status: 'new',

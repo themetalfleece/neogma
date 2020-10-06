@@ -101,7 +101,7 @@ export class Where {
             // push the existing rawParams in order, at the beginning of the array
             this.rawParams.push(...bindOrWhere.rawParams);
         }
-        // the the latest whereParams to the end of the array
+        // push the latest whereParams to the end of the array
         this.rawParams.push(whereParams);
 
         // set the statement and bindParams fields
@@ -144,7 +144,10 @@ export class Where {
     }
 
     /** generates a variable name, adds the value to the params under this name and returns it to be added directly to a query */
-    private getNameAndAddToParams = (prefix, value: Neo4jSupportedTypes) => {
+    private getNameAndAddToParams = (
+        prefix: string,
+        value: Neo4jSupportedTypes,
+    ) => {
         const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
         return `$${name}`;
     };
