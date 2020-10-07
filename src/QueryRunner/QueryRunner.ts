@@ -295,7 +295,7 @@ export class QueryRunner {
         return this.run(statement, parameters, params.session);
     };
 
-    /** returns the parts and the statement for a SET operation with the given params  */
+    /** returns the parts and the statement for a SET operation with the given params */
     public static getSetParts = (params: {
         /** data to set */
         data: AnyObject;

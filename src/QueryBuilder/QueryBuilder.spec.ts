@@ -90,9 +90,30 @@ describe.only('QueryBuilder', () => {
                     model: Orders,
                     where: {
                         id: '20',
-                        ep: 2,
+                        age: 26,
                     },
                     optional: true,
+                },
+            },
+            {
+                match: {
+                    identifier: 'p',
+                    label: 'Product',
+                    where: {
+                        id: '21',
+                    },
+                },
+            },
+            {
+                set: `o.age = 27`,
+            },
+            {
+                set: {
+                    identifier: 'p',
+                    properties: {
+                        name: 'NewName',
+                        isAvailable: false,
+                    },
                 },
             },
         ]);
