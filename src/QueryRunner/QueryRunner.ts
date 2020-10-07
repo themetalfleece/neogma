@@ -116,6 +116,33 @@ export class QueryRunner {
         return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
     };
 
+    /**
+     * returns the appropriate data for a node, ready to be put in a statement
+     * example: (ident: Label { a.p1: $v1 })
+     */
+    public static getNodeData = ({
+        identifier,
+        label,
+        where,
+    }: {
+        identifier?: string;
+        label?: string;
+        where?: Where | string;
+    }): string => {
+        const identifierAndLabel = QueryRunner.getIdentifierWithLabel(
+            identifier,
+            label,
+        );
+        let whereString = '';
+        if (where) {
+            whereString =
+                typeof where === 'string'
+                    ? where
+                    : where.getStatement('object');
+        }
+        return `(${identifierAndLabel} ${whereString})`;
+    };
+
     public create = async <T>(params: {
         /** the label of the nodes to create */
         label: string;
@@ -129,10 +156,10 @@ export class QueryRunner {
         const { label, data: options } = params;
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const { getIdentifierWithLabel } = QueryRunner;
+        const { getNodeData } = QueryRunner;
         const statement = `
             UNWIND {options} as data
-            CREATE (${getIdentifierWithLabel(identifier, label)})
+            CREATE ${getNodeData({ identifier, label })}
             SET ${identifier} += data
             RETURN ${identifier};
         `;
@@ -167,7 +194,7 @@ export class QueryRunner {
 
         const statementParts: string[] = [];
         statementParts.push(
-            `MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`,
+            `MATCH ${QueryRunner.getNodeData({ identifier, label })}`,
         );
         if (where) {
             statementParts.push(`WHERE ${where.getStatement('text')}`);
@@ -208,14 +235,15 @@ export class QueryRunner {
 
         const statementParts: string[] = [];
         statementParts.push(
-            `MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`,
+            `MATCH ${QueryRunner.getNodeData({ identifier, label })}`,
         );
         if (where) {
             statementParts.push(`WHERE ${where.getStatement('text')}`);
         }
-        statementParts.push(`
-            ${detach ? 'DETACH ' : ''}DELETE ${identifier}
-        `);
+        if (detach) {
+            statementParts.push('DETACH');
+        }
+        statementParts.push(`DELETE ${identifier}`);
 
         const statement = statementParts.join(' ');
         const parameters = { ...where?.getBindParam().get() };
@@ -230,13 +258,6 @@ export class QueryRunner {
         const whereInstance = Where.acquire(where);
 
         const relationshipIdentifier = 'r';
-        const directionAndNameString = QueryRunner.getRelationshipDirectionAndName(
-            {
-                direction: relationship.direction,
-                name: relationship.name,
-                identifier: relationshipIdentifier,
-            },
-        );
 
         /** the params of the relationship value */
         const relationshipAttributesParams = BindParam.acquire(
@@ -260,11 +281,6 @@ export class QueryRunner {
             }
         }
 
-        /** the relationship properties statement to be inserted into the final statement string */
-        const relationshipPropertiesStatement = relationshipProperties.length
-            ? 'SET ' + relationshipProperties.join(', ')
-            : '';
-
         const identifiers = {
             source:
                 source.identifier ||
@@ -273,20 +289,43 @@ export class QueryRunner {
                 target.identifier ||
                 QueryRunner.identifiers.createRelationship.target,
         };
-        const { getIdentifierWithLabel } = QueryRunner;
+        const { getNodeData } = QueryRunner;
         const statementParts: string[] = [];
-        statementParts.push(`
-            MATCH 
-                (${getIdentifierWithLabel(identifiers.source, source.label)}), 
-                (${getIdentifierWithLabel(identifiers.target, target.label)})
-        `);
+        statementParts.push('MATCH');
+        statementParts.push(
+            [
+                getNodeData({
+                    identifier: identifiers.source,
+                    label: source.label,
+                }),
+                getNodeData({
+                    identifier: identifiers.target,
+                    label: target.label,
+                }),
+            ].join(', '),
+        );
         if (whereInstance) {
             statementParts.push(`WHERE ${whereInstance.getStatement('text')}`);
         }
-        statementParts.push(`CREATE
-            (${identifiers.source})${directionAndNameString}(${identifiers.target})
-            ${relationshipPropertiesStatement}
-        `);
+
+        statementParts.push('CREATE');
+        // (source)
+        statementParts.push(getNodeData({ identifier: identifiers.source }));
+        // -[relationship]-
+        statementParts.push(
+            QueryRunner.getRelationshipDirectionAndName({
+                direction: relationship.direction,
+                name: relationship.name,
+                identifier: relationshipIdentifier,
+            }),
+        );
+        // (target)
+        statementParts.push(getNodeData({ identifier: identifiers.target }));
+
+        /** the relationship properties statement to be inserted into the final statement string */
+        if (relationshipProperties.length) {
+            statementParts.push('SET ' + relationshipProperties.join(', '));
+        }
 
         const statement = statementParts.join(' ');
         const parameters = relationshipAttributesParams.get();
@@ -355,11 +394,11 @@ export class QueryRunner {
         const { direction, name } = params;
         const identifier = params.identifier || '';
 
-        return `${
-            direction === 'in' ? '<-' : '-'
-        }[${QueryRunner.getIdentifierWithLabel(identifier, name)}]${
-            direction === 'out' ? '->' : '-'
-        }`;
+        return [
+            direction === 'in' ? '<-' : '-',
+            `[${QueryRunner.getIdentifierWithLabel(identifier, name)}]`,
+            direction === 'out' ? '->' : '-',
+        ].join(' ');
     };
 
     /** maps a session object to a uuid, for logging purposes */

@@ -197,19 +197,21 @@ export class QueryBuilder {
 
         const label = node.label || node.model.getLabel();
 
-        // TODO use getNodeData which does all those in a single call - also in other parts of the app
-        return `(${QueryRunner.getIdentifierWithLabel(
-            node.identifier,
+        // (identifier: label { where })
+        return QueryRunner.getNodeData({
+            identifier: node.identifier,
             label,
-        )} ${where?.getStatement('object')})`;
+            where,
+        });
     }
 
     /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
     private getMatchString(match: MatchI['match']): string {
         if (isNode(match)) {
-            return `${
-                match.optional ? 'OPTIONAL ' : ''
-            }MATCH ${this.getNodeString(match)}`;
+            return [
+                match.optional ? 'OPTIONAL' : '',
+                `MATCH ${this.getNodeString(match)}`,
+            ].join(' ');
         }
     }
 

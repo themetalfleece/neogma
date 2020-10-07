@@ -684,21 +684,20 @@ export const ModelFactory = <
                     ) {
                         /* if it has related nodes to associated or it has a parent node or it's to be merged, create it as a single node, with an identifier */
 
-                        const identifierWithLabel = QueryRunner.getIdentifierWithLabel(
-                            identifier,
-                            label,
-                        );
-
-                        statementParts.push(`
-                            ${createOrMerge(mergeProperties)} 
-                            (
-                                ${identifierWithLabel} 
-                                ${QueryRunner.getPropertiesWithParams(
+                        // CREATE or MERGE
+                        statementParts.push(createOrMerge(mergeProperties));
+                        // (identifier: label { where })
+                        statementParts.push(
+                            QueryRunner.getNodeData({
+                                identifier,
+                                label,
+                                // use the bindParam straight away as where
+                                where: QueryRunner.getPropertiesWithParams(
                                     instance.getDataValues(),
                                     bindParam,
-                                )}
-                            )
-                        `);
+                                ),
+                            }),
+                        );
 
                         /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
                         const getRelationshipProperties = (
@@ -761,18 +760,32 @@ export const ModelFactory = <
                             const relationshipIdentifier =
                                 relationshipProperties &&
                                 identifiers.getUniqueNameAndAdd('r', null);
-                            const directionAndNameString = QueryRunner.getRelationshipDirectionAndName(
-                                {
+
+                            // CREATE or MERGE
+                            statementParts.push(
+                                createOrMerge(parentNode.mergeRelationship),
+                            );
+                            // (parentIdentifier)
+                            statementParts.push(
+                                QueryRunner.getNodeData({
+                                    identifier: parentIdentifier,
+                                }),
+                            );
+                            // -[relationship]-
+                            statementParts.push(
+                                QueryRunner.getRelationshipDirectionAndName({
                                     direction: relationship.direction,
                                     name: relationship.name,
                                     identifier: relationshipIdentifier,
-                                },
+                                }),
                             );
-                            statementParts.push(`
-                                ${createOrMerge(
-                                    parentNode.mergeRelationship,
-                                )} (${parentIdentifier})${directionAndNameString}(${identifier})
-                            `);
+                            // (identifier)
+                            statementParts.push(
+                                QueryRunner.getNodeData({
+                                    identifier,
+                                }),
+                            );
+
                             if (
                                 relationshipProperties &&
                                 Object.keys(relationshipProperties).length > 0
@@ -877,12 +890,14 @@ export const ModelFactory = <
                     UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
                 `);
                 statementParts.push(`
-                    CREATE (${QueryRunner.getIdentifierWithLabel(
-                        bulkCreateIdentifier,
-                        this.getLabel(),
-                    )})
-                    SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
+                    CREATE ${QueryRunner.getNodeData({
+                        identifier: bulkCreateIdentifier,
+                        label: this.getLabel(),
+                    })}
                 `);
+                statementParts.push(
+                    `SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}`,
+                );
             }
 
             // parse toRelateByIdentifier
@@ -909,25 +924,30 @@ export const ModelFactory = <
 
                     relationshipByWhereParts.push(
                         `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
-                        `MATCH (${QueryRunner.getIdentifierWithLabel(
-                            targetNodeIdentifier,
-                            targetNodeLabel,
-                        )})`,
+                        `MATCH ${QueryRunner.getNodeData({
+                            identifier: targetNodeIdentifier,
+                            label: targetNodeLabel,
+                        })}`,
                         `WHERE ${new Where(
                             {
                                 [targetNodeIdentifier]: relateParameters.where,
                             },
                             bindParam,
                         ).getStatement('text')}`,
-                        `${createOrMerge(
-                            relateParameters.merge,
-                        )} (${identifier})${QueryRunner.getRelationshipDirectionAndName(
-                            {
-                                direction: relationship.direction,
-                                name: relationship.name,
-                                identifier: relationshipIdentifier,
-                            },
-                        )}(${targetNodeIdentifier})`,
+                        // CREATE or MERGE
+                        createOrMerge(relateParameters.merge),
+                        // (identifier)
+                        QueryRunner.getNodeData({ identifier }),
+                        // -[relationship]-
+                        QueryRunner.getRelationshipDirectionAndName({
+                            direction: relationship.direction,
+                            name: relationship.name,
+                            identifier: relationshipIdentifier,
+                        }),
+                        // (targetNodeIdentifier)
+                        QueryRunner.getNodeData({
+                            identifier: targetNodeIdentifier,
+                        }),
                     );
                     if (
                         relateParameters.properties &&
@@ -1085,15 +1105,7 @@ export const ModelFactory = <
                 });
             }
 
-            const { getIdentifierWithLabel } = QueryRunner;
-
-            const directionAndNameString = QueryRunner.getRelationshipDirectionAndName(
-                {
-                    direction: relationship.direction,
-                    name: relationship.name,
-                    identifier: identifiers.relationship,
-                },
-            );
+            const { getNodeData } = QueryRunner;
 
             /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
             const updateBindParam = where.getBindParam().clone();
@@ -1106,18 +1118,29 @@ export const ModelFactory = <
 
             const statementParts: string[] = [];
 
-            statementParts.push(`
-                    MATCH
-                    (${getIdentifierWithLabel(
-                        identifiers.source,
-                        labels.source,
-                    )})
-                    ${directionAndNameString}
-                    (${getIdentifierWithLabel(
-                        identifiers.target,
-                        labels.target,
-                    )})
-                `);
+            statementParts.push('MATCH');
+            // (identifier: label)
+            statementParts.push(
+                getNodeData({
+                    identifier: identifiers.source,
+                    label: labels.source,
+                }),
+            );
+            // -[relationship]-
+            statementParts.push(
+                QueryRunner.getRelationshipDirectionAndName({
+                    direction: relationship.direction,
+                    name: relationship.name,
+                    identifier: identifiers.relationship,
+                }),
+            );
+            // (identifier: label)
+            statementParts.push(
+                getNodeData({
+                    identifier: identifiers.target,
+                    label: labels.target,
+                }),
+            );
 
             const whereStatement = where.getStatement('text');
             if (whereStatement) {
