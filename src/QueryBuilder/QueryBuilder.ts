@@ -17,10 +17,12 @@ const isRawParameter = (param: ParameterI): param is RawI => {
 };
 
 type MatchI = {
-    match: NodeI & {
-        /** optional match */
-        optional?: boolean;
-    };
+    match:
+        | (NodeI & {
+              /** optional match */
+              optional?: boolean;
+          })
+        | Array<NodeI | RelationshipI>;
 };
 const isMatchParameter = (param: ParameterI): param is MatchI => {
     return !!(param as MatchI).match;
@@ -92,32 +94,19 @@ const isRemoveLabels = (_param: RemoveI['remove']): _param is RemoveLabelsI => {
     return !!(param.labels && param.identifier);
 };
 
-export type NodeI = string | NodeWithModelI | NodeWithLabelI | NodeWithLiteralI;
+export type NodeI = string | NodeObjectI | NodeWithLiteralI;
 const isNode = (node: MatchI['match']): node is NodeI => {
-    return (
-        typeof node === 'string' ||
-        isNodeWithLabel(node) ||
-        isNodeWithLiteral(node) ||
-        isNodeWithModel(node)
-    );
+    return typeof node === 'string' || !Array.isArray(node);
 };
-type NodeWithModelI = {
-    identifier: string;
-    model: NeogmaModel<any, any>;
+type NodeObjectI = {
+    /** a label to use for this node */
+    label?: string;
+    /** the model of this node. Automatically sets the "label" field */
+    model?: NeogmaModel<any, any>;
+    /** identifier for the node */
+    identifier?: string;
+    /** where parameters for matching this node */
     where?: WhereParamsI;
-};
-const isNodeWithModel = (_node: NodeI): _node is NodeWithModelI => {
-    const node = _node as NodeWithModelI;
-    return !!(node.model && node.identifier);
-};
-type NodeWithLabelI = {
-    identifier: string;
-    label: string;
-    where?: WhereParamsI;
-};
-const isNodeWithLabel = (_node: NodeI): _node is NodeWithLabelI => {
-    const node = _node as NodeWithLabelI;
-    return !!(node.label && node.identifier && node.label);
 };
 type NodeWithLiteralI = {
     literal: string;
@@ -127,13 +116,31 @@ const isNodeWithLiteral = (_node: NodeI): _node is NodeWithLiteralI => {
     return !!node.literal;
 };
 
+type RelationshipI =
+    | string
+    | {
+          direction: 'in' | 'out' | 'none';
+          // TODO needed for create, not needed for match
+          name?: string;
+          identifier?: string;
+          /** where parameters for matching this node */
+          where?: WhereParamsI;
+      };
+
 export class QueryBuilder {
     private parameters: ParameterI[];
     private statement: string;
-    private bindParam: BindParam = new BindParam({});
+    private bindParam: BindParam;
 
-    constructor(parameters: QueryBuilder['parameters']) {
+    constructor(
+        parameters: QueryBuilder['parameters'],
+        config?: {
+            bindParam: BindParam;
+        },
+    ) {
         this.parameters = parameters;
+
+        this.bindParam = config?.bindParam || new BindParam({});
 
         this.setStatementByParameters();
     }
@@ -176,26 +183,25 @@ export class QueryBuilder {
             return node.literal;
         }
 
-        if (isNodeWithLabel(node) || isNodeWithModel(node)) {
-            let where: Where;
+        // else, it's a NodeObjectI
+        let where: Where;
 
-            if (node.where) {
-                where = new Where(
-                    {
-                        [node.identifier]: node.where,
-                    },
-                    this.bindParam,
-                );
-            }
-
-            const label = isNodeWithLabel(node)
-                ? node.label
-                : node.model.getLabel();
-
-            return `(${node.identifier}:${label}) ${
-                where ? `WHERE ${where.statement}` : ''
-            }`;
+        if (node.where) {
+            where = new Where(
+                {
+                    [node.identifier]: node.where,
+                },
+                this.bindParam,
+            );
         }
+
+        const label = node.label || node.model.getLabel();
+
+        // TODO use getNodeData which does all those in a single call - also in other parts of the app
+        return `(${QueryRunner.getIdentifierWithLabel(
+            node.identifier,
+            label,
+        )} ${where?.getStatement('object')})`;
     }
 
     /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */

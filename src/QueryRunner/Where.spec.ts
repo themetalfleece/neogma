@@ -15,7 +15,7 @@ describe('Where', () => {
         });
 
         expect(
-            where.getStatement().includes('identifier.c IN $c'),
+            where.getStatement('text').includes('identifier.c IN $c'),
         ).toBeTruthy();
         expect(where.getBindParam().get().c).toEqual(inValue);
     });
@@ -32,8 +32,12 @@ describe('Where', () => {
             },
         });
 
-        expect(where.getStatement().includes('identifier.a = $a')).toBeTruthy();
-        expect(where.getStatement().includes(undefinedIdentifier)).toBeFalsy();
-        expect(where.getStatement().includes(nullIdentifier)).toBeFalsy();
+        expect(
+            where.getStatement('text').includes('identifier.a = $a'),
+        ).toBeTruthy();
+        expect(
+            where.getStatement('text').includes(undefinedIdentifier),
+        ).toBeFalsy();
+        expect(where.getStatement('text').includes(nullIdentifier)).toBeFalsy();
     });
 });

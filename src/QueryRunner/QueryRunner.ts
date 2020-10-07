@@ -170,7 +170,7 @@ export class QueryRunner {
             `MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`,
         );
         if (where) {
-            statementParts.push(`WHERE ${where.getStatement()}`);
+            statementParts.push(`WHERE ${where.getStatement('text')}`);
         }
 
         const { statement: setStatement } = QueryRunner.getSetParts({
@@ -211,7 +211,7 @@ export class QueryRunner {
             `MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`,
         );
         if (where) {
-            statementParts.push(`WHERE ${where.getStatement()}`);
+            statementParts.push(`WHERE ${where.getStatement('text')}`);
         }
         statementParts.push(`
             ${detach ? 'DETACH ' : ''}DELETE ${identifier}
@@ -281,7 +281,7 @@ export class QueryRunner {
                 (${getIdentifierWithLabel(identifiers.target, target.label)})
         `);
         if (whereInstance) {
-            statementParts.push(`WHERE ${whereInstance.getStatement()}`);
+            statementParts.push(`WHERE ${whereInstance.getStatement('text')}`);
         }
         statementParts.push(`CREATE
             (${identifiers.source})${directionAndNameString}(${identifiers.target})

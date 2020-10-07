@@ -918,7 +918,7 @@ export const ModelFactory = <
                                 [targetNodeIdentifier]: relateParameters.where,
                             },
                             bindParam,
-                        ).getStatement()}`,
+                        ).getStatement('text')}`,
                         `${createOrMerge(
                             relateParameters.merge,
                         )} (${identifier})${QueryRunner.getRelationshipDirectionAndName(
@@ -1119,7 +1119,7 @@ export const ModelFactory = <
                     )})
                 `);
 
-            const whereStatement = where.getStatement();
+            const whereStatement = where.getStatement('text');
             if (whereStatement) {
                 statementParts.push(`WHERE ${whereStatement}`);
             }
@@ -1210,7 +1210,7 @@ export const ModelFactory = <
             `);
             if (rootWhere) {
                 statementParts.push(`
-                    WHERE ${rootWhere.getStatement()}
+                    WHERE ${rootWhere.getStatement('text')}
                 `);
             }
             /* add the return statement */

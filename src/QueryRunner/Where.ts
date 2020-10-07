@@ -74,13 +74,12 @@ export class Where {
     /** all the given options, so we can easily combine them into a new statement */
     private rawParams: WhereParamsByIdentifierI[] = [];
     /** an object with the key being the `identifier.property` and the value being the the bind param name which corresponds to it, and an operator to be used in the statement */
-    private identifierPropertyData: Record<
-        string,
-        {
-            bindParamName: string;
-            operator: 'equals' | 'in';
-        }
-    > = {};
+    private identifierPropertyData: Array<{
+        identifier: string;
+        property: string;
+        bindParamName: string;
+        operator: 'equals' | 'in';
+    }> = [];
 
     constructor(
         /** the where parameters to use */
@@ -128,27 +127,31 @@ export class Where {
         );
 
         for (const nodeIdentifier in params) {
-            for (const key in params[nodeIdentifier]) {
-                const value = params[nodeIdentifier][key];
+            for (const property in params[nodeIdentifier]) {
+                const value = params[nodeIdentifier][property];
 
                 if (isNeo4jSupportedTypes(value)) {
                     const bindParamName = this.getNameAndAddToParams(
-                        key,
+                        property,
                         value,
                     );
-                    this.identifierPropertyData[`${nodeIdentifier}.${key}`] = {
+                    this.identifierPropertyData.push({
+                        identifier: nodeIdentifier,
+                        property,
                         bindParamName,
                         operator: 'equals',
-                    };
+                    });
                 } else if (isWhereIn(value)) {
                     const bindParamName = this.getNameAndAddToParams(
-                        key,
+                        property,
                         value[Op.in],
                     );
-                    this.identifierPropertyData[`${nodeIdentifier}.${key}`] = {
+                    this.identifierPropertyData.push({
+                        identifier: nodeIdentifier,
+                        property,
                         bindParamName,
                         operator: 'in',
-                    };
+                    });
                 }
             }
         }
@@ -164,7 +167,13 @@ export class Where {
     };
 
     /** gets the statement by the params */
-    public getStatement = (): string => {
+    public getStatement = (
+        /**
+         * text is in the format "a.p1 = $v1 AND a.p2 = $v2"
+         * object is in the format "{ a.p1 = $v1, a.p2 = $v2 }"
+         */
+        mode: 'object' | 'text',
+    ): string => {
         const statementParts: string[] = [];
 
         const operatorForStatement: Record<
@@ -175,17 +184,23 @@ export class Where {
             in: 'IN',
         };
 
-        for (const [identifierWithProperty, bindParamData] of Object.entries(
-            this.identifierPropertyData,
-        )) {
+        for (const bindParamData of this.identifierPropertyData) {
             statementParts.push(
-                `${identifierWithProperty} ${
-                    operatorForStatement[bindParamData.operator]
-                } ${bindParamData.bindParamName}`,
+                `${
+                    mode === 'text'
+                        ? `${bindParamData.identifier}.${bindParamData.property}`
+                        : bindParamData.property
+                } ${operatorForStatement[bindParamData.operator]} ${
+                    bindParamData.bindParamName
+                }`,
             );
         }
 
-        return statementParts.join(' AND ');
+        if (mode === 'text') {
+            return statementParts.join(' AND ');
+        } else if (mode === 'object') {
+            return `{ ${statementParts.join(', ')} }`;
+        }
     };
 
     /** returns a Where object if params is specified, else returns null */
