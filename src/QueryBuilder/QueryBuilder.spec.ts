@@ -82,7 +82,16 @@ describe.only('QueryBuilder', () => {
 
         const queryBuilder = new QueryBuilder([
             {
+                raw: 'MATCH (w: W)',
+            },
+            {
                 match: '(u: User)',
+            },
+            {
+                match: {
+                    literal: '(v: V)',
+                    optional: true,
+                },
             },
             {
                 match: {
@@ -111,9 +120,39 @@ describe.only('QueryBuilder', () => {
                 set: {
                     identifier: 'p',
                     properties: {
-                        name: 'NewName',
+                        name: 'New Name',
                         isAvailable: false,
                     },
+                },
+            },
+            {
+                remove: `u.id`,
+            },
+            {
+                remove: {
+                    identifier: 'p',
+                    properties: ['name', 'isAvailable'],
+                },
+            },
+            {
+                remove: {
+                    identifier: 'w',
+                    labels: ['Label1', 'Label2'],
+                },
+            },
+            {
+                delete: 'w',
+            },
+            {
+                delete: {
+                    literal: 'v',
+                    detach: true,
+                },
+            },
+            {
+                delete: {
+                    identifiers: ['p', 'o'],
+                    detach: true,
                 },
             },
         ]);

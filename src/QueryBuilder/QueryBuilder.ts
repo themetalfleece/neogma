@@ -6,9 +6,16 @@ import {
     Neo4jSupportedTypes,
     QueryRunner,
 } from '..';
-import { NeogmaConstraintError } from '../Errors';
 
-export type ParameterI = MatchI | SetI;
+export type ParameterI = RawI | MatchI | SetI | DeleteI | RemoveI;
+
+type RawI = {
+    raw: string;
+};
+const isRawParameter = (param: ParameterI): param is RawI => {
+    return !!(param as RawI).raw;
+};
+
 type MatchI = {
     match: NodeI & {
         /** optional match */
@@ -18,6 +25,36 @@ type MatchI = {
 const isMatchParameter = (param: ParameterI): param is MatchI => {
     return !!(param as MatchI).match;
 };
+
+type DeleteI = {
+    delete: string | DeleteWithIdentifierI | DeleteWithLiteralI;
+};
+const isDeleteParameter = (param: ParameterI): param is DeleteI => {
+    return !!(param as DeleteI).delete;
+};
+type DeleteWithIdentifierI = {
+    identifiers: string | string[];
+    /** detach delete */
+    detach?: boolean;
+};
+const isDeleteWithIdentifier = (
+    _param: DeleteI['delete'],
+): _param is DeleteWithIdentifierI => {
+    const param = _param as DeleteWithIdentifierI;
+    return !!param.identifiers;
+};
+type DeleteWithLiteralI = {
+    literal: string;
+    /** detach delete */
+    detach?: boolean;
+};
+const isDeleteWithLiteral = (
+    _param: DeleteI['delete'],
+): _param is DeleteWithLiteralI => {
+    const param = _param as DeleteWithLiteralI;
+    return !!param.literal;
+};
+
 type SetI = {
     set:
         | string
@@ -30,22 +67,64 @@ const isSetParameter = (param: ParameterI): param is SetI => {
     return !!(param as SetI).set;
 };
 
-export type NodeI = string | NodeWithModelI | NodeWithLabelI;
+type RemoveI = {
+    remove: string | RemovePropertiesI | RemoveLabelsI;
+};
+const isRemoveParameter = (param: ParameterI): param is RemoveI => {
+    return !!(param as RemoveI).remove;
+};
+type RemovePropertiesI = {
+    identifier: string;
+    properties: string | string[];
+};
+const isRemoveProperties = (
+    _param: RemoveI['remove'],
+): _param is RemovePropertiesI => {
+    const param = _param as RemovePropertiesI;
+    return !!(param.properties && param.identifier);
+};
+type RemoveLabelsI = {
+    identifier: string;
+    labels: string | string[];
+};
+const isRemoveLabels = (_param: RemoveI['remove']): _param is RemoveLabelsI => {
+    const param = _param as RemoveLabelsI;
+    return !!(param.labels && param.identifier);
+};
+
+export type NodeI = string | NodeWithModelI | NodeWithLabelI | NodeWithLiteralI;
+const isNode = (node: MatchI['match']): node is NodeI => {
+    return (
+        typeof node === 'string' ||
+        isNodeWithLabel(node) ||
+        isNodeWithLiteral(node) ||
+        isNodeWithModel(node)
+    );
+};
 type NodeWithModelI = {
     identifier: string;
     model: NeogmaModel<any, any>;
     where?: WhereParamsI;
 };
-const isNodeWithModelI = (node: NodeI): node is NodeWithModelI => {
-    return !!(node as NodeWithModelI).model;
+const isNodeWithModel = (_node: NodeI): _node is NodeWithModelI => {
+    const node = _node as NodeWithModelI;
+    return !!(node.model && node.identifier);
 };
 type NodeWithLabelI = {
     identifier: string;
     label: string;
     where?: WhereParamsI;
 };
-const isNodeWithLabelI = (node: NodeI): node is NodeWithLabelI => {
-    return !!(node as NodeWithLabelI).label;
+const isNodeWithLabel = (_node: NodeI): _node is NodeWithLabelI => {
+    const node = _node as NodeWithLabelI;
+    return !!(node.label && node.identifier && node.label);
+};
+type NodeWithLiteralI = {
+    literal: string;
+};
+const isNodeWithLiteral = (_node: NodeI): _node is NodeWithLiteralI => {
+    const node = _node as NodeWithLiteralI;
+    return !!node.literal;
 };
 
 export class QueryBuilder {
@@ -71,10 +150,16 @@ export class QueryBuilder {
         const statementParts: string[] = [];
 
         for (const param of this.parameters) {
-            if (isMatchParameter(param)) {
+            if (isRawParameter(param)) {
+                statementParts.push(param.raw);
+            } else if (isMatchParameter(param)) {
                 statementParts.push(this.getMatchString(param.match));
             } else if (isSetParameter(param)) {
                 statementParts.push(this.getSetString(param.set));
+            } else if (isDeleteParameter(param)) {
+                statementParts.push(this.getDeleteString(param.delete));
+            } else if (isRemoveParameter(param)) {
+                statementParts.push(this.getRemoveString(param.remove));
             }
         }
 
@@ -87,7 +172,11 @@ export class QueryBuilder {
             return node;
         }
 
-        if (typeof node.identifier === 'string') {
+        if (isNodeWithLiteral(node)) {
+            return node.literal;
+        }
+
+        if (isNodeWithLabel(node) || isNodeWithModel(node)) {
             let where: Where;
 
             if (node.where) {
@@ -99,14 +188,9 @@ export class QueryBuilder {
                 );
             }
 
-            let label: string;
-            if (isNodeWithLabelI(node)) {
-                label = node.label;
-            } else if (isNodeWithModelI(node)) {
-                label = node.model.getLabel();
-            } else {
-                throw new NeogmaConstraintError('missing label or model param');
-            }
+            const label = isNodeWithLabel(node)
+                ? node.label
+                : node.model.getLabel();
 
             return `(${node.identifier}:${label}) ${
                 where ? `WHERE ${where.statement}` : ''
@@ -116,21 +200,66 @@ export class QueryBuilder {
 
     /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
     private getMatchString(match: MatchI['match']): string {
-        return `${match.optional ? 'OPTIONAL' : ''} MATCH ${this.getNodeString(
-            match,
-        )}`;
+        if (isNode(match)) {
+            return `${
+                match.optional ? 'OPTIONAL ' : ''
+            }MATCH ${this.getNodeString(match)}`;
+        }
     }
 
     /** returns a string in the format: `SET a.p1 = $v1, a.p2 = $v2` */
     private getSetString(set: SetI['set']): string {
         if (typeof set === 'string') {
             return `SET ${set}`;
-        } else {
-            return QueryRunner.getSetParts({
-                data: set.properties,
-                identifier: set.identifier,
-                bindParam: this.bindParam,
-            }).statement;
+        }
+
+        return QueryRunner.getSetParts({
+            data: set.properties,
+            identifier: set.identifier,
+            bindParam: this.bindParam,
+        }).statement;
+    }
+
+    private getDeleteString(dlt: DeleteI['delete']): string {
+        if (typeof dlt === 'string') {
+            return `DELETE ${dlt}`;
+        }
+
+        if (isDeleteWithIdentifier(dlt)) {
+            const identifiers = Array.isArray(dlt.identifiers)
+                ? dlt.identifiers
+                : [dlt.identifiers];
+
+            return `${dlt.detach ? 'DETACH ' : ''}DELETE ${identifiers.join(
+                ', ',
+            )}`;
+        }
+
+        if (isDeleteWithLiteral(dlt)) {
+            return `${dlt.detach ? 'DETACH ' : ''}DELETE ${dlt.literal}`;
+        }
+    }
+
+    private getRemoveString(remove: RemoveI['remove']): string {
+        if (typeof remove === 'string') {
+            return `REMOVE ${remove}`;
+        }
+
+        if (isRemoveProperties(remove)) {
+            const properties = Array.isArray(remove.properties)
+                ? remove.properties
+                : [remove.properties];
+            const propertiesWithIdentifier = properties.map(
+                (p) => `${remove.identifier}.${p}`,
+            );
+            return `REMOVE ${propertiesWithIdentifier.join(', ')}`;
+        }
+
+        if (isRemoveLabels(remove)) {
+            const labels = Array.isArray(remove.labels)
+                ? remove.labels
+                : [remove.labels];
+            return `REMOVE ${remove.identifier}:${labels.join(':')}`;
         }
     }
 }
