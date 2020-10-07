@@ -14,21 +14,26 @@ describe('Where', () => {
             },
         });
 
-        expect(where.statement.includes('identifier.c IN $c')).toBeTruthy();
-        expect(where.bindParam.get().c).toEqual(inValue);
+        expect(
+            where.getStatement().includes('identifier.c IN $c'),
+        ).toBeTruthy();
+        expect(where.getBindParam().get().c).toEqual(inValue);
     });
 
     it('works as intended with null and undefined values', () => {
         const undefinedIdentifier = 'ui_' + Math.random().toString();
+        const nullIdentifier = 'ui_' + Math.random().toString();
 
         const where = new Where({
             identifier: {
-                a: null,
+                a: 1,
+                [nullIdentifier]: null,
                 [undefinedIdentifier]: undefined,
             },
         });
 
-        expect(where.statement.includes('identifier.a = $a')).toBeTruthy();
-        expect(where.statement.includes(undefinedIdentifier)).toBeFalsy();
+        expect(where.getStatement().includes('identifier.a = $a')).toBeTruthy();
+        expect(where.getStatement().includes(undefinedIdentifier)).toBeFalsy();
+        expect(where.getStatement().includes(nullIdentifier)).toBeFalsy();
     });
 });

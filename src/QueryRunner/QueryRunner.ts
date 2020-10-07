@@ -34,7 +34,6 @@ export const getNodesDeleted = (result: QueryResult): number => {
 export type Neo4jSingleTypes =
     | number
     | Neo4jInteger
-    | null
     | string
     | boolean
     | Neo4jPoint
@@ -164,14 +163,14 @@ export class QueryRunner {
         const where = Where.acquire(params.where);
 
         /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-        const updateBindParam = where.bindParam.clone();
+        const updateBindParam = where.getBindParam().clone();
 
         const statementParts: string[] = [];
         statementParts.push(
             `MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`,
         );
         if (where) {
-            statementParts.push(`WHERE ${where.statement}`);
+            statementParts.push(`WHERE ${where.getStatement()}`);
         }
 
         const { statement: setStatement } = QueryRunner.getSetParts({
@@ -212,14 +211,14 @@ export class QueryRunner {
             `MATCH (${QueryRunner.getIdentifierWithLabel(identifier, label)})`,
         );
         if (where) {
-            statementParts.push(`WHERE ${where.statement}`);
+            statementParts.push(`WHERE ${where.getStatement()}`);
         }
         statementParts.push(`
             ${detach ? 'DETACH ' : ''}DELETE ${identifier}
         `);
 
         const statement = statementParts.join(' ');
-        const parameters = { ...where?.bindParam.get() };
+        const parameters = { ...where?.getBindParam().get() };
 
         return this.run(statement, parameters, params.session);
     };
@@ -241,7 +240,7 @@ export class QueryRunner {
 
         /** the params of the relationship value */
         const relationshipAttributesParams = BindParam.acquire(
-            whereInstance?.bindParam,
+            whereInstance?.getBindParam(),
         ).clone();
         /** the properties to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
         const relationshipProperties: string[] = [];
@@ -282,7 +281,7 @@ export class QueryRunner {
                 (${getIdentifierWithLabel(identifiers.target, target.label)})
         `);
         if (whereInstance) {
-            statementParts.push(`WHERE ${whereInstance.statement}`);
+            statementParts.push(`WHERE ${whereInstance.getStatement()}`);
         }
         statementParts.push(`CREATE
             (${identifiers.source})${directionAndNameString}(${identifiers.target})

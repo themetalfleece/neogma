@@ -913,15 +913,12 @@ export const ModelFactory = <
                             targetNodeIdentifier,
                             targetNodeLabel,
                         )})`,
-                        `WHERE ${
-                            new Where(
-                                {
-                                    [targetNodeIdentifier]:
-                                        relateParameters.where,
-                                },
-                                bindParam,
-                            ).statement
-                        }`,
+                        `WHERE ${new Where(
+                            {
+                                [targetNodeIdentifier]: relateParameters.where,
+                            },
+                            bindParam,
+                        ).getStatement()}`,
                         `${createOrMerge(
                             relateParameters.merge,
                         )} (${identifier})${QueryRunner.getRelationshipDirectionAndName(
@@ -1099,7 +1096,7 @@ export const ModelFactory = <
             );
 
             /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-            const updateBindParam = where.bindParam.clone();
+            const updateBindParam = where.getBindParam().clone();
 
             const { statement: setStatement } = QueryRunner.getSetParts({
                 bindParam: updateBindParam,
@@ -1122,8 +1119,9 @@ export const ModelFactory = <
                     )})
                 `);
 
-            if (where.statement) {
-                statementParts.push(`WHERE ${where.statement}`);
+            const whereStatement = where.getStatement();
+            if (whereStatement) {
+                statementParts.push(`WHERE ${whereStatement}`);
             }
 
             statementParts.push(setStatement);
@@ -1208,30 +1206,28 @@ export const ModelFactory = <
 
             /* match the nodes of this Model */
             statementParts.push(`
-                    MATCH (${rootIdentifier}:${label})
-                `);
+                MATCH (${rootIdentifier}:${label})
+            `);
             if (rootWhere) {
                 statementParts.push(`
-                        WHERE ${rootWhere.statement}
-                    `);
+                    WHERE ${rootWhere.getStatement()}
+                `);
             }
             /* add the return statement */
             statementParts.push(`
-                    RETURN ${rootIdentifier}
-                `);
+                RETURN ${rootIdentifier}
+            `);
 
             if (params?.order) {
                 statementParts.push(`
-                        ORDER BY ${params?.order
-                            .filter(([field]) =>
-                                schemaKeys.has(field as string),
-                            )
-                            .map(
-                                ([field, direction]) =>
-                                    `${rootIdentifier}.${field} ${direction}`,
-                            )
-                            .join(', ')}
-                    `);
+                    ORDER BY ${params?.order
+                        .filter(([field]) => schemaKeys.has(field as string))
+                        .map(
+                            ([field, direction]) =>
+                                `${rootIdentifier}.${field} ${direction}`,
+                        )
+                        .join(', ')}
+                `);
             }
 
             if (params?.limit) {

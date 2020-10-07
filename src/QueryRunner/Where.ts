@@ -25,7 +25,6 @@ const isNeo4jSupportedTypes = (
             typeof value === 'string' ||
             typeof value === 'number' ||
             typeof value === 'boolean' ||
-            value === null ||
             neo4jDriver.isInt(value) ||
             neo4jDriver.isPoint(value) ||
             neo4jDriver.isDate(value) ||
@@ -70,12 +69,18 @@ export interface WhereParamsByIdentifierI {
 export type AnyWhereI = WhereParamsByIdentifierI | Where;
 
 export class Where {
-    /** where statement to be placed in a query */
-    public statement: string;
     /** where bind params. Ensures that keys of the bind param are unique */
-    public bindParam: BindParam;
+    private bindParam: BindParam;
     /** all the given options, so we can easily combine them into a new statement */
     private rawParams: WhereParamsByIdentifierI[] = [];
+    /** an object with the key being the `identifier.property` and the value being the the bind param name which corresponds to it, and an operator to be used in the statement */
+    private identifierPropertyData: Record<
+        string,
+        {
+            bindParamName: string;
+            operator: 'equals' | 'in';
+        }
+    > = {};
 
     constructor(
         /** the where parameters to use */
@@ -85,6 +90,10 @@ export class Where {
     ) {
         this.addParams(whereParams, bindOrWhere);
         Object.setPrototypeOf(this, Where.prototype);
+    }
+
+    public getBindParam(): BindParam {
+        return this.bindParam;
     }
 
     /** refreshes the statement and the bindParams by the given where params */
@@ -105,15 +114,13 @@ export class Where {
         this.rawParams.push(whereParams);
 
         // set the statement and bindParams fields
-        this.setFieldsByRawParams();
+        this.setBindParamNames();
 
         return this;
     }
 
-    /** sets the statement, bindParams fields by the rawParams */
-    private setFieldsByRawParams() {
-        this.statement = '';
-
+    /** sets the bindParamNameByIdentifierProperty field by the rawParams */
+    private setBindParamNames() {
         // merge all rawParams into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
         const params: WhereParamsByIdentifierI = Object.assign(
             {},
@@ -125,19 +132,23 @@ export class Where {
                 const value = params[nodeIdentifier][key];
 
                 if (isNeo4jSupportedTypes(value)) {
-                    this.addAnd(
-                        `${nodeIdentifier}.${key} = ${this.getNameAndAddToParams(
-                            key,
-                            value,
-                        )}`,
+                    const bindParamName = this.getNameAndAddToParams(
+                        key,
+                        value,
                     );
+                    this.identifierPropertyData[`${nodeIdentifier}.${key}`] = {
+                        bindParamName,
+                        operator: 'equals',
+                    };
                 } else if (isWhereIn(value)) {
-                    this.addAnd(
-                        `${nodeIdentifier}.${key} IN ${this.getNameAndAddToParams(
-                            key,
-                            value[Op.in],
-                        )}`,
+                    const bindParamName = this.getNameAndAddToParams(
+                        key,
+                        value[Op.in],
                     );
+                    this.identifierPropertyData[`${nodeIdentifier}.${key}`] = {
+                        bindParamName,
+                        operator: 'in',
+                    };
                 }
             }
         }
@@ -152,13 +163,29 @@ export class Where {
         return `$${name}`;
     };
 
-    /** adds a value to the statement by prepending AND if the statement already has a value */
-    private addAnd = (value: string) => {
-        if (!this.statement) {
-            this.statement += value;
-        } else {
-            this.statement += ` AND ${value}`;
+    /** gets the statement by the params */
+    public getStatement = (): string => {
+        const statementParts: string[] = [];
+
+        const operatorForStatement: Record<
+            Where['identifierPropertyData'][0]['operator'],
+            string
+        > = {
+            equals: '=',
+            in: 'IN',
+        };
+
+        for (const [identifierWithProperty, bindParamData] of Object.entries(
+            this.identifierPropertyData,
+        )) {
+            statementParts.push(
+                `${identifierWithProperty} ${
+                    operatorForStatement[bindParamData.operator]
+                } ${bindParamData.bindParamName}`,
+            );
         }
+
+        return statementParts.join(' AND ');
     };
 
     /** returns a Where object if params is specified, else returns null */
