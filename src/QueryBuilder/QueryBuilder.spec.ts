@@ -208,6 +208,9 @@ describe.only('QueryBuilder', () => {
                 return: ['p', 'o', 'u.id'],
             },
             {
+                with: ['a', 'b'],
+            },
+            {
                 return: [
                     {
                         identifier: 'a',
@@ -217,6 +220,9 @@ describe.only('QueryBuilder', () => {
                         property: 'id',
                     },
                 ],
+            },
+            {
+                limit: 1,
             },
         ]);
 

@@ -8,7 +8,15 @@ import {
 } from '..';
 import { NeogmaConstraintError } from '../Errors';
 
-export type ParameterI = RawI | MatchI | SetI | DeleteI | RemoveI | ReturnI;
+export type ParameterI =
+    | RawI
+    | MatchI
+    | SetI
+    | DeleteI
+    | RemoveI
+    | ReturnI
+    | LimitI
+    | WithI;
 
 export type RawI = {
     raw: string;
@@ -134,6 +142,16 @@ const isReturnObject = (param: ReturnI['return']): param is ReturnObject => {
     );
 };
 
+export type LimitI = { limit: string | number };
+const isLimitParameter = (limit: ParameterI): limit is LimitI => {
+    return !!(limit as LimitI).limit;
+};
+
+export type WithI = { with: string | string[] };
+const isWithParameter = (wth: ParameterI): wth is WithI => {
+    return !!(wth as WithI).with;
+};
+
 export type NodeI = string | NodeObjectI;
 type NodeObjectI = {
     /** a label to use for this node */
@@ -204,6 +222,10 @@ export class QueryBuilder {
                 statementParts.push(this.getRemoveString(param.remove));
             } else if (isReturnParameter(param)) {
                 statementParts.push(this.getReturnString(param.return));
+            } else if (isLimitParameter(param)) {
+                statementParts.push(this.getLimitString(param.limit));
+            } else if (isWithParameter(param)) {
+                statementParts.push(this.getWithString(param.with));
             }
         }
 
@@ -391,5 +413,15 @@ export class QueryBuilder {
 
         // else string array
         return `RETURN ${rtn.join(', ')}`;
+    }
+
+    private getLimitString(limit: LimitI['limit']): string {
+        return `LIMIT ${limit}`;
+    }
+
+    private getWithString(wth: WithI['with']): string {
+        const wthArr = Array.isArray(wth) ? wth : [wth];
+
+        return `WITH ${wthArr.join(', ')}`;
     }
 }
