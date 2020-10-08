@@ -201,6 +201,23 @@ describe.only('QueryBuilder', () => {
                     detach: true,
                 },
             },
+            {
+                return: 'w, v.id',
+            },
+            {
+                return: ['p', 'o', 'u.id'],
+            },
+            {
+                return: [
+                    {
+                        identifier: 'a',
+                    },
+                    {
+                        identifier: 'b',
+                        property: 'id',
+                    },
+                ],
+            },
         ]);
 
         console.log(queryBuilder.getStatement());

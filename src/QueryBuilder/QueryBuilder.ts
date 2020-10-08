@@ -8,16 +8,16 @@ import {
 } from '..';
 import { NeogmaConstraintError } from '../Errors';
 
-export type ParameterI = RawI | MatchI | SetI | DeleteI | RemoveI;
+export type ParameterI = RawI | MatchI | SetI | DeleteI | RemoveI | ReturnI;
 
-type RawI = {
+export type RawI = {
     raw: string;
 };
 const isRawParameter = (param: ParameterI): param is RawI => {
     return !!(param as RawI).raw;
 };
 
-type MatchI = {
+export type MatchI = {
     match: MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
 };
 const isMatchParameter = (param: ParameterI): param is MatchI => {
@@ -49,7 +49,7 @@ const isMatchLiteral = (param: MatchI['match']): param is MatchLiteralI => {
     return !!(param as MatchLiteralI).literal;
 };
 
-type DeleteI = {
+export type DeleteI = {
     delete: string | DeleteWithIdentifierI | DeleteWithLiteralI;
 };
 const isDeleteParameter = (param: ParameterI): param is DeleteI => {
@@ -78,7 +78,7 @@ const isDeleteWithLiteral = (
     return !!param.literal;
 };
 
-type SetI = {
+export type SetI = {
     set:
         | string
         | {
@@ -115,6 +115,25 @@ const isRemoveLabels = (_param: RemoveI['remove']): _param is RemoveLabelsI => {
     return !!(param.labels && param.identifier);
 };
 
+export type ReturnI = {
+    return: string | string[] | ReturnObject;
+};
+const isReturnParameter = (param: ParameterI): param is ReturnI => {
+    return !!(param as ReturnI).return;
+};
+type ReturnObject = Array<{
+    identifier: string;
+    property?: string;
+}>;
+const isReturnObject = (param: ReturnI['return']): param is ReturnObject => {
+    return (
+        Array.isArray(param) &&
+        param.findIndex(
+            (v) => typeof v !== 'object' || !(v as ReturnObject[0]).identifier,
+        ) < 0
+    );
+};
+
 export type NodeI = string | NodeObjectI;
 type NodeObjectI = {
     /** a label to use for this node */
@@ -123,7 +142,7 @@ type NodeObjectI = {
     model?: NeogmaModel<any, any>;
     /** identifier for the node */
     identifier?: string;
-    /** where parameters for matching this node */
+    /** where parameters for matching this node TODO not needed for create */
     where?: WhereParamsI;
 };
 
@@ -133,7 +152,7 @@ type RelationshipObject = {
     // TODO needed for create, not needed for match
     name?: string;
     identifier?: string;
-    /** where parameters for matching this node */
+    /** where parameters for matching this node TODO not needed for create */
     where?: WhereParamsI;
 };
 export const isRelationship = (
@@ -183,6 +202,8 @@ export class QueryBuilder {
                 statementParts.push(this.getDeleteString(param.delete));
             } else if (isRemoveParameter(param)) {
                 statementParts.push(this.getRemoveString(param.remove));
+            } else if (isReturnParameter(param)) {
+                statementParts.push(this.getReturnString(param.return));
             }
         }
 
@@ -350,5 +371,25 @@ export class QueryBuilder {
                 : [remove.labels];
             return `REMOVE ${remove.identifier}:${labels.join(':')}`;
         }
+    }
+
+    private getReturnString(rtn: ReturnI['return']): string {
+        if (typeof rtn === 'string') {
+            return `RETURN ${rtn}`;
+        }
+
+        if (isReturnObject(rtn)) {
+            const returnString = rtn
+                .map(
+                    (v) =>
+                        `${v.identifier}${v.property ? '.' + v.property : ''}`,
+                )
+                .join(', ');
+
+            return `RETURN ${returnString}`;
+        }
+
+        // else string array
+        return `RETURN ${rtn.join(', ')}`;
     }
 }
