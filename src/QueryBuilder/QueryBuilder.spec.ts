@@ -82,14 +82,14 @@ describe.only('QueryBuilder', () => {
 
         const queryBuilder = new QueryBuilder([
             {
-                raw: 'MATCH (w: W)',
+                raw: 'MATCH (w:W)',
             },
             {
-                match: '(u: User)',
+                match: '(u:User)',
             },
             {
                 match: {
-                    literal: '(v: V)',
+                    literal: '(v:V)',
                     optional: true,
                 },
             },
@@ -111,6 +111,52 @@ describe.only('QueryBuilder', () => {
                     where: {
                         id: '21',
                     },
+                },
+            },
+            {
+                match: {
+                    related: [
+                        {
+                            identifier: 'a',
+                        },
+                        {
+                            direction: 'in',
+                        },
+                        {
+                            identifier: 'oo',
+                            model: Orders,
+                            where: {
+                                id: '11',
+                            },
+                        },
+                        {
+                            direction: 'out',
+                            name: 'CREATES',
+                            identifier: 'r',
+                            where: {
+                                date: '05-10-2020',
+                            },
+                        },
+                        {
+                            identifier: 'u',
+                        },
+                    ],
+                    optional: true,
+                },
+            },
+            {
+                match: {
+                    multiple: [
+                        {
+                            identifier: 'a',
+                            label: 'a',
+                        },
+                        {
+                            identifier: 'p2',
+                            model: Orders,
+                        },
+                    ],
+                    optional: true,
                 },
             },
             {

@@ -117,10 +117,10 @@ export class QueryRunner {
     };
 
     /**
-     * returns the appropriate data for a node, ready to be put in a statement
+     * returns the appropriate string for a node, ready to be put in a statement
      * example: (ident: Label { a.p1: $v1 })
      */
-    public static getNodeData = ({
+    public static getNodeStatement = ({
         identifier,
         label,
         where,
@@ -129,18 +129,65 @@ export class QueryRunner {
         label?: string;
         where?: Where | string;
     }): string => {
-        const identifierAndLabel = QueryRunner.getIdentifierWithLabel(
-            identifier,
-            label,
-        );
-        let whereString = '';
+        const nodeParts: string[] = [];
+
+        nodeParts.push(QueryRunner.getIdentifierWithLabel(identifier, label));
+
         if (where) {
-            whereString =
+            nodeParts.push(
                 typeof where === 'string'
                     ? where
-                    : where.getStatement('object');
+                    : where.getStatement('object'),
+            );
         }
-        return `(${identifierAndLabel} ${whereString})`;
+
+        return `(${nodeParts.join(' ')})`;
+    };
+
+    /**
+     * returns the appropriate string for a relationship, ready to be put in a statement
+     * example: -[identifier: name {where}]->
+     */
+    public static getRelationshipStatement = (params: {
+        /** relationship direction */
+        direction: CreateRelationshipParamsI['relationship']['direction'];
+        /** relationship name */
+        name: string;
+        /** relationship identifier. If empty, no identifier will be used */
+        identifier?: string;
+        /** where statement to be used in the relationship */
+        where?: Where | string;
+    }): string => {
+        const { direction, name, where } = params;
+        const identifier = params.identifier || '';
+
+        const allParts: string[] = [];
+
+        // <- or -
+        allParts.push(direction === 'in' ? '<-' : '-');
+
+        // strings will be inside [ ]
+        const innerRelationshipParts: string[] = [];
+        // identifier:Name
+        innerRelationshipParts.push(
+            QueryRunner.getIdentifierWithLabel(identifier, name),
+        );
+        if (where) {
+            // { where }
+            innerRelationshipParts.push(
+                typeof where === 'string'
+                    ? where
+                    : where.getStatement('object'),
+            );
+        }
+
+        // wrap it in [ ]
+        allParts.push(`[${innerRelationshipParts.join(' ')}]`);
+
+        // -> or -
+        allParts.push(direction === 'out' ? '->' : '-');
+
+        return allParts.join('');
     };
 
     public create = async <T>(params: {
@@ -156,7 +203,7 @@ export class QueryRunner {
         const { label, data: options } = params;
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const { getNodeData } = QueryRunner;
+        const { getNodeStatement: getNodeData } = QueryRunner;
         const statement = `
             UNWIND {options} as data
             CREATE ${getNodeData({ identifier, label })}
@@ -194,7 +241,7 @@ export class QueryRunner {
 
         const statementParts: string[] = [];
         statementParts.push(
-            `MATCH ${QueryRunner.getNodeData({ identifier, label })}`,
+            `MATCH ${QueryRunner.getNodeStatement({ identifier, label })}`,
         );
         if (where) {
             statementParts.push(`WHERE ${where.getStatement('text')}`);
@@ -235,7 +282,7 @@ export class QueryRunner {
 
         const statementParts: string[] = [];
         statementParts.push(
-            `MATCH ${QueryRunner.getNodeData({ identifier, label })}`,
+            `MATCH ${QueryRunner.getNodeStatement({ identifier, label })}`,
         );
         if (where) {
             statementParts.push(`WHERE ${where.getStatement('text')}`);
@@ -289,7 +336,7 @@ export class QueryRunner {
                 target.identifier ||
                 QueryRunner.identifiers.createRelationship.target,
         };
-        const { getNodeData } = QueryRunner;
+        const { getNodeStatement: getNodeData } = QueryRunner;
         const statementParts: string[] = [];
         statementParts.push('MATCH');
         statementParts.push(
@@ -313,7 +360,7 @@ export class QueryRunner {
         statementParts.push(getNodeData({ identifier: identifiers.source }));
         // -[relationship]-
         statementParts.push(
-            QueryRunner.getRelationshipDirectionAndName({
+            QueryRunner.getRelationshipStatement({
                 direction: relationship.direction,
                 name: relationship.name,
                 identifier: relationshipIdentifier,
@@ -378,27 +425,6 @@ export class QueryRunner {
         }
 
         return `{${parts.join(',')}}`;
-    };
-
-    /**
-     * returns a string in the format -[r:name]->
-     */
-    public static getRelationshipDirectionAndName = (params: {
-        /** relationship direction */
-        direction: CreateRelationshipParamsI['relationship']['direction'];
-        /** relationship name */
-        name: string;
-        /** relationship identifier. If empty, no identifier will be used */
-        identifier?: string;
-    }): string => {
-        const { direction, name } = params;
-        const identifier = params.identifier || '';
-
-        return [
-            direction === 'in' ? '<-' : '-',
-            `[${QueryRunner.getIdentifierWithLabel(identifier, name)}]`,
-            direction === 'out' ? '->' : '-',
-        ].join(' ');
     };
 
     /** maps a session object to a uuid, for logging purposes */

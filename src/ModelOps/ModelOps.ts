@@ -688,7 +688,7 @@ export const ModelFactory = <
                         statementParts.push(createOrMerge(mergeProperties));
                         // (identifier: label { where })
                         statementParts.push(
-                            QueryRunner.getNodeData({
+                            QueryRunner.getNodeStatement({
                                 identifier,
                                 label,
                                 // use the bindParam straight away as where
@@ -767,13 +767,13 @@ export const ModelFactory = <
                             );
                             // (parentIdentifier)
                             statementParts.push(
-                                QueryRunner.getNodeData({
+                                QueryRunner.getNodeStatement({
                                     identifier: parentIdentifier,
                                 }),
                             );
                             // -[relationship]-
                             statementParts.push(
-                                QueryRunner.getRelationshipDirectionAndName({
+                                QueryRunner.getRelationshipStatement({
                                     direction: relationship.direction,
                                     name: relationship.name,
                                     identifier: relationshipIdentifier,
@@ -781,7 +781,7 @@ export const ModelFactory = <
                             );
                             // (identifier)
                             statementParts.push(
-                                QueryRunner.getNodeData({
+                                QueryRunner.getNodeStatement({
                                     identifier,
                                 }),
                             );
@@ -890,7 +890,7 @@ export const ModelFactory = <
                     UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
                 `);
                 statementParts.push(`
-                    CREATE ${QueryRunner.getNodeData({
+                    CREATE ${QueryRunner.getNodeStatement({
                         identifier: bulkCreateIdentifier,
                         label: this.getLabel(),
                     })}
@@ -924,7 +924,7 @@ export const ModelFactory = <
 
                     relationshipByWhereParts.push(
                         `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
-                        `MATCH ${QueryRunner.getNodeData({
+                        `MATCH ${QueryRunner.getNodeStatement({
                             identifier: targetNodeIdentifier,
                             label: targetNodeLabel,
                         })}`,
@@ -937,15 +937,15 @@ export const ModelFactory = <
                         // CREATE or MERGE
                         createOrMerge(relateParameters.merge),
                         // (identifier)
-                        QueryRunner.getNodeData({ identifier }),
+                        QueryRunner.getNodeStatement({ identifier }),
                         // -[relationship]-
-                        QueryRunner.getRelationshipDirectionAndName({
+                        QueryRunner.getRelationshipStatement({
                             direction: relationship.direction,
                             name: relationship.name,
                             identifier: relationshipIdentifier,
                         }),
                         // (targetNodeIdentifier)
-                        QueryRunner.getNodeData({
+                        QueryRunner.getNodeStatement({
                             identifier: targetNodeIdentifier,
                         }),
                     );
@@ -1105,7 +1105,7 @@ export const ModelFactory = <
                 });
             }
 
-            const { getNodeData } = QueryRunner;
+            const { getNodeStatement: getNodeData } = QueryRunner;
 
             /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
             const updateBindParam = where.getBindParam().clone();
@@ -1128,7 +1128,7 @@ export const ModelFactory = <
             );
             // -[relationship]-
             statementParts.push(
-                QueryRunner.getRelationshipDirectionAndName({
+                QueryRunner.getRelationshipStatement({
                     direction: relationship.direction,
                     name: relationship.name,
                     identifier: identifiers.relationship,

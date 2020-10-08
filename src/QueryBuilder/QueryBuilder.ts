@@ -6,6 +6,7 @@ import {
     Neo4jSupportedTypes,
     QueryRunner,
 } from '..';
+import { NeogmaConstraintError } from '../Errors';
 
 export type ParameterI = RawI | MatchI | SetI | DeleteI | RemoveI;
 
@@ -17,15 +18,35 @@ const isRawParameter = (param: ParameterI): param is RawI => {
 };
 
 type MatchI = {
-    match:
-        | (NodeI & {
-              /** optional match */
-              optional?: boolean;
-          })
-        | Array<NodeI | RelationshipI>;
+    match: MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
 };
 const isMatchParameter = (param: ParameterI): param is MatchI => {
     return !!(param as MatchI).match;
+};
+type MatchNodeI = NodeI & {
+    /** optional match */
+    optional?: boolean;
+};
+type MatchRelatedI = {
+    related: Array<NodeI | RelationshipI>;
+    optional?: boolean;
+};
+const isMatchRelated = (param: MatchI['match']): param is MatchRelatedI => {
+    return !!(param as MatchRelatedI).related;
+};
+type MatchMultipleI = {
+    multiple: NodeI[];
+    optional?: boolean;
+};
+const isMatchMultiple = (param: MatchI['match']): param is MatchMultipleI => {
+    return !!(param as MatchMultipleI).multiple;
+};
+type MatchLiteralI = {
+    literal: string;
+    optional?: string;
+};
+const isMatchLiteral = (param: MatchI['match']): param is MatchLiteralI => {
+    return !!(param as MatchLiteralI).literal;
 };
 
 type DeleteI = {
@@ -94,10 +115,7 @@ const isRemoveLabels = (_param: RemoveI['remove']): _param is RemoveLabelsI => {
     return !!(param.labels && param.identifier);
 };
 
-export type NodeI = string | NodeObjectI | NodeWithLiteralI;
-const isNode = (node: MatchI['match']): node is NodeI => {
-    return typeof node === 'string' || !Array.isArray(node);
-};
+export type NodeI = string | NodeObjectI;
 type NodeObjectI = {
     /** a label to use for this node */
     label?: string;
@@ -108,24 +126,22 @@ type NodeObjectI = {
     /** where parameters for matching this node */
     where?: WhereParamsI;
 };
-type NodeWithLiteralI = {
-    literal: string;
-};
-const isNodeWithLiteral = (_node: NodeI): _node is NodeWithLiteralI => {
-    const node = _node as NodeWithLiteralI;
-    return !!node.literal;
-};
 
-type RelationshipI =
-    | string
-    | {
-          direction: 'in' | 'out' | 'none';
-          // TODO needed for create, not needed for match
-          name?: string;
-          identifier?: string;
-          /** where parameters for matching this node */
-          where?: WhereParamsI;
-      };
+type RelationshipI = string | RelationshipObject;
+type RelationshipObject = {
+    direction: 'in' | 'out' | 'none';
+    // TODO needed for create, not needed for match
+    name?: string;
+    identifier?: string;
+    /** where parameters for matching this node */
+    where?: WhereParamsI;
+};
+export const isRelationship = (
+    _relationship: RelationshipI | NodeI,
+): _relationship is RelationshipI => {
+    const relationship = _relationship as RelationshipI;
+    return typeof relationship === 'string' || !!relationship.direction;
+};
 
 export class QueryBuilder {
     private parameters: ParameterI[];
@@ -179,10 +195,6 @@ export class QueryBuilder {
             return node;
         }
 
-        if (isNodeWithLiteral(node)) {
-            return node.literal;
-        }
-
         // else, it's a NodeObjectI
         let where: Where;
 
@@ -195,19 +207,88 @@ export class QueryBuilder {
             );
         }
 
-        const label = node.label || node.model.getLabel();
+        const label = node.label || node.model?.getLabel() || '';
 
         // (identifier: label { where })
-        return QueryRunner.getNodeData({
+        return QueryRunner.getNodeStatement({
             identifier: node.identifier,
             label,
             where,
         });
     }
 
+    private getRelationshipString(relationship: RelationshipI): string {
+        if (typeof relationship === 'string') {
+            return relationship;
+        }
+
+        // else, it's a relationship object
+        const { direction, identifier, name } = relationship;
+        let where: Where;
+
+        if (relationship.where) {
+            where = new Where(
+                {
+                    [identifier]: relationship.where,
+                },
+                this.bindParam,
+            );
+        }
+
+        return QueryRunner.getRelationshipStatement({
+            direction,
+            identifier,
+            name,
+            where,
+        });
+    }
+
     /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
     private getMatchString(match: MatchI['match']): string {
-        if (isNode(match)) {
+        if (isMatchMultiple(match)) {
+            const nodeStrings: string[] = [];
+
+            for (const element of match.multiple) {
+                nodeStrings.push(this.getNodeString(element));
+            }
+
+            return [
+                match.optional ? 'OPTIONAL' : '',
+                'MATCH',
+                nodeStrings.join(', '),
+            ].join(' ');
+        } else if (isMatchRelated(match)) {
+            // every even element is a node, every odd element is a relationship
+            const parts: string[] = [];
+
+            for (let index = 0; index < match.related.length; index++) {
+                const element = match.related[index];
+                if (index % 2) {
+                    // even, parse as relationship
+                    if (!isRelationship(element)) {
+                        throw new NeogmaConstraintError(
+                            'even argument of related is not a relationship',
+                        );
+                    }
+                    parts.push(this.getRelationshipString(element));
+                } else {
+                    // odd, parse as node
+                    parts.push(this.getNodeString(element));
+                }
+            }
+
+            return [
+                match.optional ? 'OPTIONAL' : '',
+                'MATCH',
+                parts.join(''),
+            ].join(' ');
+        } else if (isMatchLiteral(match)) {
+            return [
+                match.optional ? 'OPTIONAL' : '',
+                `MATCH ${this.getNodeString(match.literal)}`,
+            ].join(' ');
+        } else {
+            // node
             return [
                 match.optional ? 'OPTIONAL' : '',
                 `MATCH ${this.getNodeString(match)}`,
