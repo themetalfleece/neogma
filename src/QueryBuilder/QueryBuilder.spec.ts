@@ -124,7 +124,6 @@ describe.only('QueryBuilder', () => {
                         },
                         {
                             identifier: 'oo',
-                            model: Orders,
                             where: {
                                 id: '11',
                             },
@@ -157,6 +156,60 @@ describe.only('QueryBuilder', () => {
                         },
                     ],
                     optional: true,
+                },
+            },
+            {
+                create: '(n1:Location)',
+            },
+            {
+                create: {
+                    multiple: [
+                        {
+                            model: Orders,
+                        },
+                        {
+                            identifier: 'n2',
+                            label: 'Location',
+                        },
+                    ],
+                },
+            },
+            {
+                create: {
+                    identifier: 'n3',
+                    label: 'Location',
+                },
+            },
+            {
+                create: {
+                    identifier: 'n4',
+                    model: Orders,
+                },
+            },
+            {
+                create: {
+                    related: [
+                        {
+                            identifier: 'n4',
+                            label: 'Location',
+                        },
+                        {
+                            direction: 'out',
+                            name: 'HAS',
+                        },
+                        {
+                            identifier: 'n5',
+                            model: Orders,
+                        },
+                        {
+                            direction: 'in',
+                            name: 'CREATES',
+                        },
+                        {
+                            identifier: 'n6',
+                            label: 'User',
+                        },
+                    ],
                 },
             },
             {

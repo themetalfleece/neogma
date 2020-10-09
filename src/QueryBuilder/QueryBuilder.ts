@@ -11,6 +11,7 @@ import { NeogmaConstraintError } from '../Errors';
 export type ParameterI =
     | RawI
     | MatchI
+    | CreateI
     | SetI
     | DeleteI
     | RemoveI
@@ -26,24 +27,24 @@ const isRawParameter = (param: ParameterI): param is RawI => {
 };
 
 export type MatchI = {
-    match: MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
+    match: string | MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
 };
 const isMatchParameter = (param: ParameterI): param is MatchI => {
     return !!(param as MatchI).match;
 };
-type MatchNodeI = NodeI & {
+type MatchNodeI = NodeForMatchI & {
     /** optional match */
     optional?: boolean;
 };
 type MatchRelatedI = {
-    related: Array<NodeI | RelationshipI>;
+    related: Array<NodeForMatchI | RelationshipForMatchI>;
     optional?: boolean;
 };
 const isMatchRelated = (param: MatchI['match']): param is MatchRelatedI => {
     return !!(param as MatchRelatedI).related;
 };
 type MatchMultipleI = {
-    multiple: NodeI[];
+    multiple: NodeForMatchI[];
     optional?: boolean;
 };
 const isMatchMultiple = (param: MatchI['match']): param is MatchMultipleI => {
@@ -55,6 +56,28 @@ type MatchLiteralI = {
 };
 const isMatchLiteral = (param: MatchI['match']): param is MatchLiteralI => {
     return !!(param as MatchLiteralI).literal;
+};
+
+export type CreateI = {
+    create: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
+};
+const isCreateParameter = (param: ParameterI): param is CreateI => {
+    return !!(param as CreateI).create;
+};
+type CreateNodeI = NodeForCreateI;
+type CreateRelatedI = {
+    related: Array<NodeForCreateI | RelationshipForCreateI>;
+};
+const isCreateRelated = (param: CreateI['create']): param is CreateRelatedI => {
+    return !!(param as CreateRelatedI).related;
+};
+type CreateMultipleI = {
+    multiple: NodeForCreateI[];
+};
+const isCreateMultiple = (
+    param: CreateI['create'],
+): param is CreateMultipleI => {
+    return !!(param as CreateMultipleI).multiple;
 };
 
 export type DeleteI = {
@@ -124,20 +147,20 @@ const isRemoveLabels = (_param: RemoveI['remove']): _param is RemoveLabelsI => {
 };
 
 export type ReturnI = {
-    return: string | string[] | ReturnObject;
+    return: string | string[] | ReturnObjectI;
 };
 const isReturnParameter = (param: ParameterI): param is ReturnI => {
     return !!(param as ReturnI).return;
 };
-type ReturnObject = Array<{
+type ReturnObjectI = Array<{
     identifier: string;
     property?: string;
 }>;
-const isReturnObject = (param: ReturnI['return']): param is ReturnObject => {
+const isReturnObject = (param: ReturnI['return']): param is ReturnObjectI => {
     return (
         Array.isArray(param) &&
         param.findIndex(
-            (v) => typeof v !== 'object' || !(v as ReturnObject[0]).identifier,
+            (v) => typeof v !== 'object' || !(v as ReturnObjectI[0]).identifier,
         ) < 0
     );
 };
@@ -152,31 +175,76 @@ const isWithParameter = (wth: ParameterI): wth is WithI => {
     return !!(wth as WithI).with;
 };
 
-export type NodeI = string | NodeObjectI;
-type NodeObjectI = {
+type NodeForMatchI = string | NodeForMatchObjectI;
+type NodeForMatchObjectI = {
     /** a label to use for this node */
     label?: string;
     /** the model of this node. Automatically sets the "label" field */
     model?: NeogmaModel<any, any>;
     /** identifier for the node */
     identifier?: string;
-    /** where parameters for matching this node TODO not needed for create */
+    /** where parameters for matching this node */
     where?: WhereParamsI;
+};
+type NodeForCreateI =
+    | string
+    | NodeForCreateWithLabelI
+    | NodeForCreateWithModelI;
+type NodeForCreateObjectI = NodeForCreateWithLabelI | NodeForCreateWithModelI;
+type NodeForCreateWithLabelI = {
+    /** identifier for the node */
+    identifier?: string;
+    /** a label to use for this node */
+    label: string;
+};
+type NodeForCreateWithModelI = {
+    /** identifier for the node */
+    identifier?: string;
+    /** the model of this node. Automatically sets the "label" field */
+    model: NeogmaModel<any, any>;
+};
+const isNodeWithWhere = (
+    node: NodeForMatchObjectI | NodeForCreateObjectI,
+): node is NodeForMatchObjectI => {
+    return !!(node as NodeForMatchObjectI).where;
+};
+const isNodeWithLabel = (
+    node: NodeForMatchObjectI | NodeForCreateObjectI,
+): node is NodeForMatchObjectI | NodeForCreateWithLabelI => {
+    return !!(node as NodeForMatchObjectI | NodeForCreateWithLabelI).label;
+};
+const isNodeWithModel = (
+    node: NodeForMatchObjectI | NodeForCreateObjectI,
+): node is NodeForMatchObjectI | NodeForCreateWithModelI => {
+    return !!(node as NodeForMatchObjectI | NodeForCreateWithModelI).model;
 };
 
-type RelationshipI = string | RelationshipObject;
-type RelationshipObject = {
+type RelationshipForMatchI = string | RelationshipForMatchObjectI;
+type RelationshipForMatchObjectI = {
     direction: 'in' | 'out' | 'none';
-    // TODO needed for create, not needed for match
     name?: string;
     identifier?: string;
-    /** where parameters for matching this node TODO not needed for create */
+    /** where parameters for matching this node */
     where?: WhereParamsI;
 };
-export const isRelationship = (
-    _relationship: RelationshipI | NodeI,
-): _relationship is RelationshipI => {
-    const relationship = _relationship as RelationshipI;
+type RelationshipForCreateI = string | RelationshipForCreateObjectI;
+type RelationshipForCreateObjectI = {
+    direction: 'in' | 'out' | 'none';
+    name: string;
+    identifier?: string;
+};
+const isRelationshipWithWhere = (
+    relationship: RelationshipForMatchI | RelationshipForCreateI,
+): relationship is RelationshipForMatchI => {
+    return (
+        typeof relationship === 'object' &&
+        !!(relationship as RelationshipForMatchObjectI).where
+    );
+};
+const isRelationship = (
+    _relationship: RelationshipForMatchI | NodeForMatchI,
+): _relationship is RelationshipForMatchI => {
+    const relationship = _relationship as RelationshipForMatchI;
     return typeof relationship === 'string' || !!relationship.direction;
 };
 
@@ -214,6 +282,8 @@ export class QueryBuilder {
                 statementParts.push(param.raw);
             } else if (isMatchParameter(param)) {
                 statementParts.push(this.getMatchString(param.match));
+            } else if (isCreateParameter(param)) {
+                statementParts.push(this.getCreateString(param.create));
             } else if (isSetParameter(param)) {
                 statementParts.push(this.getSetString(param.set));
             } else if (isDeleteParameter(param)) {
@@ -233,7 +303,7 @@ export class QueryBuilder {
         this.statement = statementParts.join('\n').replace(/\s+/g, ' ');
     }
 
-    private getNodeString(node: NodeI): string {
+    private getNodeString(node: NodeForMatchI | NodeForCreateI): string {
         if (typeof node === 'string') {
             return node;
         }
@@ -241,7 +311,7 @@ export class QueryBuilder {
         // else, it's a NodeObjectI
         let where: Where;
 
-        if (node.where) {
+        if (isNodeWithWhere(node)) {
             where = new Where(
                 {
                     [node.identifier]: node.where,
@@ -250,7 +320,12 @@ export class QueryBuilder {
             );
         }
 
-        const label = node.label || node.model?.getLabel() || '';
+        let label = '';
+        if (isNodeWithLabel(node)) {
+            label = node.label;
+        } else if (isNodeWithModel(node)) {
+            label = node.model.getLabel();
+        }
 
         // (identifier: label { where })
         return QueryRunner.getNodeStatement({
@@ -260,7 +335,9 @@ export class QueryBuilder {
         });
     }
 
-    private getRelationshipString(relationship: RelationshipI): string {
+    private getRelationshipString(
+        relationship: RelationshipForMatchI | RelationshipForCreateI,
+    ): string {
         if (typeof relationship === 'string') {
             return relationship;
         }
@@ -269,7 +346,7 @@ export class QueryBuilder {
         const { direction, identifier, name } = relationship;
         let where: Where;
 
-        if (relationship.where) {
+        if (isRelationshipWithWhere(relationship)) {
             where = new Where(
                 {
                     [identifier]: relationship.where,
@@ -288,19 +365,21 @@ export class QueryBuilder {
 
     /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
     private getMatchString(match: MatchI['match']): string {
+        if (typeof match === 'string') {
+            return `MATCH ${match}`;
+        }
+
         if (isMatchMultiple(match)) {
-            const nodeStrings: string[] = [];
-
-            for (const element of match.multiple) {
-                nodeStrings.push(this.getNodeString(element));
-            }
-
             return [
                 match.optional ? 'OPTIONAL' : '',
                 'MATCH',
-                nodeStrings.join(', '),
+                match.multiple
+                    .map((element) => this.getNodeString(element))
+                    .join(', '),
             ].join(' ');
-        } else if (isMatchRelated(match)) {
+        }
+
+        if (isMatchRelated(match)) {
             // every even element is a node, every odd element is a relationship
             const parts: string[] = [];
 
@@ -325,18 +404,82 @@ export class QueryBuilder {
                 'MATCH',
                 parts.join(''),
             ].join(' ');
-        } else if (isMatchLiteral(match)) {
+        }
+
+        if (isMatchLiteral(match)) {
             return [
                 match.optional ? 'OPTIONAL' : '',
                 `MATCH ${this.getNodeString(match.literal)}`,
             ].join(' ');
-        } else {
-            // node
+        }
+
+        // else, is a node
+        return [
+            match.optional ? 'OPTIONAL' : '',
+            `MATCH ${this.getNodeString(match)}`,
+        ].join(' ');
+    }
+
+    private getCreateString(create: CreateI['create']): string {
+        if (typeof create === 'string') {
+            return `CREATE ${create}`;
+        }
+
+        if (isCreateMultiple(create)) {
             return [
-                match.optional ? 'OPTIONAL' : '',
-                `MATCH ${this.getNodeString(match)}`,
+                'CREATE',
+                create.multiple
+                    .map((element) => this.getNodeString(element))
+                    .join(', '),
             ].join(' ');
         }
+
+        if (isCreateRelated(create)) {
+            // every even element is a node, every odd element is a relationship
+            const parts: string[] = [];
+
+            for (let index = 0; index < create.related.length; index++) {
+                const element = create.related[index];
+                if (index % 2) {
+                    // even, parse as relationship
+                    if (!isRelationship(element)) {
+                        throw new NeogmaConstraintError(
+                            'even argument of related is not a relationship',
+                        );
+                    }
+                    parts.push(this.getRelationshipString(element));
+                } else {
+                    // odd, parse as node
+                    parts.push(this.getNodeString(element));
+                }
+            }
+
+            return ['CREATE', parts.join('')].join(' ');
+        }
+
+        // else, is a node
+        if (isNodeWithLabel(create)) {
+            return [
+                'CREATE',
+                this.getNodeString({
+                    identifier: create.identifier,
+                    label: create.label,
+                }),
+            ].join(' ');
+        }
+        if (isNodeWithModel(create)) {
+            return [
+                'CREATE',
+                this.getNodeString({
+                    identifier: create.identifier,
+                    model: create.model,
+                }),
+            ].join(' ');
+        }
+
+        throw new NeogmaConstraintError('Invanid create parameter', {
+            actual: create,
+        });
     }
 
     /** returns a string in the format: `SET a.p1 = $v1, a.p2 = $v2` */
