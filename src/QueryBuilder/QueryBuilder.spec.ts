@@ -213,6 +213,32 @@ describe.only('QueryBuilder', () => {
                 },
             },
             {
+                merge: {
+                    related: [
+                        {
+                            identifier: 'n7',
+                            label: 'Location',
+                        },
+                        {
+                            direction: 'out',
+                            name: 'HAS',
+                        },
+                        {
+                            identifier: 'n8',
+                            model: Orders,
+                        },
+                        {
+                            direction: 'in',
+                            name: 'CREATES',
+                        },
+                        {
+                            identifier: 'n9',
+                            label: 'User',
+                        },
+                    ],
+                },
+            },
+            {
                 set: `o.age = 27`,
             },
             {

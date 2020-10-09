@@ -12,6 +12,7 @@ export type ParameterI =
     | RawI
     | MatchI
     | CreateI
+    | MergeI
     | SetI
     | DeleteI
     | RemoveI
@@ -78,6 +79,13 @@ const isCreateMultiple = (
     param: CreateI['create'],
 ): param is CreateMultipleI => {
     return !!(param as CreateMultipleI).multiple;
+};
+
+export type MergeI = {
+    merge: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
+};
+const isMergeParameter = (param: ParameterI): param is MergeI => {
+    return !!(param as MergeI).merge;
 };
 
 export type DeleteI = {
@@ -186,6 +194,7 @@ type NodeForMatchObjectI = {
     /** where parameters for matching this node */
     where?: WhereParamsI;
 };
+// TODO add and use properties
 type NodeForCreateI =
     | string
     | NodeForCreateWithLabelI
@@ -283,7 +292,13 @@ export class QueryBuilder {
             } else if (isMatchParameter(param)) {
                 statementParts.push(this.getMatchString(param.match));
             } else if (isCreateParameter(param)) {
-                statementParts.push(this.getCreateString(param.create));
+                statementParts.push(
+                    this.getCreateOrMergeString(param.create, 'create'),
+                );
+            } else if (isMergeParameter(param)) {
+                statementParts.push(
+                    this.getCreateOrMergeString(param.merge, 'merge'),
+                );
             } else if (isSetParameter(param)) {
                 statementParts.push(this.getSetString(param.set));
             } else if (isDeleteParameter(param)) {
@@ -420,14 +435,19 @@ export class QueryBuilder {
         ].join(' ');
     }
 
-    private getCreateString(create: CreateI['create']): string {
+    private getCreateOrMergeString(
+        create: CreateI['create'],
+        mode: 'create' | 'merge',
+    ): string {
+        const createOrMerge = mode === 'merge' ? 'MERGE' : 'CREATE';
+
         if (typeof create === 'string') {
-            return `CREATE ${create}`;
+            return `${createOrMerge} ${create}`;
         }
 
         if (isCreateMultiple(create)) {
             return [
-                'CREATE',
+                createOrMerge,
                 create.multiple
                     .map((element) => this.getNodeString(element))
                     .join(', '),
@@ -454,13 +474,13 @@ export class QueryBuilder {
                 }
             }
 
-            return ['CREATE', parts.join('')].join(' ');
+            return [createOrMerge, parts.join('')].join(' ');
         }
 
         // else, is a node
         if (isNodeWithLabel(create)) {
             return [
-                'CREATE',
+                createOrMerge,
                 this.getNodeString({
                     identifier: create.identifier,
                     label: create.label,
@@ -469,7 +489,7 @@ export class QueryBuilder {
         }
         if (isNodeWithModel(create)) {
             return [
-                'CREATE',
+                createOrMerge,
                 this.getNodeString({
                     identifier: create.identifier,
                     model: create.model,
