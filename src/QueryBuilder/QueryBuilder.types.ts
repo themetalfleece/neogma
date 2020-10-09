@@ -1,4 +1,10 @@
-import { Neo4jSupportedTypes, NeogmaModel, WhereParamsI } from '..';
+import {
+    Neo4jSupportedTypes,
+    NeogmaModel,
+    WhereParamsI,
+    Where,
+    WhereParamsByIdentifierI,
+} from '..';
 
 export type ParameterI =
     | RawI
@@ -9,8 +15,13 @@ export type ParameterI =
     | DeleteI
     | RemoveI
     | ReturnI
+    | OrderByI
+    | UnwindI
+    | ForEachI
     | LimitI
-    | WithI;
+    | SkipI
+    | WithI
+    | WhereI;
 
 export type RawI = {
     raw: string;
@@ -182,9 +193,62 @@ export const isLimitParameter = (limit: ParameterI): limit is LimitI => {
     return !!(limit as LimitI).limit;
 };
 
+export type SkipI = { skip: string | number };
+export const isSkipParameter = (skip: ParameterI): skip is SkipI => {
+    return !!(skip as SkipI).skip;
+};
+
 export type WithI = { with: string | string[] };
 export const isWithParameter = (wth: ParameterI): wth is WithI => {
     return !!(wth as WithI).with;
+};
+
+export type OrderByI = {
+    orderBy:
+        | string
+        | Array<
+              | string
+              | [string, 'ASC' | 'DESC']
+              | {
+                    identifier: string;
+                    property?: string;
+                    order?: 'ASC' | 'DESC';
+                }
+          >
+        | { identifier: string; property?: string; order?: 'ASC' | 'DESC' };
+};
+export const isOrderByParameter = (
+    orderBy: ParameterI,
+): orderBy is OrderByI => {
+    return !!(orderBy as OrderByI).orderBy;
+};
+
+export type UnwindI = {
+    unwind:
+        | string
+        | {
+              value: string;
+              as: string;
+          };
+};
+export const isUnwindParameter = (unwind: ParameterI): unwind is UnwindI => {
+    return !!(unwind as UnwindI).unwind;
+};
+
+export type WhereI = {
+    where: string | Where | WhereParamsByIdentifierI;
+};
+export const isWhereParameter = (where: ParameterI): where is WhereI => {
+    return !!(where as WhereI).where;
+};
+
+export type ForEachI = {
+    forEach: string;
+};
+export const isForEachParameter = (
+    forEach: ParameterI,
+): forEach is ForEachI => {
+    return !!(forEach as ForEachI).forEach;
 };
 
 export type NodeForMatchI = string | NodeForMatchObjectI;

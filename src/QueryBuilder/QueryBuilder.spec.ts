@@ -159,6 +159,16 @@ describe.only('QueryBuilder', () => {
                 },
             },
             {
+                where: `a.id = '5'`,
+            },
+            {
+                where: {
+                    p2: {
+                        id: '5',
+                    },
+                },
+            },
+            {
                 create: '(n1:Location)',
             },
             {
@@ -287,6 +297,15 @@ describe.only('QueryBuilder', () => {
                 },
             },
             {
+                unwind: '[1, 2, 3] as arr',
+            },
+            {
+                unwind: {
+                    value: 'arr',
+                    as: 'y',
+                },
+            },
+            {
                 return: 'w, v.id',
             },
             {
@@ -294,6 +313,41 @@ describe.only('QueryBuilder', () => {
             },
             {
                 with: ['a', 'b'],
+            },
+            {
+                orderBy: 'a ASC',
+            },
+            {
+                orderBy: ['b', 'c DESC'],
+            },
+            {
+                orderBy: [
+                    ['j', 'DESC'],
+                    'd',
+                    {
+                        identifier: 'e',
+                    },
+                    {
+                        identifier: 'f',
+                        order: 'ASC',
+                    },
+                    {
+                        identifier: 'g',
+                        property: 'p1',
+                    },
+                    {
+                        identifier: 'h',
+                        order: 'DESC',
+                        property: 'p2',
+                    },
+                ],
+            },
+            {
+                orderBy: {
+                    identifier: 'i',
+                    order: 'ASC',
+                    property: 'p3',
+                },
             },
             {
                 return: [
@@ -311,6 +365,12 @@ describe.only('QueryBuilder', () => {
             },
             {
                 limit: 1,
+            },
+            {
+                skip: '7',
+            },
+            {
+                skip: 5,
             },
         ]);
 

@@ -24,6 +24,7 @@ import {
     isRelationshipWithWhere,
     isRelationshipWithProperties,
     MatchI,
+    RawI,
     isMatchMultiple,
     isMatchRelated,
     isRelationship,
@@ -42,7 +43,37 @@ import {
     isReturnObject,
     LimitI,
     WithI,
+    MergeI,
+    UnwindI,
+    OrderByI,
+    ForEachI,
+    SkipI,
+    WhereI,
+    isSkipParameter,
+    isUnwindParameter,
+    isForEachParameter,
+    isOrderByParameter,
+    isWhereParameter,
 } from './QueryBuilder.types';
+
+export type QueryBuilderParameters = {
+    ParameterI: ParameterI;
+    RawI: RawI['raw'];
+    MatchI: MatchI['match'];
+    CreateI: CreateI['create'];
+    MergeI: MergeI['merge'];
+    SetI: SetI['set'];
+    DeleteI: DeleteI['delete'];
+    RemoveI: RemoveI['remove'];
+    ReturnI: ReturnI['return'];
+    LimitI: LimitI['limit'];
+    WithI: WithI['with'];
+    OrderByI: OrderByI['orderBy'];
+    UnwindI: UnwindI['unwind'];
+    ForEachI: ForEachI['forEach'];
+    SkipI: SkipI['skip'];
+    WhereI: WhereI['where'];
+};
 
 export class QueryBuilder {
     private parameters: ParameterI[];
@@ -98,6 +129,16 @@ export class QueryBuilder {
                 statementParts.push(this.getLimitString(param.limit));
             } else if (isWithParameter(param)) {
                 statementParts.push(this.getWithString(param.with));
+            } else if (isSkipParameter(param)) {
+                statementParts.push(this.getSkipString(param.skip));
+            } else if (isUnwindParameter(param)) {
+                statementParts.push(this.getUnwindString(param.unwind));
+            } else if (isForEachParameter(param)) {
+                statementParts.push(this.getForEachString(param.forEach));
+            } else if (isOrderByParameter(param)) {
+                statementParts.push(this.getOrderByString(param.orderBy));
+            } else if (isWhereParameter(param)) {
+                statementParts.push(this.getWhereString(param.where));
             }
         }
 
@@ -389,9 +430,86 @@ export class QueryBuilder {
         return `LIMIT ${limitString}`;
     }
 
+    private getSkipString(skip: SkipI['skip']): string {
+        const skipString =
+            typeof skip === 'string'
+                ? skip
+                : `$${this.bindParam.getUniqueNameAndAdd('skip', int(skip))}`;
+
+        return `SKIP ${skipString}`;
+    }
+
     private getWithString(wth: WithI['with']): string {
         const wthArr = Array.isArray(wth) ? wth : [wth];
 
         return `WITH ${wthArr.join(', ')}`;
+    }
+
+    private getUnwindString(unwind: UnwindI['unwind']): string {
+        const unwindString =
+            typeof unwind === 'string'
+                ? unwind
+                : `${unwind.value} AS ${unwind.as}`;
+
+        return `UNWIND ${unwindString}`;
+    }
+
+    private getForEachString(forEach: ForEachI['forEach']): string {
+        return `FOR EACH ${forEach}`;
+    }
+
+    private getOrderByString(orderBy: OrderByI['orderBy']): string {
+        if (typeof orderBy === 'string') {
+            return `ORDER BY ${orderBy}`;
+        }
+
+        if (Array.isArray(orderBy)) {
+            const orderByParts = orderBy.map((element) => {
+                if (typeof element === 'string') {
+                    return element;
+                }
+                if (Array.isArray(element)) {
+                    return `${element[0]} ${element[1]}`;
+                }
+                return [
+                    // identifier.property
+                    [element.identifier, element.property]
+                        .filter((v) => v)
+                        .join('.'),
+                    // ASC or DESC
+                    element.order,
+                ]
+                    .filter((v) => v)
+                    .join(' ');
+            });
+
+            return `ORDER BY ${orderByParts.join(', ')}`;
+        }
+
+        // else, it's the object type
+        const orderByString = [
+            // identifier.property
+            [orderBy.identifier, orderBy.property].filter((v) => v).join('.'),
+            // ASC or DESC
+            orderBy.order,
+        ]
+            .filter((v) => v)
+            .join(' ');
+
+        return `ORDER BY ${orderByString}`;
+    }
+
+    private getWhereString(where: WhereI['where']): string {
+        if (typeof where === 'string') {
+            return `WHERE ${where}`;
+        }
+
+        if (where instanceof Where) {
+            return `WHERE ${where.getStatement('text')}`;
+        }
+
+        // else, where object
+        const whereInstance = new Where(where, this.bindParam);
+        return `WHERE ${whereInstance.getStatement('text')}`;
     }
 }
