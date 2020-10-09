@@ -1,274 +1,48 @@
-import {
-    NeogmaModel,
-    Where,
-    BindParam,
-    WhereParamsI,
-    Neo4jSupportedTypes,
-    QueryRunner,
-} from '..';
+import { Where, BindParam, QueryRunner } from '..';
 import { NeogmaConstraintError } from '../Errors';
 import { int } from 'neo4j-driver';
-
-export type ParameterI =
-    | RawI
-    | MatchI
-    | CreateI
-    | MergeI
-    | SetI
-    | DeleteI
-    | RemoveI
-    | ReturnI
-    | LimitI
-    | WithI;
-
-export type RawI = {
-    raw: string;
-};
-const isRawParameter = (param: ParameterI): param is RawI => {
-    return !!(param as RawI).raw;
-};
-
-export type MatchI = {
-    match: string | MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
-};
-const isMatchParameter = (param: ParameterI): param is MatchI => {
-    return !!(param as MatchI).match;
-};
-type MatchNodeI = NodeForMatchI & {
-    /** optional match */
-    optional?: boolean;
-};
-type MatchRelatedI = {
-    related: Array<NodeForMatchI | RelationshipForMatchI>;
-    optional?: boolean;
-};
-const isMatchRelated = (param: MatchI['match']): param is MatchRelatedI => {
-    return !!(param as MatchRelatedI).related;
-};
-type MatchMultipleI = {
-    multiple: NodeForMatchI[];
-    optional?: boolean;
-};
-const isMatchMultiple = (param: MatchI['match']): param is MatchMultipleI => {
-    return !!(param as MatchMultipleI).multiple;
-};
-type MatchLiteralI = {
-    literal: string;
-    optional?: string;
-};
-const isMatchLiteral = (param: MatchI['match']): param is MatchLiteralI => {
-    return !!(param as MatchLiteralI).literal;
-};
-
-export type CreateI = {
-    create: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
-};
-const isCreateParameter = (param: ParameterI): param is CreateI => {
-    return !!(param as CreateI).create;
-};
-type CreateNodeI = NodeForCreateI;
-type CreateRelatedI = {
-    related: Array<NodeForCreateI | RelationshipForCreateI>;
-};
-const isCreateRelated = (param: CreateI['create']): param is CreateRelatedI => {
-    return !!(param as CreateRelatedI).related;
-};
-type CreateMultipleI = {
-    multiple: NodeForCreateI[];
-};
-const isCreateMultiple = (
-    param: CreateI['create'],
-): param is CreateMultipleI => {
-    return !!(param as CreateMultipleI).multiple;
-};
-
-export type MergeI = {
-    merge: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
-};
-const isMergeParameter = (param: ParameterI): param is MergeI => {
-    return !!(param as MergeI).merge;
-};
-
-export type DeleteI = {
-    delete: string | DeleteWithIdentifierI | DeleteWithLiteralI;
-};
-const isDeleteParameter = (param: ParameterI): param is DeleteI => {
-    return !!(param as DeleteI).delete;
-};
-type DeleteWithIdentifierI = {
-    identifiers: string | string[];
-    /** detach delete */
-    detach?: boolean;
-};
-const isDeleteWithIdentifier = (
-    _param: DeleteI['delete'],
-): _param is DeleteWithIdentifierI => {
-    const param = _param as DeleteWithIdentifierI;
-    return !!param.identifiers;
-};
-type DeleteWithLiteralI = {
-    literal: string;
-    /** detach delete */
-    detach?: boolean;
-};
-const isDeleteWithLiteral = (
-    _param: DeleteI['delete'],
-): _param is DeleteWithLiteralI => {
-    const param = _param as DeleteWithLiteralI;
-    return !!param.literal;
-};
-
-export type SetI = {
-    set:
-        | string
-        | {
-              identifier: string;
-              properties: Record<string, Neo4jSupportedTypes>;
-          };
-};
-const isSetParameter = (param: ParameterI): param is SetI => {
-    return !!(param as SetI).set;
-};
-
-type RemoveI = {
-    remove: string | RemovePropertiesI | RemoveLabelsI;
-};
-const isRemoveParameter = (param: ParameterI): param is RemoveI => {
-    return !!(param as RemoveI).remove;
-};
-type RemovePropertiesI = {
-    identifier: string;
-    properties: string | string[];
-};
-const isRemoveProperties = (
-    _param: RemoveI['remove'],
-): _param is RemovePropertiesI => {
-    const param = _param as RemovePropertiesI;
-    return !!(param.properties && param.identifier);
-};
-type RemoveLabelsI = {
-    identifier: string;
-    labels: string | string[];
-};
-const isRemoveLabels = (_param: RemoveI['remove']): _param is RemoveLabelsI => {
-    const param = _param as RemoveLabelsI;
-    return !!(param.labels && param.identifier);
-};
-
-export type ReturnI = {
-    return: string | string[] | ReturnObjectI;
-};
-const isReturnParameter = (param: ParameterI): param is ReturnI => {
-    return !!(param as ReturnI).return;
-};
-type ReturnObjectI = Array<{
-    identifier: string;
-    property?: string;
-}>;
-const isReturnObject = (param: ReturnI['return']): param is ReturnObjectI => {
-    return (
-        Array.isArray(param) &&
-        param.findIndex(
-            (v) => typeof v !== 'object' || !(v as ReturnObjectI[0]).identifier,
-        ) < 0
-    );
-};
-
-export type LimitI = { limit: string | number };
-const isLimitParameter = (limit: ParameterI): limit is LimitI => {
-    return !!(limit as LimitI).limit;
-};
-
-export type WithI = { with: string | string[] };
-const isWithParameter = (wth: ParameterI): wth is WithI => {
-    return !!(wth as WithI).with;
-};
-
-type NodeForMatchI = string | NodeForMatchObjectI;
-type NodeForMatchObjectI = {
-    /** a label to use for this node */
-    label?: string;
-    /** the model of this node. Automatically sets the "label" field */
-    model?: NeogmaModel<any, any>;
-    /** identifier for the node */
-    identifier?: string;
-    /** where parameters for matching this node */
-    where?: WhereParamsI;
-};
-type NodeForCreateI =
-    | string
-    | NodeForCreateWithLabelI
-    | NodeForCreateWithModelI;
-type NodeForCreateObjectI = NodeForCreateWithLabelI | NodeForCreateWithModelI;
-type NodeForCreateWithLabelI = {
-    /** identifier for the node */
-    identifier?: string;
-    /** a label to use for this node */
-    label: string;
-    /** properties of the node */
-    properties?: Record<string, Neo4jSupportedTypes>;
-};
-type NodeForCreateWithModelI = {
-    /** identifier for the node */
-    identifier?: string;
-    /** the model of this node. Automatically sets the "label" field */
-    model: NeogmaModel<any, any>;
-    /** properties of the node */
-    properties?: Record<string, Neo4jSupportedTypes>;
-};
-const isNodeWithWhere = (
-    node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForMatchObjectI => {
-    return !!(node as NodeForMatchObjectI).where;
-};
-const isNodeWithLabel = (
-    node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForMatchObjectI | NodeForCreateWithLabelI => {
-    return !!(node as NodeForMatchObjectI | NodeForCreateWithLabelI).label;
-};
-const isNodeWithModel = (
-    node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForMatchObjectI | NodeForCreateWithModelI => {
-    return !!(node as NodeForMatchObjectI | NodeForCreateWithModelI).model;
-};
-const isNodeWithProperties = (
-    node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForCreateObjectI => {
-    return !!(node as NodeForCreateObjectI).properties;
-};
-
-type RelationshipForMatchI = string | RelationshipForMatchObjectI;
-type RelationshipForMatchObjectI = {
-    direction: 'in' | 'out' | 'none';
-    name?: string;
-    identifier?: string;
-    /** where parameters for matching this node */
-    where?: WhereParamsI;
-};
-type RelationshipForCreateI = string | RelationshipForCreateObjectI;
-type RelationshipForCreateObjectI = {
-    direction: 'in' | 'out' | 'none';
-    name: string;
-    identifier?: string;
-    /** properties of the relationship */
-    properties?: Record<string, Neo4jSupportedTypes>;
-};
-const isRelationshipWithWhere = (
-    relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
-): relationship is RelationshipForMatchObjectI => {
-    return !!(relationship as RelationshipForMatchObjectI).where;
-};
-const isRelationshipWithProperties = (
-    relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
-): relationship is RelationshipForCreateObjectI => {
-    return !!(relationship as RelationshipForCreateObjectI).properties;
-};
-const isRelationship = (
-    _relationship: RelationshipForMatchI | NodeForMatchI,
-): _relationship is RelationshipForMatchI => {
-    const relationship = _relationship as RelationshipForMatchI;
-    return typeof relationship === 'string' || !!relationship.direction;
-};
+import {
+    ParameterI,
+    isRawParameter,
+    isMatchParameter,
+    isCreateParameter,
+    isMergeParameter,
+    isSetParameter,
+    isDeleteParameter,
+    isRemoveParameter,
+    isReturnParameter,
+    isLimitParameter,
+    isWithParameter,
+    NodeForMatchI,
+    NodeForCreateI,
+    isNodeWithLabel,
+    isNodeWithModel,
+    isNodeWithWhere,
+    isNodeWithProperties,
+    RelationshipForMatchI,
+    RelationshipForCreateI,
+    isRelationshipWithWhere,
+    isRelationshipWithProperties,
+    MatchI,
+    isMatchMultiple,
+    isMatchRelated,
+    isRelationship,
+    isMatchLiteral,
+    CreateI,
+    isCreateMultiple,
+    isCreateRelated,
+    SetI,
+    DeleteI,
+    isDeleteWithIdentifier,
+    isDeleteWithLiteral,
+    RemoveI,
+    isRemoveProperties,
+    isRemoveLabels,
+    ReturnI,
+    isReturnObject,
+    LimitI,
+    WithI,
+} from './QueryBuilder.types';
 
 export class QueryBuilder {
     private parameters: ParameterI[];
