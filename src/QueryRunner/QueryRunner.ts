@@ -123,22 +123,38 @@ export class QueryRunner {
     public static getNodeStatement = ({
         identifier,
         label,
-        where,
+        inner,
     }: {
+        /** identifier for the node */
         identifier?: string;
+        /** identifier for the label */
         label?: string;
-        where?: Where | string;
+        /** a statement to be used inside the node, like a where condition or properties */
+        inner?:
+            | string
+            | Where
+            | {
+                  properties: Record<string, Neo4jSupportedTypes>;
+                  bindParam: BindParam;
+              };
     }): string => {
         const nodeParts: string[] = [];
 
         nodeParts.push(QueryRunner.getIdentifierWithLabel(identifier, label));
 
-        if (where) {
-            nodeParts.push(
-                typeof where === 'string'
-                    ? where
-                    : where.getStatement('object'),
-            );
+        if (inner) {
+            if (typeof inner === 'string') {
+                nodeParts.push(inner);
+            } else if (inner instanceof Where) {
+                nodeParts.push(inner.getStatement('object'));
+            } else {
+                nodeParts.push(
+                    QueryRunner.getPropertiesWithParams(
+                        inner.properties,
+                        inner.bindParam,
+                    ),
+                );
+            }
         }
 
         return `(${nodeParts.join(' ')})`;
@@ -155,10 +171,16 @@ export class QueryRunner {
         name: string;
         /** relationship identifier. If empty, no identifier will be used */
         identifier?: string;
-        /** where statement to be used in the relationship */
-        where?: Where | string;
+        /** a statement to be used inside the relationship, like a where condition or properties */
+        inner?:
+            | string
+            | Where
+            | {
+                  properties: Record<string, Neo4jSupportedTypes>;
+                  bindParam: BindParam;
+              };
     }): string => {
-        const { direction, name, where } = params;
+        const { direction, name, inner } = params;
         const identifier = params.identifier || '';
 
         const allParts: string[] = [];
@@ -172,14 +194,22 @@ export class QueryRunner {
         innerRelationshipParts.push(
             QueryRunner.getIdentifierWithLabel(identifier, name),
         );
-        if (where) {
-            // { where }
-            innerRelationshipParts.push(
-                typeof where === 'string'
-                    ? where
-                    : where.getStatement('object'),
-            );
+        if (inner) {
+            if (typeof inner === 'string') {
+                innerRelationshipParts.push(inner);
+            } else if (inner instanceof Where) {
+                innerRelationshipParts.push(inner.getStatement('object'));
+            } else {
+                innerRelationshipParts.push(
+                    QueryRunner.getPropertiesWithParams(
+                        inner.properties,
+                        inner.bindParam,
+                    ),
+                );
+            }
         }
+
+        // FIXME handle properties
 
         // wrap it in [ ]
         allParts.push(`[${innerRelationshipParts.join(' ')}]`);
@@ -409,7 +439,10 @@ export class QueryRunner {
         };
     };
 
-    /** returns an object with replacing its values with a bind param value */
+    /**
+     * returns an object with replacing its values with a bind param value
+     * example return value: ( a.p1 = $v1, b.p2 = $v2 )
+     */
     public static getPropertiesWithParams = (
         /** data to set */
         data: AnyObject,

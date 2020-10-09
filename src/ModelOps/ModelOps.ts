@@ -692,10 +692,10 @@ export const ModelFactory = <
                                 identifier,
                                 label,
                                 // use the bindParam straight away as where
-                                where: QueryRunner.getPropertiesWithParams(
-                                    instance.getDataValues(),
+                                inner: {
+                                    properties: instance.getDataValues(),
                                     bindParam,
-                                ),
+                                },
                             }),
                         );
 
@@ -703,7 +703,7 @@ export const ModelFactory = <
                         const getRelationshipProperties = (
                             relationship: RelationshipsI<any>[0],
                             dataToUse,
-                        ) => {
+                        ): Record<string, Neo4jSupportedTypes> => {
                             const keysToUse = Object.keys(
                                 relationship.properties || {},
                             );

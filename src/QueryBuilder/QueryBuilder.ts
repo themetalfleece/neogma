@@ -194,7 +194,6 @@ type NodeForMatchObjectI = {
     /** where parameters for matching this node */
     where?: WhereParamsI;
 };
-// TODO add and use properties
 type NodeForCreateI =
     | string
     | NodeForCreateWithLabelI
@@ -205,12 +204,16 @@ type NodeForCreateWithLabelI = {
     identifier?: string;
     /** a label to use for this node */
     label: string;
+    /** properties of the node */
+    properties?: Record<string, Neo4jSupportedTypes>;
 };
 type NodeForCreateWithModelI = {
     /** identifier for the node */
     identifier?: string;
     /** the model of this node. Automatically sets the "label" field */
     model: NeogmaModel<any, any>;
+    /** properties of the node */
+    properties?: Record<string, Neo4jSupportedTypes>;
 };
 const isNodeWithWhere = (
     node: NodeForMatchObjectI | NodeForCreateObjectI,
@@ -227,6 +230,11 @@ const isNodeWithModel = (
 ): node is NodeForMatchObjectI | NodeForCreateWithModelI => {
     return !!(node as NodeForMatchObjectI | NodeForCreateWithModelI).model;
 };
+const isNodeWithProperties = (
+    node: NodeForMatchObjectI | NodeForCreateObjectI,
+): node is NodeForCreateObjectI => {
+    return !!(node as NodeForCreateObjectI).properties;
+};
 
 type RelationshipForMatchI = string | RelationshipForMatchObjectI;
 type RelationshipForMatchObjectI = {
@@ -241,14 +249,18 @@ type RelationshipForCreateObjectI = {
     direction: 'in' | 'out' | 'none';
     name: string;
     identifier?: string;
+    /** properties of the relationship */
+    properties?: Record<string, Neo4jSupportedTypes>;
 };
 const isRelationshipWithWhere = (
-    relationship: RelationshipForMatchI | RelationshipForCreateI,
-): relationship is RelationshipForMatchI => {
-    return (
-        typeof relationship === 'object' &&
-        !!(relationship as RelationshipForMatchObjectI).where
-    );
+    relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
+): relationship is RelationshipForMatchObjectI => {
+    return !!(relationship as RelationshipForMatchObjectI).where;
+};
+const isRelationshipWithProperties = (
+    relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
+): relationship is RelationshipForCreateObjectI => {
+    return !!(relationship as RelationshipForCreateObjectI).properties;
 };
 const isRelationship = (
     _relationship: RelationshipForMatchI | NodeForMatchI,
@@ -324,17 +336,6 @@ export class QueryBuilder {
         }
 
         // else, it's a NodeObjectI
-        let where: Where;
-
-        if (isNodeWithWhere(node)) {
-            where = new Where(
-                {
-                    [node.identifier]: node.where,
-                },
-                this.bindParam,
-            );
-        }
-
         let label = '';
         if (isNodeWithLabel(node)) {
             label = node.label;
@@ -342,12 +343,29 @@ export class QueryBuilder {
             label = node.model.getLabel();
         }
 
-        // (identifier: label { where })
-        return QueryRunner.getNodeStatement({
+        const getNodeStatementParams: Parameters<
+            typeof QueryRunner.getNodeStatement
+        >[0] = {
             identifier: node.identifier,
             label,
-            where,
-        });
+        };
+
+        if (isNodeWithWhere(node)) {
+            getNodeStatementParams.inner = new Where(
+                {
+                    [node.identifier]: node.where,
+                },
+                this.bindParam,
+            );
+        } else if (isNodeWithProperties(node)) {
+            getNodeStatementParams.inner = {
+                properties: node.properties,
+                bindParam: this.getBindParam(),
+            };
+        }
+
+        // (identifier: label { where })
+        return QueryRunner.getNodeStatement(getNodeStatementParams);
     }
 
     private getRelationshipString(
@@ -359,23 +377,32 @@ export class QueryBuilder {
 
         // else, it's a relationship object
         const { direction, identifier, name } = relationship;
-        let where: Where;
+
+        const getRelationshipStatementParams: Parameters<
+            typeof QueryRunner.getRelationshipStatement
+        >[0] = {
+            direction,
+            identifier: relationship.identifier,
+            name,
+        };
 
         if (isRelationshipWithWhere(relationship)) {
-            where = new Where(
+            getRelationshipStatementParams.inner = new Where(
                 {
                     [identifier]: relationship.where,
                 },
                 this.bindParam,
             );
+        } else if (isRelationshipWithProperties(relationship)) {
+            getRelationshipStatementParams.inner = {
+                properties: relationship.properties,
+                bindParam: this.getBindParam(),
+            };
         }
 
-        return QueryRunner.getRelationshipStatement({
-            direction,
-            identifier,
-            name,
-            where,
-        });
+        return QueryRunner.getRelationshipStatement(
+            getRelationshipStatementParams,
+        );
     }
 
     /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
