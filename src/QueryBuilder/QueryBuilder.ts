@@ -7,6 +7,7 @@ import {
     QueryRunner,
 } from '..';
 import { NeogmaConstraintError } from '../Errors';
+import { int } from 'neo4j-driver';
 
 export type ParameterI =
     | RawI
@@ -606,7 +607,12 @@ export class QueryBuilder {
     }
 
     private getLimitString(limit: LimitI['limit']): string {
-        return `LIMIT ${limit}`;
+        const limitString =
+            typeof limit === 'string'
+                ? limit
+                : `$${this.bindParam.getUniqueNameAndAdd('limit', int(limit))}`;
+
+        return `LIMIT ${limitString}`;
     }
 
     private getWithString(wth: WithI['with']): string {

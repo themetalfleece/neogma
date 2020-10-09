@@ -200,6 +200,9 @@ describe.only('QueryBuilder', () => {
                         {
                             identifier: 'n5',
                             model: Orders,
+                            properties: {
+                                testProp: true,
+                            },
                         },
                         {
                             direction: 'in',
@@ -222,6 +225,9 @@ describe.only('QueryBuilder', () => {
                         {
                             direction: 'out',
                             name: 'HAS',
+                            properties: {
+                                testProp: '2',
+                            },
                         },
                         {
                             identifier: 'n8',
@@ -299,6 +305,9 @@ describe.only('QueryBuilder', () => {
                         property: 'id',
                     },
                 ],
+            },
+            {
+                limit: '2',
             },
             {
                 limit: 1,
