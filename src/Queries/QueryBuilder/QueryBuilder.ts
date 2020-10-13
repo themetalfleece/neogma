@@ -56,8 +56,8 @@ import {
     isWhereParameter,
 } from './QueryBuilder.types';
 import { replaceWhitespace } from '../../utils/string';
-import { BindParam } from 'Queries/BindParam';
-import { Where } from 'Queries/Where';
+import { BindParam } from '../BindParam';
+import { Where } from '../Where';
 
 export type QueryBuilderParameters = {
     ParameterI: ParameterI;

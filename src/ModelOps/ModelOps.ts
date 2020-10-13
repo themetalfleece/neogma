@@ -15,7 +15,11 @@ import {
 } from '../Queries/QueryRunner';
 import { BindParam } from '../Queries/BindParam/BindParam';
 import clone from 'clone';
-import { WhereParamsI, Where, WhereParamsByIdentifierI } from 'Queries/Where';
+import {
+    WhereParamsI,
+    Where,
+    WhereParamsByIdentifierI,
+} from '../Queries/Where';
 
 type AnyObject = Record<string, any>;
 

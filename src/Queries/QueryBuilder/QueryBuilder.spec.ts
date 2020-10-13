@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { QueryBuilder } from './QueryBuilder';
-import { Neogma } from '../Neogma';
+import { Neogma } from '../../Neogma';
 import * as dotenv from 'dotenv';
-import { ModelFactory, NeogmaInstance } from '..';
+import { ModelFactory, NeogmaInstance } from '../..';
 
 let neogma: Neogma;
 
@@ -329,7 +329,7 @@ describe.only('QueryBuilder', () => {
                     },
                     {
                         identifier: 'f',
-                        order: 'ASC',
+                        direction: 'ASC',
                     },
                     {
                         identifier: 'g',
@@ -337,7 +337,7 @@ describe.only('QueryBuilder', () => {
                     },
                     {
                         identifier: 'h',
-                        order: 'DESC',
+                        direction: 'DESC',
                         property: 'p2',
                     },
                 ],
@@ -345,7 +345,7 @@ describe.only('QueryBuilder', () => {
             {
                 orderBy: {
                     identifier: 'i',
-                    order: 'ASC',
+                    direction: 'ASC',
                     property: 'p3',
                 },
             },
