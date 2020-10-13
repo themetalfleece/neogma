@@ -570,7 +570,13 @@ export const ModelFactory = <
                 return instance;
             } else {
                 // if it's a new one - it doesn't exist in the database yet, need to create it
-                return Model.createOne(instance, configuration);
+                return Model.createOne(
+                    instance.getDataValues() as CreateDataI<
+                        Properties,
+                        RelatedNodesToAssociateI
+                    >,
+                    configuration,
+                );
             }
         }
 
