@@ -1,6 +1,9 @@
-import { BindParam } from './BindParam';
-import { Neo4jSingleTypes, Neo4jSupportedTypes } from './QueryRunner';
-import { neo4jDriver } from '..';
+import { BindParam } from '../BindParam/BindParam';
+import {
+    Neo4jSingleTypes,
+    Neo4jSupportedTypes,
+} from '../QueryRunner/QueryRunner';
+import { neo4jDriver } from '../..';
 
 /** symbols for Where operations */
 const OpIn: unique symbol = Symbol('in');

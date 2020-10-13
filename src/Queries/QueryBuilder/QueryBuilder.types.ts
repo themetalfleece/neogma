@@ -1,10 +1,5 @@
-import {
-    Neo4jSupportedTypes,
-    NeogmaModel,
-    WhereParamsI,
-    Where,
-    WhereParamsByIdentifierI,
-} from '..';
+import { Where, WhereParamsByIdentifierI, WhereParamsI } from 'Queries/Where';
+import { Neo4jSupportedTypes, NeogmaModel } from '../..';
 
 export type ParameterI =
     | RawI

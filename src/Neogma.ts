@@ -1,7 +1,7 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Config, Driver, Session, Transaction } from 'neo4j-driver/types';
 import { NeogmaModel } from './ModelOps';
-import { QueryRunner, Runnable } from './QueryRunner';
+import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 const neo4j = neo4j_driver;
 

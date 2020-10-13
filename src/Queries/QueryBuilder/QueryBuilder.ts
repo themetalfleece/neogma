@@ -1,5 +1,5 @@
-import { Where, BindParam, QueryRunner } from '..';
-import { NeogmaConstraintError } from '../Errors';
+import { QueryRunner } from '../..';
+import { NeogmaConstraintError } from '../../Errors';
 import { int } from 'neo4j-driver';
 import {
     ParameterI,
@@ -55,7 +55,9 @@ import {
     isOrderByParameter,
     isWhereParameter,
 } from './QueryBuilder.types';
-import { replaceWhitespace } from '../utils/string';
+import { replaceWhitespace } from '../../utils/string';
+import { BindParam } from 'Queries/BindParam';
+import { Where } from 'Queries/Where';
 
 export type QueryBuilderParameters = {
     ParameterI: ParameterI;

@@ -13,10 +13,10 @@ import {
     Duration as Neo4jDuration,
 } from 'neo4j-driver/types';
 import * as uuid from 'uuid';
-import { getRunnable } from '../Sessions';
-import { BindParam } from './BindParam';
-import { AnyWhereI, Where } from './Where';
-import { replaceWhitespace } from '../utils/string';
+import { getRunnable } from '../../Sessions';
+import { BindParam } from '../BindParam/BindParam';
+import { AnyWhereI, Where } from '../Where/Where';
+import { replaceWhitespace } from '../../utils/string';
 
 type AnyObject = Record<string, any>;
 

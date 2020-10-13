@@ -1,6 +1,6 @@
 import clone from 'clone';
-import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
-import { StringSequence } from '../utils/StringSequence';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
+import { StringSequence } from '../../utils/StringSequence';
 
 /**
  * the bind param which should be passed to a query. It throws an error if more than one of each key is added

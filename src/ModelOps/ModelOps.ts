@@ -10,14 +10,12 @@ import {
     Neo4jSupportedTypes,
     QueryRunner,
     Runnable,
-    Where,
-    WhereParamsByIdentifierI,
-    WhereParamsI,
     getResultProperties,
     getNodesDeleted,
-} from '../QueryRunner';
-import { BindParam } from '../QueryRunner/BindParam';
+} from '../Queries/QueryRunner';
+import { BindParam } from '../Queries/BindParam/BindParam';
 import clone from 'clone';
+import { WhereParamsI, Where, WhereParamsByIdentifierI } from 'Queries/Where';
 
 type AnyObject = Record<string, any>;
 
