@@ -23,25 +23,33 @@ export type ParameterI =
     | WithI
     | WhereI;
 
+/** raw string to be used as is in the query */
 export type RawI = {
+    /** will used as is in the query */
     raw: string;
 };
 export const isRawParameter = (param: ParameterI): param is RawI => {
     return !!(param as RawI).raw;
 };
 
+/** MATCH parameter */
 export type MatchI = {
+    /** MATCH parameter */
     match: string | MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
 };
 export const isMatchParameter = (param: ParameterI): param is MatchI => {
     return !!(param as MatchI).match;
 };
+/** matching a single node */
 export type MatchNodeI = NodeForMatchI & {
     /** optional match */
     optional?: boolean;
 };
+/** matching a combination of related nodes and relationships */
 export type MatchRelatedI = {
+    /** combination of related nodes and relationships */
     related: Array<NodeForMatchI | RelationshipForMatchI>;
+    /** optional match */
     optional?: boolean;
 };
 export const isMatchRelated = (
@@ -49,8 +57,11 @@ export const isMatchRelated = (
 ): param is MatchRelatedI => {
     return !!(param as MatchRelatedI).related;
 };
+/** matching multiple nodes */
 export type MatchMultipleI = {
+    /** multiple nodes */
     multiple: NodeForMatchI[];
+    /** optional match */
     optional?: boolean;
 };
 export const isMatchMultiple = (
@@ -58,8 +69,11 @@ export const isMatchMultiple = (
 ): param is MatchMultipleI => {
     return !!(param as MatchMultipleI).multiple;
 };
+/** a literal string for matching */
 export type MatchLiteralI = {
+    /** literal string */
     literal: string;
+    /** optional match */
     optional?: string;
 };
 export const isMatchLiteral = (
@@ -68,14 +82,19 @@ export const isMatchLiteral = (
     return !!(param as MatchLiteralI).literal;
 };
 
+/** CREATE parameter */
 export type CreateI = {
+    /** CREATE parameter */
     create: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
 };
 export const isCreateParameter = (param: ParameterI): param is CreateI => {
     return !!(param as CreateI).create;
 };
+/** creating a node */
 export type CreateNodeI = NodeForCreateI;
+/** creating a combination of related nodes and relationships */
 export type CreateRelatedI = {
+    /** combination of related nodes and relationships */
     related: Array<NodeForCreateI | RelationshipForCreateI>;
 };
 export const isCreateRelated = (
@@ -83,7 +102,9 @@ export const isCreateRelated = (
 ): param is CreateRelatedI => {
     return !!(param as CreateRelatedI).related;
 };
+/** creating multiple nodes */
 export type CreateMultipleI = {
+    /** multiple nodes */
     multiple: NodeForCreateI[];
 };
 export const isCreateMultiple = (
@@ -92,62 +113,78 @@ export const isCreateMultiple = (
     return !!(param as CreateMultipleI).multiple;
 };
 
+/** MERGE parameter. Using the same types as CREATE */
 export type MergeI = {
+    /** MERGE parameter. Using the same types as CREATE */
     merge: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
 };
 export const isMergeParameter = (param: ParameterI): param is MergeI => {
     return !!(param as MergeI).merge;
 };
 
+/** DELETE parameter */
 export type DeleteI = {
-    delete: string | DeleteWithIdentifierI | DeleteWithLiteralI;
+    /** DELETE parameter */
+    delete: string | DeleteByIdentifierI | DeleteLiteralI;
 };
 export const isDeleteParameter = (param: ParameterI): param is DeleteI => {
     return !!(param as DeleteI).delete;
 };
-export type DeleteWithIdentifierI = {
+/** deletes the given identifiers */
+export type DeleteByIdentifierI = {
+    /** identifiers to be deleted */
     identifiers: string | string[];
     /** detach delete */
     detach?: boolean;
 };
 export const isDeleteWithIdentifier = (
     _param: DeleteI['delete'],
-): _param is DeleteWithIdentifierI => {
-    const param = _param as DeleteWithIdentifierI;
+): _param is DeleteByIdentifierI => {
+    const param = _param as DeleteByIdentifierI;
     return !!param.identifiers;
 };
-export type DeleteWithLiteralI = {
+/** deletes by using the given literal */
+export type DeleteLiteralI = {
+    /** delete literal */
     literal: string;
     /** detach delete */
     detach?: boolean;
 };
 export const isDeleteWithLiteral = (
     _param: DeleteI['delete'],
-): _param is DeleteWithLiteralI => {
-    const param = _param as DeleteWithLiteralI;
+): _param is DeleteLiteralI => {
+    const param = _param as DeleteLiteralI;
     return !!param.literal;
 };
 
+/** SET parameter */
 export type SetI = {
-    set:
-        | string
-        | {
-              identifier: string;
-              properties: Record<string, Neo4jSupportedTypes>;
-          };
+    /** SET parameter */
+    set: string | SetObjectI;
 };
 export const isSetParameter = (param: ParameterI): param is SetI => {
     return !!(param as SetI).set;
 };
+export type SetObjectI = {
+    /** identifier whose properties will be set */
+    identifier: string;
+    /** properties to set */
+    properties: Record<string, Neo4jSupportedTypes>;
+};
 
+// REMOVE parameter
 export type RemoveI = {
-    remove: string | RemovePropertiesI | RemoveLabelsI;
+    // REMOVE parameter
+    remove: string | RemovePropertiesI | RemoveLabelsI; // TODO also array of Properties|Labels
 };
 export const isRemoveParameter = (param: ParameterI): param is RemoveI => {
     return !!(param as RemoveI).remove;
 };
+/** removes properties of an identifier */
 export type RemovePropertiesI = {
+    /** identifier whose properties will be removed */
     identifier: string;
+    /** properties to remove */
     properties: string | string[];
 };
 export const isRemoveProperties = (
@@ -156,8 +193,11 @@ export const isRemoveProperties = (
     const param = _param as RemovePropertiesI;
     return !!(param.properties && param.identifier);
 };
+/** removes labels of an identifier */
 export type RemoveLabelsI = {
+    /** identifier whose labels will be removed */
     identifier: string;
+    /** labels to remove */
     labels: string | string[];
 };
 export const isRemoveLabels = (
@@ -167,14 +207,18 @@ export const isRemoveLabels = (
     return !!(param.labels && param.identifier);
 };
 
+/** RETURN parameter */
 export type ReturnI = {
+    /** RETURN parameter */
     return: string | string[] | ReturnObjectI;
 };
 export const isReturnParameter = (param: ParameterI): param is ReturnI => {
     return !!(param as ReturnI).return;
 };
 export type ReturnObjectI = Array<{
+    /** identifier to return */
     identifier: string;
+    /** returns only this property of the identifier */
     property?: string;
 }>;
 export const isReturnObject = (
@@ -188,34 +232,38 @@ export const isReturnObject = (
     );
 };
 
+/** LIMIT parameter */
 export type LimitI = { limit: string | number };
 export const isLimitParameter = (limit: ParameterI): limit is LimitI => {
     return !!(limit as LimitI).limit;
 };
 
+/** SKIP parameter */
 export type SkipI = { skip: string | number };
 export const isSkipParameter = (skip: ParameterI): skip is SkipI => {
     return !!(skip as SkipI).skip;
 };
 
+/** WITH parameter */
 export type WithI = { with: string | string[] };
 export const isWithParameter = (wth: ParameterI): wth is WithI => {
     return !!(wth as WithI).with;
 };
 
+/** ORDER BY parameter */
 export type OrderByI = {
     orderBy:
         | string
-        | Array<
-              | string
-              | [string, 'ASC' | 'DESC']
-              | {
-                    identifier: string;
-                    property?: string;
-                    order?: 'ASC' | 'DESC';
-                }
-          >
-        | { identifier: string; property?: string; order?: 'ASC' | 'DESC' };
+        | Array<string | [string, 'ASC' | 'DESC'] | OrderByObjectI>
+        | OrderByObjectI;
+};
+export type OrderByObjectI = {
+    /** identifier to order */
+    identifier: string;
+    /** only order this property of the identifier */
+    property?: string;
+    /** direction of this order */
+    direction?: 'ASC' | 'DESC';
 };
 export const isOrderByParameter = (
     orderBy: ParameterI,
@@ -223,26 +271,33 @@ export const isOrderByParameter = (
     return !!(orderBy as OrderByI).orderBy;
 };
 
+/** UNWIND parameter */
 export type UnwindI = {
-    unwind:
-        | string
-        | {
-              value: string;
-              as: string;
-          };
+    /** UNWIND parameter */
+    unwind: string | UnwindObjectI;
+};
+export type UnwindObjectI = {
+    /** value to unwind */
+    value: string;
+    /** unwind value as this */
+    as: string;
 };
 export const isUnwindParameter = (unwind: ParameterI): unwind is UnwindI => {
     return !!(unwind as UnwindI).unwind;
 };
 
+/** WHERE parameter */
 export type WhereI = {
+    /** WHERE parameter */
     where: string | Where | WhereParamsByIdentifierI;
 };
 export const isWhereParameter = (where: ParameterI): where is WhereI => {
     return !!(where as WhereI).where;
 };
 
+/** FOR EACH parameter */
 export type ForEachI = {
+    /** FOR EACH parameter */
     forEach: string;
 };
 export const isForEachParameter = (
@@ -251,6 +306,7 @@ export const isForEachParameter = (
     return !!(forEach as ForEachI).forEach;
 };
 
+/** node type which will be used for matching */
 export type NodeForMatchI = string | NodeForMatchObjectI;
 export type NodeForMatchObjectI = {
     /** a label to use for this node */
@@ -262,6 +318,7 @@ export type NodeForMatchObjectI = {
     /** where parameters for matching this node */
     where?: WhereParamsI;
 };
+/** node type which will be used for creating/merging */
 export type NodeForCreateI =
     | string
     | NodeForCreateWithLabelI
@@ -269,6 +326,7 @@ export type NodeForCreateI =
 export type NodeForCreateObjectI =
     | NodeForCreateWithLabelI
     | NodeForCreateWithModelI;
+/** node type used for creating/merging, using a label */
 export type NodeForCreateWithLabelI = {
     /** identifier for the node */
     identifier?: string;
@@ -277,6 +335,7 @@ export type NodeForCreateWithLabelI = {
     /** properties of the node */
     properties?: Record<string, Neo4jSupportedTypes>;
 };
+/** node type used for creating/merging, using a model to extract the label */
 export type NodeForCreateWithModelI = {
     /** identifier for the node */
     identifier?: string;
@@ -306,18 +365,26 @@ export const isNodeWithProperties = (
     return !!(node as NodeForCreateObjectI).properties;
 };
 
+/** relationship type used for matching */
 export type RelationshipForMatchI = string | RelationshipForMatchObjectI;
 export type RelationshipForMatchObjectI = {
+    /** direction of this relationship, from top to bottom */
     direction: 'in' | 'out' | 'none';
+    /** name of this relationship */
     name?: string;
+    /** identifier for this relationship */
     identifier?: string;
-    /** where parameters for matching this node */
+    /** where parameters for matching this relationship */
     where?: WhereParamsI;
 };
+/** relationship type used for creating/merging */
 export type RelationshipForCreateI = string | RelationshipForCreateObjectI;
 export type RelationshipForCreateObjectI = {
+    /** direction of this relationship, from top to bottom */
     direction: 'in' | 'out' | 'none';
+    /** name of this relationship */
     name: string;
+    /** identifier for this relationship */
     identifier?: string;
     /** properties of the relationship */
     properties?: Record<string, Neo4jSupportedTypes>;

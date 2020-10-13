@@ -77,14 +77,19 @@ export type QueryBuilderParameters = {
 };
 
 export class QueryBuilder {
+    /** parameters for the query to be generated */
     private parameters: ParameterI[];
+    /** the statement for the query */
     private statement: string;
+    /** the bind parameters for the query */
     private bindParam: BindParam;
 
     constructor(
+        /** parameters for the query */
         parameters: QueryBuilder['parameters'],
         config?: {
-            bindParam: BindParam;
+            /** an existing bindParam to be used */
+            bindParam?: BindParam;
         },
     ) {
         this.parameters = parameters;
@@ -94,14 +99,17 @@ export class QueryBuilder {
         this.setStatementByParameters();
     }
 
+    /** get the generated statement for the query */
     public getStatement(): QueryBuilder['statement'] {
         return this.statement;
     }
 
+    /** get the bind parameter for the query */
     public getBindParam(): QueryBuilder['bindParam'] {
         return this.bindParam;
     }
 
+    /** generates the statement by using the parameters and the bindParam */
     private setStatementByParameters() {
         const statementParts: string[] = [];
 
@@ -478,7 +486,7 @@ export class QueryBuilder {
                         .filter((v) => v)
                         .join('.'),
                     // ASC or DESC
-                    element.order,
+                    element.direction,
                 ]
                     .filter((v) => v)
                     .join(' ');
@@ -492,7 +500,7 @@ export class QueryBuilder {
             // identifier.property
             [orderBy.identifier, orderBy.property].filter((v) => v).join('.'),
             // ASC or DESC
-            orderBy.order,
+            orderBy.direction,
         ]
             .filter((v) => v)
             .join(' ');
