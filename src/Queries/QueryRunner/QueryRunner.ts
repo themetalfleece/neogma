@@ -17,19 +17,9 @@ import { getRunnable } from '../../Sessions';
 import { BindParam } from '../BindParam/BindParam';
 import { AnyWhereI, Where } from '../Where/Where';
 import { replaceWhitespace } from '../../utils/string';
+import { QueryBuilder } from '../QueryBuilder';
 
 type AnyObject = Record<string, any>;
-
-export const getResultProperties = <T>(
-    result: QueryResult,
-    identifier: string,
-): T[] => {
-    return result.records.map((v) => v.get(identifier).properties);
-};
-
-export const getNodesDeleted = (result: QueryResult): number => {
-    return result.summary.counters.updates().nodesDeleted;
-};
 
 /** the single types that Neo4j supports (not including an array of them) */
 export type Neo4jSingleTypes =
@@ -92,135 +82,6 @@ export class QueryRunner {
         this.logger?.(...val);
     }
 
-    /**
-     * surrounds the label with backticks to also allow spaces
-     * @param label - the label to use
-     * @param operation - defaults to 'and'. Whether to generate a "and" or an "or" operation for the labels
-     */
-    public static getNormalizedLabels = (
-        label: string | string[],
-        operation?: 'and' | 'or',
-    ): string => {
-        const labels = label instanceof Array ? label : [label];
-        return labels
-            .map((l) => '`' + l + '`')
-            .join(operation === 'or' ? '|' : ':');
-    };
-
-    /**
-     * returns a string to be used in a query, regardless if any of the identifier or label are null
-     */
-    public static getIdentifierWithLabel = (
-        identifier?: string,
-        label?: string,
-    ): string => {
-        return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
-    };
-
-    /**
-     * returns the appropriate string for a node, ready to be put in a statement
-     * example: (ident: Label { a.p1: $v1 })
-     */
-    public static getNodeStatement = ({
-        identifier,
-        label,
-        inner,
-    }: {
-        /** identifier for the node */
-        identifier?: string;
-        /** identifier for the label */
-        label?: string;
-        /** a statement to be used inside the node, like a where condition or properties */
-        inner?:
-            | string
-            | Where
-            | {
-                  properties: Record<string, Neo4jSupportedTypes>;
-                  bindParam: BindParam;
-              };
-    }): string => {
-        const nodeParts: string[] = [];
-
-        nodeParts.push(QueryRunner.getIdentifierWithLabel(identifier, label));
-
-        if (inner) {
-            if (typeof inner === 'string') {
-                nodeParts.push(inner);
-            } else if (inner instanceof Where) {
-                nodeParts.push(inner.getStatement('object'));
-            } else {
-                nodeParts.push(
-                    QueryRunner.getPropertiesWithParams(
-                        inner.properties,
-                        inner.bindParam,
-                    ),
-                );
-            }
-        }
-
-        return `(${nodeParts.join(' ')})`;
-    };
-
-    /**
-     * returns the appropriate string for a relationship, ready to be put in a statement
-     * example: -[identifier: name {where}]->
-     */
-    public static getRelationshipStatement = (params: {
-        /** relationship direction */
-        direction: CreateRelationshipParamsI['relationship']['direction'];
-        /** relationship name */
-        name: string;
-        /** relationship identifier. If empty, no identifier will be used */
-        identifier?: string;
-        /** a statement to be used inside the relationship, like a where condition or properties */
-        inner?:
-            | string
-            | Where
-            | {
-                  properties: Record<string, Neo4jSupportedTypes>;
-                  bindParam: BindParam;
-              };
-    }): string => {
-        const { direction, name, inner } = params;
-        const identifier = params.identifier || '';
-
-        const allParts: string[] = [];
-
-        // <- or -
-        allParts.push(direction === 'in' ? '<-' : '-');
-
-        // strings will be inside [ ]
-        const innerRelationshipParts: string[] = [];
-        // identifier:Name
-        innerRelationshipParts.push(
-            QueryRunner.getIdentifierWithLabel(identifier, name),
-        );
-        if (inner) {
-            if (typeof inner === 'string') {
-                innerRelationshipParts.push(inner);
-            } else if (inner instanceof Where) {
-                innerRelationshipParts.push(inner.getStatement('object'));
-            } else {
-                innerRelationshipParts.push(
-                    QueryRunner.getPropertiesWithParams(
-                        inner.properties,
-                        inner.bindParam,
-                    ),
-                );
-            }
-        }
-
-        // FIXME handle properties
-
-        // wrap it in [ ]
-        allParts.push(`[${innerRelationshipParts.join(' ')}]`);
-
-        // -> or -
-        allParts.push(direction === 'out' ? '->' : '-');
-
-        return allParts.join('');
-    };
-
     public create = async <T>(params: {
         /** the label of the nodes to create */
         label: string;
@@ -234,10 +95,10 @@ export class QueryRunner {
         const { label, data: options } = params;
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const { getNodeStatement: getNodeData } = QueryRunner;
+        const { getNodeStatement } = QueryBuilder;
         const statement = `
             UNWIND {options} as data
-            CREATE ${getNodeData({ identifier, label })}
+            CREATE ${getNodeStatement({ identifier, label })}
             SET ${identifier} += data
             RETURN ${identifier};
         `;
@@ -272,13 +133,13 @@ export class QueryRunner {
 
         const statementParts: string[] = [];
         statementParts.push(
-            `MATCH ${QueryRunner.getNodeStatement({ identifier, label })}`,
+            `MATCH ${QueryBuilder.getNodeStatement({ identifier, label })}`,
         );
         if (where) {
             statementParts.push(`WHERE ${where.getStatement('text')}`);
         }
 
-        const { statement: setStatement } = QueryRunner.getSetParts({
+        const { statement: setStatement } = QueryBuilder.getSetParts({
             data,
             bindParam: updateBindParam,
             identifier,
@@ -313,7 +174,7 @@ export class QueryRunner {
 
         const statementParts: string[] = [];
         statementParts.push(
-            `MATCH ${QueryRunner.getNodeStatement({ identifier, label })}`,
+            `MATCH ${QueryBuilder.getNodeStatement({ identifier, label })}`,
         );
         if (where) {
             statementParts.push(`WHERE ${where.getStatement('text')}`);
@@ -367,16 +228,16 @@ export class QueryRunner {
                 target.identifier ||
                 QueryRunner.identifiers.createRelationship.target,
         };
-        const { getNodeStatement: getNodeData } = QueryRunner;
+        const { getNodeStatement } = QueryBuilder;
         const statementParts: string[] = [];
         statementParts.push('MATCH');
         statementParts.push(
             [
-                getNodeData({
+                getNodeStatement({
                     identifier: identifiers.source,
                     label: source.label,
                 }),
-                getNodeData({
+                getNodeStatement({
                     identifier: identifiers.target,
                     label: target.label,
                 }),
@@ -388,17 +249,21 @@ export class QueryRunner {
 
         statementParts.push('CREATE');
         // (source)
-        statementParts.push(getNodeData({ identifier: identifiers.source }));
+        statementParts.push(
+            getNodeStatement({ identifier: identifiers.source }),
+        );
         // -[relationship]-
         statementParts.push(
-            QueryRunner.getRelationshipStatement({
+            QueryBuilder.getRelationshipStatement({
                 direction: relationship.direction,
                 name: relationship.name,
                 identifier: relationshipIdentifier,
             }),
         );
         // (target)
-        statementParts.push(getNodeData({ identifier: identifiers.target }));
+        statementParts.push(
+            getNodeStatement({ identifier: identifiers.target }),
+        );
 
         /** the relationship properties statement to be inserted into the final statement string */
         if (relationshipProperties.length) {
@@ -409,56 +274,6 @@ export class QueryRunner {
         const parameters = relationshipAttributesParams.get();
 
         return this.run(statement, parameters, params.session);
-    };
-
-    /** returns the parts and the statement for a SET operation with the given params */
-    public static getSetParts = (params: {
-        /** data to set */
-        data: AnyObject;
-        /** bind param to use */
-        bindParam: BindParam;
-        /** identifier to use */
-        identifier: string;
-    }): {
-        parts: string[];
-        statement: string;
-    } => {
-        const { data, bindParam, identifier } = params;
-
-        const setParts: string[] = [];
-        for (const key in data) {
-            if (!data.hasOwnProperty(key)) {
-                continue;
-            }
-            const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
-            setParts.push(`${identifier}.${key} = $${paramKey}`);
-        }
-
-        return {
-            parts: setParts,
-            statement: `SET ${setParts.join(', ')}`,
-        };
-    };
-
-    /**
-     * returns an object with replacing its values with a bind param value
-     * example return value: ( a.p1 = $v1, b.p2 = $v2 )
-     */
-    public static getPropertiesWithParams = (
-        /** data to set */
-        data: AnyObject,
-        /** bind param to use and mutate */
-        bindParam: BindParam,
-    ): string => {
-        const parts: string[] = [];
-
-        for (const key of Object.keys(data)) {
-            parts.push(
-                `${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`,
-            );
-        }
-
-        return `{${parts.join(',')}}`;
     };
 
     /** maps a session object to a uuid, for logging purposes */
@@ -507,5 +322,16 @@ export class QueryRunner {
             /** default identifier for the target node */
             target: 'target',
         },
+    };
+
+    public static getResultProperties = <T>(
+        result: QueryResult,
+        identifier: string,
+    ): T[] => {
+        return result.records.map((v) => v.get(identifier).properties);
+    };
+
+    public static getNodesDeleted = (result: QueryResult): number => {
+        return result.summary.counters.updates().nodesDeleted;
     };
 }

@@ -10,8 +10,6 @@ import {
     Neo4jSupportedTypes,
     QueryRunner,
     Runnable,
-    getResultProperties,
-    getNodesDeleted,
 } from '../Queries/QueryRunner';
 import { BindParam } from '../Queries/BindParam/BindParam';
 import clone from 'clone';
@@ -20,6 +18,7 @@ import {
     Where,
     WhereParamsByIdentifierI,
 } from '../Queries/Where';
+import { QueryBuilder } from 'Queries';
 
 type AnyObject = Record<string, any>;
 
@@ -403,9 +402,9 @@ export const ModelFactory = <
          * @returns {String} - the normalized label of this Model
          */
         public static getLabel(
-            operation?: Parameters<typeof QueryRunner.getNormalizedLabels>[1],
+            operation?: Parameters<typeof QueryBuilder.getNormalizedLabels>[1],
         ): ReturnType<ModelStaticsI['getLabel']> {
-            return QueryRunner.getNormalizedLabels(modelLabel, operation);
+            return QueryBuilder.getNormalizedLabels(modelLabel, operation);
         }
 
         /**
@@ -696,7 +695,7 @@ export const ModelFactory = <
                         statementParts.push(createOrMerge(mergeProperties));
                         // (identifier: label { where })
                         statementParts.push(
-                            QueryRunner.getNodeStatement({
+                            QueryBuilder.getNodeStatement({
                                 identifier,
                                 label,
                                 // use the bindParam straight away as where
@@ -775,13 +774,13 @@ export const ModelFactory = <
                             );
                             // (parentIdentifier)
                             statementParts.push(
-                                QueryRunner.getNodeStatement({
+                                QueryBuilder.getNodeStatement({
                                     identifier: parentIdentifier,
                                 }),
                             );
                             // -[relationship]-
                             statementParts.push(
-                                QueryRunner.getRelationshipStatement({
+                                QueryBuilder.getRelationshipStatement({
                                     direction: relationship.direction,
                                     name: relationship.name,
                                     identifier: relationshipIdentifier,
@@ -789,7 +788,7 @@ export const ModelFactory = <
                             );
                             // (identifier)
                             statementParts.push(
-                                QueryRunner.getNodeStatement({
+                                QueryBuilder.getNodeStatement({
                                     identifier,
                                 }),
                             );
@@ -898,7 +897,7 @@ export const ModelFactory = <
                     UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
                 `);
                 statementParts.push(`
-                    CREATE ${QueryRunner.getNodeStatement({
+                    CREATE ${QueryBuilder.getNodeStatement({
                         identifier: bulkCreateIdentifier,
                         label: this.getLabel(),
                     })}
@@ -932,7 +931,7 @@ export const ModelFactory = <
 
                     relationshipByWhereParts.push(
                         `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
-                        `MATCH ${QueryRunner.getNodeStatement({
+                        `MATCH ${QueryBuilder.getNodeStatement({
                             identifier: targetNodeIdentifier,
                             label: targetNodeLabel,
                         })}`,
@@ -945,15 +944,15 @@ export const ModelFactory = <
                         // CREATE or MERGE
                         createOrMerge(relateParameters.merge),
                         // (identifier)
-                        QueryRunner.getNodeStatement({ identifier }),
+                        QueryBuilder.getNodeStatement({ identifier }),
                         // -[relationship]-
-                        QueryRunner.getRelationshipStatement({
+                        QueryBuilder.getRelationshipStatement({
                             direction: relationship.direction,
                             name: relationship.name,
                             identifier: relationshipIdentifier,
                         }),
                         // (targetNodeIdentifier)
-                        QueryRunner.getNodeStatement({
+                        QueryBuilder.getNodeStatement({
                             identifier: targetNodeIdentifier,
                         }),
                     );
@@ -1069,7 +1068,7 @@ export const ModelFactory = <
                 session: params?.session,
             });
             const nodeProperties = params?.return
-                ? getResultProperties<Properties>(res, identifier)
+                ? QueryRunner.getResultProperties<Properties>(res, identifier)
                 : [];
 
             const instances = nodeProperties.map((v) =>
@@ -1113,12 +1112,12 @@ export const ModelFactory = <
                 });
             }
 
-            const { getNodeStatement: getNodeData } = QueryRunner;
+            const { getNodeStatement } = QueryBuilder;
 
             /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
             const updateBindParam = where.getBindParam().clone();
 
-            const { statement: setStatement } = QueryRunner.getSetParts({
+            const { statement: setStatement } = QueryBuilder.getSetParts({
                 bindParam: updateBindParam,
                 data,
                 identifier: identifiers.relationship,
@@ -1129,14 +1128,14 @@ export const ModelFactory = <
             statementParts.push('MATCH');
             // (identifier: label)
             statementParts.push(
-                getNodeData({
+                getNodeStatement({
                     identifier: identifiers.source,
                     label: labels.source,
                 }),
             );
             // -[relationship]-
             statementParts.push(
-                QueryRunner.getRelationshipStatement({
+                QueryBuilder.getRelationshipStatement({
                     direction: relationship.direction,
                     name: relationship.name,
                     identifier: identifiers.relationship,
@@ -1144,7 +1143,7 @@ export const ModelFactory = <
             );
             // (identifier: label)
             statementParts.push(
-                getNodeData({
+                getNodeStatement({
                     identifier: identifiers.target,
                     label: labels.target,
                 }),
@@ -1198,7 +1197,7 @@ export const ModelFactory = <
                 identifier,
                 session: configuration?.session,
             });
-            return getNodesDeleted(res);
+            return QueryRunner.getNodesDeleted(res);
         }
 
         public async delete(

@@ -1,4 +1,4 @@
-import { QueryRunner } from '../..';
+import { Neo4jSupportedTypes, QueryRunner } from '../..';
 import { NeogmaConstraintError } from '../../Errors';
 import { int } from 'neo4j-driver';
 import {
@@ -58,6 +58,8 @@ import {
 import { replaceWhitespace } from '../../utils/string';
 import { BindParam } from '../BindParam';
 import { Where } from '../Where';
+
+type AnyObject = Record<string, any>;
 
 export type QueryBuilderParameters = {
     ParameterI: ParameterI;
@@ -171,7 +173,7 @@ export class QueryBuilder {
         }
 
         const getNodeStatementParams: Parameters<
-            typeof QueryRunner.getNodeStatement
+            typeof QueryBuilder.getNodeStatement
         >[0] = {
             identifier: node.identifier,
             label,
@@ -192,7 +194,7 @@ export class QueryBuilder {
         }
 
         // (identifier: label { where })
-        return QueryRunner.getNodeStatement(getNodeStatementParams);
+        return QueryBuilder.getNodeStatement(getNodeStatementParams);
     }
 
     private getRelationshipString(
@@ -206,7 +208,7 @@ export class QueryBuilder {
         const { direction, identifier, name } = relationship;
 
         const getRelationshipStatementParams: Parameters<
-            typeof QueryRunner.getRelationshipStatement
+            typeof QueryBuilder.getRelationshipStatement
         >[0] = {
             direction,
             identifier: relationship.identifier,
@@ -227,7 +229,7 @@ export class QueryBuilder {
             };
         }
 
-        return QueryRunner.getRelationshipStatement(
+        return QueryBuilder.getRelationshipStatement(
             getRelationshipStatementParams,
         );
     }
@@ -362,7 +364,7 @@ export class QueryBuilder {
             return `SET ${set}`;
         }
 
-        return QueryRunner.getSetParts({
+        return QueryBuilder.getSetParts({
             data: set.properties,
             identifier: set.identifier,
             bindParam: this.bindParam,
@@ -523,4 +525,181 @@ export class QueryBuilder {
         const whereInstance = new Where(where, this.bindParam);
         return `WHERE ${whereInstance.getStatement('text')}`;
     }
+
+    /**
+     * surrounds the label with backticks to also allow spaces
+     * @param label - the label to use
+     * @param operation - defaults to 'and'. Whether to generate a "and" or an "or" operation for the labels
+     */
+    public static getNormalizedLabels = (
+        label: string | string[],
+        operation?: 'and' | 'or',
+    ): string => {
+        const labels = label instanceof Array ? label : [label];
+        return labels
+            .map((l) => '`' + l + '`')
+            .join(operation === 'or' ? '|' : ':');
+    };
+
+    /**
+     * returns a string to be used in a query, regardless if any of the identifier or label are null
+     */
+    public static getIdentifierWithLabel = (
+        identifier?: string,
+        label?: string,
+    ): string => {
+        return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
+    };
+
+    /**
+     * returns the appropriate string for a node, ready to be put in a statement
+     * example: (ident: Label { a.p1: $v1 })
+     */
+    public static getNodeStatement = ({
+        identifier,
+        label,
+        inner,
+    }: {
+        /** identifier for the node */
+        identifier?: string;
+        /** identifier for the label */
+        label?: string;
+        /** a statement to be used inside the node, like a where condition or properties */
+        inner?:
+            | string
+            | Where
+            | {
+                  properties: Record<string, Neo4jSupportedTypes>;
+                  bindParam: BindParam;
+              };
+    }): string => {
+        const nodeParts: string[] = [];
+
+        nodeParts.push(QueryBuilder.getIdentifierWithLabel(identifier, label));
+
+        if (inner) {
+            if (typeof inner === 'string') {
+                nodeParts.push(inner);
+            } else if (inner instanceof Where) {
+                nodeParts.push(inner.getStatement('object'));
+            } else {
+                nodeParts.push(
+                    QueryBuilder.getPropertiesWithParams(
+                        inner.properties,
+                        inner.bindParam,
+                    ),
+                );
+            }
+        }
+
+        return `(${nodeParts.join(' ')})`;
+    };
+
+    /**
+     * returns the appropriate string for a relationship, ready to be put in a statement
+     * example: -[identifier: name {where}]->
+     */
+    public static getRelationshipStatement = (params: {
+        /** relationship direction */
+        direction: 'in' | 'out' | 'none';
+        /** relationship name */
+        name: string;
+        /** relationship identifier. If empty, no identifier will be used */
+        identifier?: string;
+        /** a statement to be used inside the relationship, like a where condition or properties */
+        inner?:
+            | string
+            | Where
+            | {
+                  properties: Record<string, Neo4jSupportedTypes>;
+                  bindParam: BindParam;
+              };
+    }): string => {
+        const { direction, name, inner } = params;
+        const identifier = params.identifier || '';
+
+        const allParts: string[] = [];
+
+        // <- or -
+        allParts.push(direction === 'in' ? '<-' : '-');
+
+        // strings will be inside [ ]
+        const innerRelationshipParts: string[] = [];
+        // identifier:Name
+        innerRelationshipParts.push(
+            QueryBuilder.getIdentifierWithLabel(identifier, name),
+        );
+        if (inner) {
+            if (typeof inner === 'string') {
+                innerRelationshipParts.push(inner);
+            } else if (inner instanceof Where) {
+                innerRelationshipParts.push(inner.getStatement('object'));
+            } else {
+                innerRelationshipParts.push(
+                    QueryBuilder.getPropertiesWithParams(
+                        inner.properties,
+                        inner.bindParam,
+                    ),
+                );
+            }
+        }
+
+        // wrap it in [ ]
+        allParts.push(`[${innerRelationshipParts.join(' ')}]`);
+
+        // -> or -
+        allParts.push(direction === 'out' ? '->' : '-');
+
+        return allParts.join('');
+    };
+
+    /** returns the parts and the statement for a SET operation with the given params */
+    public static getSetParts = (params: {
+        /** data to set */
+        data: AnyObject;
+        /** bind param to use */
+        bindParam: BindParam;
+        /** identifier to use */
+        identifier: string;
+    }): {
+        parts: string[];
+        statement: string;
+    } => {
+        const { data, bindParam, identifier } = params;
+
+        const setParts: string[] = [];
+        for (const key in data) {
+            if (!data.hasOwnProperty(key)) {
+                continue;
+            }
+            const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
+            setParts.push(`${identifier}.${key} = $${paramKey}`);
+        }
+
+        return {
+            parts: setParts,
+            statement: `SET ${setParts.join(', ')}`,
+        };
+    };
+
+    /**
+     * returns an object with replacing its values with a bind param value
+     * example return value: ( a.p1 = $v1, b.p2 = $v2 )
+     */
+    public static getPropertiesWithParams = (
+        /** data to set */
+        data: AnyObject,
+        /** bind param to use and mutate */
+        bindParam: BindParam,
+    ): string => {
+        const parts: string[] = [];
+
+        for (const key of Object.keys(data)) {
+            parts.push(
+                `${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`,
+            );
+        }
+
+        return `{${parts.join(',')}}`;
+    };
 }

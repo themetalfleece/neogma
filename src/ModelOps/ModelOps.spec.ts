@@ -2,8 +2,10 @@
 import { Neogma } from '../Neogma';
 import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 import * as dotenv from 'dotenv';
-import { getResultProperties } from '../Queries/QueryRunner';
+import { QueryRunner } from '../Queries/QueryRunner';
 import { neo4jDriver } from '../index';
+
+const { getResultProperties } = QueryRunner;
 
 let neogma: Neogma;
 
