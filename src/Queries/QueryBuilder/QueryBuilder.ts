@@ -1,4 +1,4 @@
-import { Neo4jSupportedTypes, QueryRunner } from '../..';
+import { Neo4jSupportedTypes } from '../..';
 import { NeogmaConstraintError } from '../../Errors';
 import { int } from 'neo4j-driver';
 import {

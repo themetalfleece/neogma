@@ -311,6 +311,33 @@ export class QueryRunner {
         );
     }
 
+    /** creates a QueryBuilder object and runs its statement */
+    public buildAndRun(
+        /** parameters for the query */
+        parameters: ConstructorParameters<typeof QueryBuilder>[0],
+        config?: {
+            /** an existing bindParam to be used */
+            bindParam?: BindParam;
+            /** the session or transaction for running this query */
+            existingSession?: Runnable | null;
+        },
+    ): Promise<QueryResult> {
+        return getRunnable(
+            config?.existingSession,
+            async (session) => {
+                const queryBuilder = new QueryBuilder(parameters, {
+                    bindParam: config?.bindParam,
+                });
+                return this.run(
+                    queryBuilder.getStatement(),
+                    queryBuilder.getBindParam(),
+                    session,
+                );
+            },
+            this.driver,
+        );
+    }
+
     /** default identifiers for the queries */
     public static readonly identifiers = {
         /** general purpose default identifier */
