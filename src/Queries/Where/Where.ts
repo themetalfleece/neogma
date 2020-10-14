@@ -87,31 +87,32 @@ export class Where {
     constructor(
         /** the where parameters to use */
         whereParams: Parameters<Where['addParams']>[0],
-        /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
-        bindOrWhere?: Parameters<Where['addParams']>[1],
+        /** an existing bind param to be used, so the properties can be merged. If empty, a new one will be created and used */
+        bindParam?: BindParam,
     ) {
-        this.addParams(whereParams, bindOrWhere);
+        this.bindParam = BindParam.acquire(bindParam);
+        this.addParams(whereParams);
+
         Object.setPrototypeOf(this, Where.prototype);
     }
 
+    /** gets the BindParam used in this Where */
     public getBindParam(): BindParam {
         return this.bindParam;
+    }
+
+    /** gets the raw where parameters used to generate the final result */
+    public getRawParams(): Where['rawParams'] {
+        return this.rawParams;
     }
 
     /** refreshes the statement and the bindParams by the given where params */
     public addParams(
         /** the where parameters to use */
         whereParams: WhereParamsByIdentifierI,
-        /** an existing bind param or where object so the properties can be merged. If empty, a new one will be created and returned */
-        bindOrWhere?: BindParam | Where,
     ): Where {
-        this.bindParam = new BindParam();
-        if (bindOrWhere instanceof BindParam) {
-            this.bindParam = BindParam.acquire(bindOrWhere);
-        } else if (bindOrWhere instanceof Where) {
-            // push the existing rawParams in order, at the beginning of the array
-            this.rawParams.push(...bindOrWhere.rawParams);
-        }
+        this.bindParam = this.bindParam || new BindParam();
+
         // push the latest whereParams to the end of the array
         this.rawParams.push(whereParams);
 
@@ -128,6 +129,9 @@ export class Where {
             {},
             ...this.rawParams,
         );
+
+        // TODO remove usedBindParamNames from bindParam
+        // TODO reset usedBindParamNames
 
         for (const nodeIdentifier in params) {
             for (const property in params[nodeIdentifier]) {

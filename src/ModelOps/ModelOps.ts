@@ -18,7 +18,7 @@ import {
     Where,
     WhereParamsByIdentifierI,
 } from '../Queries/Where';
-import { QueryBuilder } from 'Queries';
+import { QueryBuilder } from '../Queries';
 
 type AnyObject = Record<string, any>;
 

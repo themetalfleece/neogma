@@ -8,10 +8,7 @@ import { StringSequence } from '../../utils/StringSequence';
 export class BindParam {
     /** acquires a BindParam, so it ensures that a BindParam is always returned. If it's passed, it will be returned as is. Else, a new one will be created and returned */
     public static acquire(bindParam: BindParam | null): BindParam {
-        if (bindParam) {
-            return bindParam;
-        }
-        return new BindParam();
+        return bindParam || new BindParam();
     }
 
     /** the object with the bind param */
