@@ -55,7 +55,7 @@ import {
     isOrderByParameter,
     isWhereParameter,
 } from './QueryBuilder.types';
-import { replaceWhitespace } from '../../utils/string';
+import { trimWhitespace } from '../../utils/string';
 import { BindParam } from '../BindParam';
 import { Where } from '../Where';
 
@@ -156,7 +156,7 @@ export class QueryBuilder {
         }
 
         // join the statement parts and trim all whitespace
-        this.statement = replaceWhitespace(statementParts.join('\n'));
+        this.statement = trimWhitespace(statementParts.join('\n'));
     }
 
     private getNodeString(node: NodeForMatchI | NodeForCreateI): string {

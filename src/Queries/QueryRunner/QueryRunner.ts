@@ -16,7 +16,7 @@ import * as uuid from 'uuid';
 import { getRunnable } from '../../Sessions';
 import { BindParam } from '../BindParam/BindParam';
 import { AnyWhereI, Where } from '../Where/Where';
-import { replaceWhitespace } from '../../utils/string';
+import { trimWhitespace } from '../../utils/string';
 import { QueryBuilder } from '../QueryBuilder';
 
 type AnyObject = Record<string, any>;
@@ -301,7 +301,7 @@ export class QueryRunner {
                     this.sessionIdentifiers.set(session, sessionIdentifier);
                 }
 
-                const trimmedStatement = replaceWhitespace(statement);
+                const trimmedStatement = trimWhitespace(statement);
                 this.log(sessionIdentifier);
                 this.log(`\tStatement:`, trimmedStatement);
                 this.log(`\tParameters:`, parameters);
