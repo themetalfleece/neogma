@@ -77,7 +77,12 @@ export class Where {
     private bindParam: BindParam;
     /** all the given options, so we can easily combine them into a new statement */
     private rawParams: WhereParamsByIdentifierI[] = [];
-    /** an object with the key being the `identifier.property` and the value being the the bind param name which corresponds to it, and an operator to be used in the statement */
+    /**
+     * an object with the key being the `identifier.property` and the value being the the bind param name which corresponds to it, and an operator to be used in the statement
+     * this is needed for the following reasons:
+     * 1) when generating the statement, those values are used
+     * 2) the bind param names which are generated from this Where need to be differentiated from the actual keys of the bindParam, since this Where can only remove those
+     */
     private identifierPropertyData: Array<{
         identifier: string;
         property: string;
@@ -112,7 +117,7 @@ export class Where {
         /** the where parameters to use */
         whereParams: WhereParamsByIdentifierI,
     ): Where {
-        this.bindParam = this.bindParam || new BindParam();
+        this.bindParam = BindParam.acquire(this.bindParam);
 
         // push the latest whereParams to the end of the array
         this.rawParams.push(whereParams);
@@ -125,39 +130,39 @@ export class Where {
 
     /** sets the bindParamNameByIdentifierProperty field by the rawParams */
     private setBindParamNames() {
-        // merge all rawParams into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
-        const params: WhereParamsByIdentifierI = Object.assign(
-            {},
-            ...this.rawParams,
-        );
+        // merge all rawParams, for each identifier, into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
+        const params: WhereParamsByIdentifierI = {};
+        for (const rawParam of this.rawParams) {
+            for (const [identifier, value] of Object.entries(rawParam)) {
+                params[identifier] = { ...params[identifier], ...value };
+            }
+        }
 
-        // TODO remove usedBindParamNames from bindParam
-        // TODO reset usedBindParamNames
+        // remove all used bind param names from the bind param, since we're gonna set them again from scratch
+        this.bindParam.remove(
+            this.identifierPropertyData.map(
+                ({ bindParamName }) => bindParamName,
+            ),
+        );
+        // reset identifierPropertyData as they've been removed from the bindParam
+        this.identifierPropertyData = [];
 
         for (const nodeIdentifier in params) {
             for (const property in params[nodeIdentifier]) {
                 const value = params[nodeIdentifier][property];
 
                 if (isNeo4jSupportedTypes(value)) {
-                    const bindParamName = this.getNameAndAddToParams(
-                        property,
-                        value,
-                    );
-                    this.identifierPropertyData.push({
+                    this.addBindParamDataEntry({
                         identifier: nodeIdentifier,
                         property,
-                        bindParamName,
+                        value,
                         operator: 'equals',
                     });
                 } else if (isWhereIn(value)) {
-                    const bindParamName = this.getNameAndAddToParams(
-                        property,
-                        value[Op.in],
-                    );
-                    this.identifierPropertyData.push({
+                    this.addBindParamDataEntry({
                         identifier: nodeIdentifier,
                         property,
-                        bindParamName,
+                        value: value[Op.in],
                         operator: 'in',
                     });
                 }
@@ -165,13 +170,28 @@ export class Where {
         }
     }
 
-    /** generates a variable name, adds the value to the params under this name and returns it to be added directly to a query */
-    private getNameAndAddToParams = (
-        prefix: string,
-        value: Neo4jSupportedTypes,
-    ) => {
-        const name = this.bindParam.getUniqueNameAndAdd(prefix, value);
-        return `$${name}`;
+    /** adds a value to the bind param, while updating the usedBindParamNames field appropriately */
+    private addBindParamDataEntry = ({
+        identifier,
+        property,
+        operator,
+        value,
+    }: {
+        identifier: string;
+        property: string;
+        operator: Where['identifierPropertyData'][0]['operator'];
+        value: Neo4jSupportedTypes;
+    }) => {
+        const bindParamName = this.bindParam.getUniqueNameAndAdd(
+            property,
+            value,
+        );
+        this.identifierPropertyData.push({
+            identifier,
+            property,
+            bindParamName,
+            operator,
+        });
     };
 
     /** gets the statement by the params */
@@ -218,13 +238,13 @@ export class Where {
 
         for (const bindParamData of this.identifierPropertyData) {
             statementParts.push(
-                `${
+                [
                     mode === 'text'
                         ? `${bindParamData.identifier}.${bindParamData.property}`
-                        : bindParamData.property
-                } ${operatorForStatement(bindParamData.operator)} ${
-                    bindParamData.bindParamName
-                }`,
+                        : bindParamData.property,
+                    operatorForStatement(bindParamData.operator),
+                    `$${bindParamData.bindParamName}`,
+                ].join(' '),
             );
         }
 

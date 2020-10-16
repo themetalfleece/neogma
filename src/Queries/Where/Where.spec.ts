@@ -1,4 +1,5 @@
 import { Where, Op } from './Where';
+import { trimWhitespace } from '../../utils/string';
 
 describe('Where', () => {
     describe('contructor', () => {
@@ -19,6 +20,61 @@ describe('Where', () => {
                 where.getStatement('text').includes('identifier.c IN $c'),
             ).toBeTruthy();
             expect(where.getBindParam().get().c).toEqual(inValue);
+            expect(Object.keys(where.getBindParam().get()).length).toEqual(2);
+        });
+    });
+
+    describe('addParams', () => {
+        it('adds non-overlapping params', () => {
+            const initial = {
+                a: 1,
+                b: 2,
+            };
+            const where = new Where({
+                identifier: initial,
+            });
+
+            const added = {
+                c: 3,
+            };
+            where.addParams({
+                identifier: added,
+            });
+
+            expect(trimWhitespace(where.getStatement('object'))).toEqual(
+                trimWhitespace('{ a : $a, b : $b, c : $c }'),
+            );
+            expect(where.getBindParam().get()).toEqual({
+                ...initial,
+                ...added,
+            });
+            expect(Object.keys(where.getBindParam().get()).length).toEqual(3);
+        });
+
+        it('adds overlapping params', () => {
+            const initial = {
+                a: 1,
+                b: 2,
+            };
+            const where = new Where({
+                identifier: initial,
+            });
+
+            const added = {
+                a: 3,
+            };
+            where.addParams({
+                identifier: added,
+            });
+
+            expect(trimWhitespace(where.getStatement('object'))).toEqual(
+                trimWhitespace('{ a : $a, b : $b }'),
+            );
+            expect(where.getBindParam().get()).toEqual({
+                ...initial,
+                ...added,
+            });
+            expect(Object.keys(where.getBindParam().get()).length).toEqual(2);
         });
     });
 
