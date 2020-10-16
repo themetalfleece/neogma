@@ -117,19 +117,11 @@ export class Where {
         /** the where parameters to use */
         whereParams: WhereParamsByIdentifierI,
     ): Where {
-        this.bindParam = BindParam.acquire(this.bindParam);
-
         // push the latest whereParams to the end of the array
         this.rawParams.push(whereParams);
 
-        // set the statement and bindParams fields
-        this.setBindParamNames();
+        /* set the identifierPropertyData field by the rawParams */
 
-        return this;
-    }
-
-    /** sets the bindParamNameByIdentifierProperty field by the rawParams */
-    private setBindParamNames() {
         // merge all rawParams, for each identifier, into a single one. That way, the latest rawOption will dictate its properties if some previous ones have a common key
         const params: WhereParamsByIdentifierI = {};
         for (const rawParam of this.rawParams) {
@@ -168,6 +160,8 @@ export class Where {
                 }
             }
         }
+
+        return this;
     }
 
     /** adds a value to the bind param, while updating the usedBindParamNames field appropriately */
