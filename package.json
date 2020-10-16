@@ -30,6 +30,7 @@
         "eslint-plugin-prettier": "^3.1.4",
         "jest": "^26.1.0",
         "prettier": "^2.0.5",
+        "ts-jest": "^26.4.1",
         "typescript": "^4.0.3"
     },
     "scripts": {
@@ -38,7 +39,6 @@
         "prepare": "rm -rf dist && tsc",
         "prebuild": "yarn lint && yarn format",
         "build": "tsc",
-        "build-tests": "tsc -p tsconfig.spec.json",
         "test": "jest"
     },
     "repository": {
