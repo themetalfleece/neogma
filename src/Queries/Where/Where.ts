@@ -4,6 +4,7 @@ import {
     Neo4jSupportedTypes,
 } from '../QueryRunner/QueryRunner';
 import { neo4jDriver } from '../..';
+import { NeogmaConstraintError } from '../../Errors';
 
 /** symbols for Where operations */
 const OpIn: unique symbol = Symbol('in');
@@ -183,12 +184,36 @@ export class Where {
     ): string => {
         const statementParts: string[] = [];
 
-        const operatorForStatement: Record<
-            Where['identifierPropertyData'][0]['operator'],
-            string
-        > = {
-            equals: '=',
-            in: 'IN',
+        const operatorForStatement = (
+            operator: Where['identifierPropertyData'][0]['operator'],
+        ) => {
+            if (mode === 'object') {
+                if (operator !== 'equals') {
+                    throw new NeogmaConstraintError(
+                        'The only operator which is supported for object mode is "equals"',
+                        {
+                            actual: {
+                                mode,
+                                operator,
+                            },
+                        },
+                    );
+                }
+
+                // : is the only operator used in object mode
+                return ':';
+            }
+
+            const textMap: Record<
+                Where['identifierPropertyData'][0]['operator'],
+                string
+            > = {
+                equals: '=',
+                in: 'IN',
+            };
+
+            // else, return the appropriate text-mode operator
+            return textMap[operator];
         };
 
         for (const bindParamData of this.identifierPropertyData) {
@@ -197,7 +222,7 @@ export class Where {
                     mode === 'text'
                         ? `${bindParamData.identifier}.${bindParamData.property}`
                         : bindParamData.property
-                } ${operatorForStatement[bindParamData.operator]} ${
+                } ${operatorForStatement(bindParamData.operator)} ${
                     bindParamData.bindParamName
                 }`,
             );
