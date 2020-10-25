@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Where, Op } from './Where';
 import { trimWhitespace } from '../../utils/string';
 
@@ -9,6 +10,7 @@ describe('Where', () => {
             const where = new Where({
                 identifier: {
                     a: 1,
+                    // @ts-expect-error
                     b: [null],
                     c: {
                         [Op.in]: inValue,
@@ -42,7 +44,7 @@ describe('Where', () => {
             });
 
             expect(trimWhitespace(where.getStatement('object'))).toEqual(
-                trimWhitespace('{ a : $a, b : $b, c : $c }'),
+                trimWhitespace('{ a: $a, b: $b, c: $c }'),
             );
             expect(where.getBindParam().get()).toEqual({
                 ...initial,
@@ -68,7 +70,7 @@ describe('Where', () => {
             });
 
             expect(trimWhitespace(where.getStatement('object'))).toEqual(
-                trimWhitespace('{ a : $a, b : $b }'),
+                trimWhitespace('{ a: $a, b: $b }'),
             );
             expect(where.getBindParam().get()).toEqual({
                 ...initial,
@@ -83,6 +85,7 @@ describe('Where', () => {
         const nullIdentifier = 'ui_' + Math.random().toString();
 
         const where = new Where({
+            // @ts-expect-error
             identifier: {
                 a: 1,
                 [nullIdentifier]: null,

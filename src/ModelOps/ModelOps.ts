@@ -136,7 +136,7 @@ type CreateDataI<
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
-    Properties extends Record<string, Neo4jSupportedTypes>,
+    Properties extends Record<string, Neo4jSupportedTypes | undefined>,
     RelatedNodesToAssociateI extends AnyObject = AnyObject,
     MethodsI extends AnyObject = AnyObject,
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
@@ -148,7 +148,7 @@ interface NeogmaModelStaticsI<
     ) => void;
     getLabel: () => string;
     getRawLabels: () => string | string[];
-    getPrimaryKeyField: () => string;
+    getPrimaryKeyField: () => string | null;
     getModelName: () => string;
     __build: (
         data: CreateData,
@@ -165,10 +165,13 @@ interface NeogmaModelStaticsI<
         data: CreateData[],
         configuration?: CreateDataParamsI,
     ) => Promise<Instance[]>;
-    getRelationshipByAlias: (
+    getRelationshipConfiguration: (
         alias: keyof RelatedNodesToAssociateI,
     ) => RelationshipsI<any>[0];
-    reverseRelationshipByAlias: (
+    getRelationshipByAlias: (
+        alias: keyof RelatedNodesToAssociateI,
+    ) => Pick<RelationshipsI<any>[0], 'name' | 'direction' | 'model'>;
+    reverseRelationshipConfiguration: (
         alias: keyof RelatedNodesToAssociateI,
     ) => RelationshipsI<any>[0];
     update: (
@@ -235,7 +238,11 @@ interface NeogmaModelStaticsI<
     getRelationshipModel: (
         relationshipModel: NeogmaModel<any, any, any, any> | 'self',
     ) => NeogmaModel<any, any, any, any>;
-    assertPrimaryKeyField: (operation: string) => void;
+    /** asserts that the given primaryKeyField exists. Also returns it for typescript purposes */
+    assertPrimaryKeyField: (
+        primaryKeyField: string | undefined,
+        operation: string,
+    ) => string;
 }
 /** the methods of a Neogma Instance */
 interface NeogmaInstanceMethodsI<
@@ -289,7 +296,7 @@ export type NeogmaInstance<
 
 /** the type of a Neogma Model */
 export type NeogmaModel<
-    Properties extends Record<string, Neo4jSupportedTypes>,
+    Properties extends Record<string, Neo4jSupportedTypes | undefined>,
     RelatedNodesToAssociateI extends AnyObject,
     MethodsI extends AnyObject = AnyObject,
     StaticsI extends AnyObject = AnyObject
@@ -311,7 +318,7 @@ export type FindManyIncludeI<AliasKeys> = {
  */
 export const ModelFactory = <
     /** the base Properties of the node */
-    Properties extends Record<string, Neo4jSupportedTypes>,
+    Properties extends Record<string, Neo4jSupportedTypes | undefined>,
     /** related nodes to associate. Label-ModelRelatedNodesI pairs */
     RelatedNodesToAssociateI extends AnyObject,
     /** interface for the statics of the model */
@@ -373,7 +380,8 @@ export const ModelFactory = <
         MethodsI
     >;
 
-    const _relationships = clone(parameters.relationships);
+    const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
+        clone(parameters.relationships) || {};
     const Model = class ModelClass implements InstanceMethodsI {
         /** whether this instance already exists in the database or it new */
         public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
@@ -386,7 +394,7 @@ export const ModelFactory = <
         private static relationships = _relationships;
         private static relationshipAliases: Array<
             keyof RelatedNodesToAssociateI
-        > = Object.keys(_relationships || {});
+        > = Object.keys(_relationships);
 
         /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
         public static addRelationships(
@@ -423,7 +431,7 @@ export const ModelFactory = <
         public static getPrimaryKeyField(): ReturnType<
             ModelStaticsI['getPrimaryKeyField']
         > {
-            return modelPrimaryKeyField;
+            return modelPrimaryKeyField || null;
         }
 
         public static getModelName(): ReturnType<
@@ -464,10 +472,13 @@ export const ModelFactory = <
             );
 
             if (validationResult.errors.length) {
-                throw new NeogmaInstanceValidationError(null, {
-                    model: Model,
-                    errors: validationResult.errors,
-                });
+                throw new NeogmaInstanceValidationError(
+                    'Error while validating an instance',
+                    {
+                        model: Model,
+                        errors: validationResult.errors,
+                    },
+                );
             }
         }
 
@@ -529,7 +540,7 @@ export const ModelFactory = <
             _configuration?: Parameters<InstanceMethodsI['save']>[0],
         ): ReturnType<InstanceMethodsI['save']> {
             const instance = this as Instance;
-            const configuration = {
+            const configuration: Parameters<InstanceMethodsI['save']>[0] = {
                 validate: true,
                 ..._configuration,
             };
@@ -539,7 +550,11 @@ export const ModelFactory = <
             }
 
             if (instance.__existsInDatabase) {
-                Model.assertPrimaryKeyField('updating via save');
+                const primaryKeyField = Model.assertPrimaryKeyField(
+                    modelPrimaryKeyField,
+                    'updating via save',
+                );
+
                 // if it exists in the database, update the node by only the fields which have changed
                 const updateData = Object.entries(instance.changed).reduce(
                     (val, [key, changed]) => {
@@ -555,7 +570,7 @@ export const ModelFactory = <
                     return: false,
                     session: configuration?.session,
                     where: {
-                        [modelPrimaryKeyField]: instance[modelPrimaryKeyField],
+                        [primaryKeyField]: instance[primaryKeyField],
                     },
                 });
 
@@ -724,11 +739,20 @@ export const ModelFactory = <
 
                             for (const key of keysToUse) {
                                 const property =
-                                    relationship.properties[key].property;
+                                    relationship.properties?.[key]?.property;
+
+                                if (!property) {
+                                    continue;
+                                }
                                 relationshipProperties[property] =
                                     dataToUse[key];
-                                validationSchema[property] =
-                                    relationship.properties[key].schema;
+
+                                const schema =
+                                    relationship.properties?.[key]?.schema;
+                                if (!schema) {
+                                    continue;
+                                }
+                                validationSchema[property] = schema;
                             }
 
                             const validationResult = revalidator.validate(
@@ -810,19 +834,13 @@ export const ModelFactory = <
 
                         /** create the related nodes */
                         for (const relationshipAlias in relatedNodesToAssociate) {
-                            if (
-                                !relatedNodesToAssociate.hasOwnProperty(
-                                    relationshipAlias,
-                                )
-                            ) {
+                            const relatedNodesData =
+                                relatedNodesToAssociate[relationshipAlias];
+                            if (!relatedNodesData) {
                                 continue;
                             }
 
-                            const relatedNodesData: RelationshipTypePropertyForCreateI<
-                                any,
-                                any
-                            > = relatedNodesToAssociate[relationshipAlias];
-                            const relationship = model.getRelationshipByAlias(
+                            const relationship = model.getRelationshipConfiguration(
                                 relationshipAlias,
                             );
                             const otherModel = model.getRelationshipModel(
@@ -877,7 +895,12 @@ export const ModelFactory = <
                 }
             };
 
-            await addCreateToStatement(Model, data, configuration?.merge, null);
+            await addCreateToStatement(
+                Model,
+                data,
+                configuration?.merge,
+                undefined,
+            );
 
             // parse data to bulk create
             if (bulkCreateData.length) {
@@ -908,7 +931,7 @@ export const ModelFactory = <
             }
 
             // parse toRelateByIdentifier
-            const relationshipByWhereParts = [];
+            const relationshipByWhereParts: string[] = [];
             for (const identifier of Object.keys(toRelateByIdentifier)) {
                 /** to be used in the WITH clause */
                 const allNeededIdentifiers = Object.keys(toRelateByIdentifier);
@@ -993,9 +1016,9 @@ export const ModelFactory = <
             return instances;
         }
 
-        public static getRelationshipByAlias = (
-            alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
-        ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
+        public static getRelationshipConfiguration = (
+            alias: Parameters<ModelStaticsI['getRelationshipConfiguration']>[0],
+        ): ReturnType<ModelStaticsI['getRelationshipConfiguration']> => {
             if (!Model.relationships) {
                 throw new NeogmaNotFoundError(
                     `Relationship definitions can't be found for the model ${modelName}`,
@@ -1014,16 +1037,33 @@ export const ModelFactory = <
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
+                properties: relationship.properties,
+            };
+        };
+
+        public static getRelationshipByAlias = (
+            alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
+        ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
+            const relationshipConfiguration = Model.getRelationshipConfiguration(
+                alias,
+            );
+
+            return {
+                model: relationshipConfiguration.model,
+                direction: relationshipConfiguration.direction,
+                name: relationshipConfiguration.name,
             };
         };
 
         /**
          * reverses the configuration of a relationship, so it can be easily duplicated when defining another Model.
          */
-        public static reverseRelationshipByAlias = (
-            alias: Parameters<ModelStaticsI['reverseRelationshipByAlias']>[0],
-        ): ReturnType<ModelStaticsI['reverseRelationshipByAlias']> => {
-            const relationship = Model.getRelationshipByAlias(alias);
+        public static reverseRelationshipConfiguration = (
+            alias: Parameters<
+                ModelStaticsI['reverseRelationshipConfiguration']
+            >[0],
+        ): ReturnType<ModelStaticsI['reverseRelationshipConfiguration']> => {
+            const relationship = Model.getRelationshipConfiguration(alias);
 
             const reverseDirection = (
                 d: typeof relationship['direction'],
@@ -1056,14 +1096,14 @@ export const ModelFactory = <
                 ? {
                       [identifier]: params.where,
                   }
-                : null;
+                : undefined;
 
             const res = await queryRunner.update({
                 label,
                 data,
                 where,
                 identifier,
-                return: params.return,
+                return: params?.return,
                 session: params?.session,
             });
             const nodeProperties = params?.return
@@ -1086,7 +1126,9 @@ export const ModelFactory = <
             data: Parameters<ModelStaticsI['updateRelationship']>[0],
             params: Parameters<ModelStaticsI['updateRelationship']>[1],
         ): ReturnType<ModelStaticsI['updateRelationship']> {
-            const relationship = Model.getRelationshipByAlias(params.alias);
+            const relationship = Model.getRelationshipConfiguration(
+                params.alias,
+            );
 
             const identifiers = {
                 source: 'source',
@@ -1166,15 +1208,16 @@ export const ModelFactory = <
             data: Parameters<InstanceMethodsI['updateRelationship']>[0],
             params: Parameters<InstanceMethodsI['updateRelationship']>[1],
         ): ReturnType<InstanceMethodsI['updateRelationship']> {
-            Model.assertPrimaryKeyField('updateRelationship');
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'updateRelationship',
+            );
             return Model.updateRelationship(data, {
                 ...params,
                 where: {
                     ...params.where,
                     source: {
-                        [modelPrimaryKeyField]: this[
-                            modelPrimaryKeyField as string
-                        ],
+                        [primaryKeyField]: this[primaryKeyField],
                     },
                 },
             });
@@ -1183,14 +1226,16 @@ export const ModelFactory = <
         public static async delete(
             configuration?: Parameters<ModelStaticsI['delete']>[0],
         ): ReturnType<ModelStaticsI['delete']> {
-            const { detach, where } = configuration;
+            const detach = configuration?.detach;
+            const whereParams = configuration?.where;
+
             const label = Model.getLabel();
 
             const identifier = 'node';
             const res = await queryRunner.delete({
                 label,
-                where: {
-                    [identifier]: where,
+                where: whereParams && {
+                    [identifier]: whereParams,
                 },
                 detach,
                 identifier,
@@ -1202,14 +1247,15 @@ export const ModelFactory = <
         public async delete(
             configuration?: Parameters<InstanceMethodsI['delete']>[0],
         ): ReturnType<InstanceMethodsI['delete']> {
-            Model.assertPrimaryKeyField('delete');
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'delete',
+            );
 
             return Model.delete({
                 ...configuration,
                 where: {
-                    [modelPrimaryKeyField]: this[
-                        modelPrimaryKeyField as string
-                    ],
+                    [primaryKeyField]: this[primaryKeyField],
                 },
             });
         }
@@ -1305,7 +1351,7 @@ export const ModelFactory = <
         public static async relateTo(
             params: Parameters<ModelStaticsI['relateTo']>[0],
         ): ReturnType<ModelStaticsI['relateTo']> {
-            const relationship = Model.getRelationshipByAlias(
+            const relationship = Model.getRelationshipConfiguration(
                 params.alias as keyof RelatedNodesToAssociateI,
             );
 
@@ -1356,15 +1402,16 @@ export const ModelFactory = <
         public async relateTo(
             params: Parameters<InstanceMethodsI['relateTo']>[0],
         ): ReturnType<InstanceMethodsI['relateTo']> {
-            Model.assertPrimaryKeyField('relateTo');
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'relateTo',
+            );
 
             return Model.relateTo({
                 ...params,
                 where: {
                     source: {
-                        [modelPrimaryKeyField]: this[
-                            modelPrimaryKeyField as string
-                        ],
+                        [primaryKeyField]: this[primaryKeyField],
                     },
                     target: params.where,
                 },
@@ -1421,13 +1468,17 @@ export const ModelFactory = <
         }
 
         public static assertPrimaryKeyField(
-            operation: Parameters<ModelStaticsI['assertPrimaryKeyField']>[0],
+            primaryKeyField: Parameters<
+                ModelStaticsI['assertPrimaryKeyField']
+            >[0],
+            operation: Parameters<ModelStaticsI['assertPrimaryKeyField']>[1],
         ): ReturnType<ModelStaticsI['assertPrimaryKeyField']> {
-            if (!modelPrimaryKeyField) {
+            if (!primaryKeyField) {
                 throw new NeogmaConstraintError(
                     `This operation (${operation}) required the model to have a primaryKeyField`,
                 );
             }
+            return primaryKeyField;
         }
     };
 

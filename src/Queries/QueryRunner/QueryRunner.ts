@@ -66,11 +66,11 @@ export interface CreateRelationshipParamsI {
 export class QueryRunner {
     private driver: Driver;
     /** whether to log the statements and parameters with the given function */
-    private logger: (
-        ...val: Array<string | boolean | AnyObject | number>
-    ) => any;
+    private logger:
+        | null
+        | ((...val: Array<string | boolean | AnyObject | number>) => any);
 
-    constructor(params?: {
+    constructor(params: {
         driver: QueryRunner['driver'];
         logger?: QueryRunner['logger'];
     }) {
@@ -129,7 +129,9 @@ export class QueryRunner {
         const where = Where.acquire(params.where);
 
         /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-        const updateBindParam = where.getBindParam().clone();
+        const updateBindParam = BindParam.acquire(
+            where?.getBindParam().clone(),
+        );
 
         const statementParts: string[] = [];
         statementParts.push(
@@ -294,8 +296,11 @@ export class QueryRunner {
                 parameters = parameters || {};
                 /** an identifier to be used for logging purposes */
                 let sessionIdentifier = 'Default';
-                if (this.sessionIdentifiers.has(session)) {
-                    sessionIdentifier = this.sessionIdentifiers.get(session);
+                const existingSessionIdentifier = this.sessionIdentifiers.get(
+                    session,
+                );
+                if (existingSessionIdentifier) {
+                    sessionIdentifier = existingSessionIdentifier;
                 } else {
                     sessionIdentifier = uuid.v4();
                     this.sessionIdentifiers.set(session, sessionIdentifier);

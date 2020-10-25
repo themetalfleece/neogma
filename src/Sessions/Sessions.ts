@@ -58,7 +58,7 @@ export const getTransaction = async <T>(
 
 /** runs the callback with a session or transaction. If any existing Runnable is given, it gets used. Else, a new Session is used */
 export const getRunnable = async <T>(
-    runInExisting: Runnable | null,
+    runInExisting: Runnable | null | undefined,
     callback: (tx: Runnable) => Promise<T>,
     driver: Driver,
 ): Promise<T> => {

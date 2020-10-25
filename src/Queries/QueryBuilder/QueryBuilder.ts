@@ -182,7 +182,7 @@ export class QueryBuilder {
         if (isNodeWithWhere(node)) {
             getNodeStatementParams.inner = new Where(
                 {
-                    [node.identifier]: node.where,
+                    [node.identifier || '']: node.where,
                 },
                 this.bindParam,
             );
@@ -218,7 +218,7 @@ export class QueryBuilder {
         if (isRelationshipWithWhere(relationship)) {
             getRelationshipStatementParams.inner = new Where(
                 {
-                    [identifier]: relationship.where,
+                    [identifier || '']: relationship.where,
                 },
                 this.bindParam,
             );
@@ -389,6 +389,8 @@ export class QueryBuilder {
         if (isDeleteWithLiteral(dlt)) {
             return `${dlt.detach ? 'DETACH ' : ''}DELETE ${dlt.literal}`;
         }
+
+        throw new NeogmaConstraintError('invalid delete configuration');
     }
 
     private getRemoveString(remove: RemoveI['remove']): string {
@@ -412,6 +414,8 @@ export class QueryBuilder {
                 : [remove.labels];
             return `REMOVE ${remove.identifier}:${labels.join(':')}`;
         }
+
+        throw new NeogmaConstraintError('invalid remove configuration');
     }
 
     private getReturnString(rtn: ReturnI['return']): string {
@@ -569,7 +573,7 @@ export class QueryBuilder {
             | string
             | Where
             | {
-                  properties: Record<string, Neo4jSupportedTypes>;
+                  properties: Record<string, Neo4jSupportedTypes | undefined>;
                   bindParam: BindParam;
               };
     }): string => {
@@ -607,7 +611,7 @@ export class QueryBuilder {
         /** relationship direction */
         direction: 'in' | 'out' | 'none';
         /** relationship name */
-        name: string;
+        name?: string;
         /** relationship identifier. If empty, no identifier will be used */
         identifier?: string;
         /** a statement to be used inside the relationship, like a where condition or properties */

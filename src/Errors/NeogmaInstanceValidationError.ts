@@ -11,7 +11,7 @@ export class NeogmaInstanceValidationError extends NeogmaError {
 
     constructor(
         message: NeogmaInstanceValidationError['message'],
-        data?: NeogmaInstanceValidationError['data'],
+        data: NeogmaInstanceValidationError['data'],
     ) {
         super(message, data);
         this.message = message || 'neogma validation error';

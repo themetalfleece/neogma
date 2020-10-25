@@ -253,14 +253,15 @@ export class Where {
                 );
             }
 
-                return `{ ${statementParts.join(', ')} }`;
-            }
+            return `{ ${statementParts.join(', ')} }`;
         }
+
+        throw new NeogmaConstraintError(`invalid mode ${mode}`);
     };
 
     /** returns a Where object if params is specified, else returns null */
     public static acquire(
-        params: AnyWhereI,
+        params?: AnyWhereI | null,
         bindParam?: BindParam,
     ): Where | null {
         if (!params) {

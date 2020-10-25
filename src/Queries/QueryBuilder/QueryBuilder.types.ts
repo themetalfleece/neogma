@@ -1,6 +1,12 @@
 import { Where, WhereParamsByIdentifierI, WhereParamsI } from 'Queries/Where';
 import { Neo4jSupportedTypes, NeogmaModel } from '../..';
 
+/** returns the given type, while making the given properties required */
+type RequiredProperties<T, P extends keyof T> = T &
+    {
+        [key in P]-?: Required<NonNullable<T[key]>>;
+    };
+
 export type ParameterI =
     | RawI
     | MatchI
@@ -341,22 +347,23 @@ export type NodeForCreateWithModelI = {
 };
 export const isNodeWithWhere = (
     node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForMatchObjectI => {
+): node is RequiredProperties<NodeForMatchObjectI, 'where'> => {
     return !!(node as NodeForMatchObjectI).where;
 };
 export const isNodeWithLabel = (
     node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForMatchObjectI | NodeForCreateWithLabelI => {
+): node is NodeForCreateWithLabelI => {
     return !!(node as NodeForMatchObjectI | NodeForCreateWithLabelI).label;
 };
 export const isNodeWithModel = (
     node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForMatchObjectI | NodeForCreateWithModelI => {
+): node is NodeForCreateWithModelI => {
     return !!(node as NodeForMatchObjectI | NodeForCreateWithModelI).model;
 };
+
 export const isNodeWithProperties = (
     node: NodeForMatchObjectI | NodeForCreateObjectI,
-): node is NodeForCreateObjectI => {
+): node is RequiredProperties<NodeForCreateObjectI, 'properties'> => {
     return !!(node as NodeForCreateObjectI).properties;
 };
 
@@ -386,12 +393,15 @@ export type RelationshipForCreateObjectI = {
 };
 export const isRelationshipWithWhere = (
     relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
-): relationship is RelationshipForMatchObjectI => {
+): relationship is RequiredProperties<RelationshipForMatchObjectI, 'where'> => {
     return !!(relationship as RelationshipForMatchObjectI).where;
 };
 export const isRelationshipWithProperties = (
     relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
-): relationship is RelationshipForCreateObjectI => {
+): relationship is RequiredProperties<
+    RelationshipForCreateObjectI,
+    'properties'
+> => {
     return !!(relationship as RelationshipForCreateObjectI).properties;
 };
 export const isRelationship = (
