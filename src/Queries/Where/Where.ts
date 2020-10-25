@@ -251,6 +251,7 @@ export class Where {
                         ` $${bindParamData.bindParamName}`,
                     ].join(''),
                 );
+            }
 
                 return `{ ${statementParts.join(', ')} }`;
             }
