@@ -575,7 +575,11 @@ export class QueryBuilder {
     }): string => {
         const nodeParts: string[] = [];
 
-        nodeParts.push(QueryBuilder.getIdentifierWithLabel(identifier, label));
+        if (identifier || label) {
+            nodeParts.push(
+                QueryBuilder.getIdentifierWithLabel(identifier, label),
+            );
+        }
 
         if (inner) {
             if (typeof inner === 'string') {
@@ -626,9 +630,11 @@ export class QueryBuilder {
         // strings will be inside [ ]
         const innerRelationshipParts: string[] = [];
         // identifier:Name
-        innerRelationshipParts.push(
-            QueryBuilder.getIdentifierWithLabel(identifier, name),
-        );
+        if (identifier || name) {
+            innerRelationshipParts.push(
+                QueryBuilder.getIdentifierWithLabel(identifier, name),
+            );
+        }
         if (inner) {
             if (typeof inner === 'string') {
                 innerRelationshipParts.push(inner);
@@ -700,6 +706,6 @@ export class QueryBuilder {
             );
         }
 
-        return `{${parts.join(',')}}`;
+        return `{ ${parts.join(',')} }`;
     };
 }

@@ -1014,7 +1014,6 @@ export const ModelFactory = <
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
-                properties: relationship.properties,
             };
         };
 

@@ -41,9 +41,7 @@ const isNeo4jSupportedTypes = (
     };
 
     if (Array.isArray(value)) {
-        return (
-            value.findIndex((element) => !isSupportedSingleType(element)) === -1
-        );
+        return value.every((element) => isSupportedSingleType(element));
     }
 
     return isSupportedSingleType(value);
@@ -230,22 +228,32 @@ export class Where {
             return textMap[operator];
         };
 
-        for (const bindParamData of this.identifierPropertyData) {
-            statementParts.push(
-                [
-                    mode === 'text'
-                        ? `${bindParamData.identifier}.${bindParamData.property}`
-                        : bindParamData.property,
-                    operatorForStatement(bindParamData.operator),
-                    `$${bindParamData.bindParamName}`,
-                ].join(' '),
-            );
+        if (mode === 'text') {
+            for (const bindParamData of this.identifierPropertyData) {
+                statementParts.push(
+                    [
+                        `${bindParamData.identifier}.${bindParamData.property}`,
+                        operatorForStatement(bindParamData.operator),
+                        `$${bindParamData.bindParamName}`,
+                    ].join(' '),
+                );
+            }
+
+            return statementParts.join(' AND ');
         }
 
-        if (mode === 'text') {
-            return statementParts.join(' AND ');
-        } else if (mode === 'object') {
-            return `{ ${statementParts.join(', ')} }`;
+        if (mode === 'object') {
+            for (const bindParamData of this.identifierPropertyData) {
+                statementParts.push(
+                    [
+                        bindParamData.property,
+                        operatorForStatement(bindParamData.operator),
+                        ` $${bindParamData.bindParamName}`,
+                    ].join(''),
+                );
+
+                return `{ ${statementParts.join(', ')} }`;
+            }
         }
     };
 
