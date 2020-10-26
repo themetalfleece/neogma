@@ -1,4 +1,4 @@
-import { Neo4jSupportedTypes } from '../..';
+import { Neo4jSupportedProperties } from '../..';
 import { NeogmaConstraintError } from '../../Errors';
 import { int } from 'neo4j-driver';
 import {
@@ -587,7 +587,7 @@ export class QueryBuilder {
             | string
             | Where
             | {
-                  properties: Record<string, Neo4jSupportedTypes | undefined>;
+                  properties: Neo4jSupportedProperties;
                   bindParam: BindParam;
               };
     }): string => {
@@ -633,7 +633,7 @@ export class QueryBuilder {
             | string
             | Where
             | {
-                  properties: Record<string, Neo4jSupportedTypes>;
+                  properties: Neo4jSupportedProperties;
                   bindParam: BindParam;
               };
     }): string => {
@@ -724,6 +724,6 @@ export class QueryBuilder {
             );
         }
 
-        return `{ ${parts.join(',')} }`;
+        return `{ ${parts.join(', ')} }`;
     };
 }

@@ -36,6 +36,10 @@ export type Neo4jSingleTypes =
     | Neo4jDuration;
 /** all the types that Neo4j supports (single or array) */
 export type Neo4jSupportedTypes = Neo4jSingleTypes | Neo4jSingleTypes[];
+export type Neo4jSupportedProperties = Record<
+    string,
+    Neo4jSupportedTypes | undefined
+>;
 
 /** can run queries, is either a Session or a Transaction */
 export type Runnable = Session | Transaction;
@@ -123,9 +127,7 @@ export class QueryRunner {
         );
     };
 
-    public update = async <
-        T extends Record<string, Neo4jSupportedTypes>
-    >(params: {
+    public update = async <T extends Neo4jSupportedProperties>(params: {
         /** the label of the nodes to create */
         label?: string;
         /** the where object for matching the nodes to be edited */
@@ -141,7 +143,10 @@ export class QueryRunner {
     }): Promise<QueryResult> => {
         const { label } = params;
 
-        const data = params.data as Record<string, Neo4jSupportedTypes>;
+        const data = params.data as Record<
+            string,
+            Neo4jSupportedTypes | undefined
+        >;
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
 

@@ -1,5 +1,5 @@
 import { Where, WhereParamsByIdentifierI, WhereParamsI } from 'Queries/Where';
-import { Neo4jSupportedTypes, NeogmaModel } from '../..';
+import { Neo4jSupportedProperties, NeogmaModel } from '../..';
 
 /** returns the given type, while making the given properties required */
 type RequiredProperties<T, P extends keyof T> = T &
@@ -172,7 +172,7 @@ export type SetObjectI = {
     /** identifier whose properties will be set */
     identifier: string;
     /** properties to set */
-    properties: Record<string, Neo4jSupportedTypes>;
+    properties: Neo4jSupportedProperties;
 };
 
 // REMOVE parameter
@@ -336,7 +336,7 @@ export type NodeForCreateWithLabelI = {
     /** a label to use for this node */
     label: string;
     /** properties of the node */
-    properties?: Record<string, Neo4jSupportedTypes>;
+    properties?: Neo4jSupportedProperties;
 };
 /** node type used for creating/merging, using a model to extract the label */
 export type NodeForCreateWithModelI = {
@@ -345,7 +345,7 @@ export type NodeForCreateWithModelI = {
     /** the model of this node. Automatically sets the "label" field */
     model: NeogmaModel<any, any>;
     /** properties of the node */
-    properties?: Record<string, Neo4jSupportedTypes>;
+    properties?: Neo4jSupportedProperties;
 };
 export const isNodeWithWhere = (
     node: NodeForMatchObjectI | NodeForCreateObjectI,
@@ -391,7 +391,7 @@ export type RelationshipForCreateObjectI = {
     /** identifier for this relationship */
     identifier?: string;
     /** properties of the relationship */
-    properties?: Record<string, Neo4jSupportedTypes>;
+    properties?: Neo4jSupportedProperties;
 };
 export const isRelationshipWithWhere = (
     relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
