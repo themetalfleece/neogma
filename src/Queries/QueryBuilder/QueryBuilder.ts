@@ -526,12 +526,20 @@ export class QueryBuilder {
         }
 
         if (where instanceof Where) {
-            return `WHERE ${where.getStatement('text')}`;
+            const statement = where.getStatement('text');
+            if (!statement) {
+                return '';
+            }
+            return `WHERE ${statement}`;
         }
 
         // else, where object
         const whereInstance = new Where(where, this.bindParam);
-        return `WHERE ${whereInstance.getStatement('text')}`;
+        const statement = whereInstance.getStatement('text');
+        if (!statement) {
+            return '';
+        }
+        return `WHERE ${statement}`;
     }
 
     /**
