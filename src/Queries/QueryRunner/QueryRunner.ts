@@ -18,6 +18,7 @@ import { BindParam } from '../BindParam/BindParam';
 import { AnyWhereI, Where } from '../Where/Where';
 import { trimWhitespace } from '../../utils/string';
 import { QueryBuilder } from '../QueryBuilder';
+import { NeogmaConstraintError } from '../../Errors';
 
 type AnyObject = Record<string, any>;
 
@@ -329,10 +330,15 @@ export class QueryRunner {
 
     /** creates a QueryBuilder object and runs its statement */
     public buildAndRun(
-        /** parameters for the query */
-        parameters: ConstructorParameters<typeof QueryBuilder>[0],
+        /** parameters for the query, or a QueryBuilder instance to be used */
+        parametersOrQueryBuilder:
+            | ConstructorParameters<typeof QueryBuilder>[0]
+            | QueryBuilder,
         config?: {
-            /** an existing bindParam to be used */
+            /**
+             * an existing bindParam to be used.
+             * If the first parameter is a QueryBuilder instance, this parameter will be ignored, as the QueryBuilder bindParam will be used.
+             */
             bindParam?: BindParam;
             /** the session or transaction for running this query */
             existingSession?: Runnable | null;
@@ -341,9 +347,22 @@ export class QueryRunner {
         return getRunnable(
             config?.existingSession,
             async (session) => {
-                const queryBuilder = new QueryBuilder(parameters, {
-                    bindParam: config?.bindParam,
-                });
+                const queryBuilder =
+                    parametersOrQueryBuilder instanceof QueryBuilder
+                        ? parametersOrQueryBuilder
+                        : new QueryBuilder(parametersOrQueryBuilder, {
+                              bindParam: config?.bindParam,
+                          });
+
+                if (
+                    config?.bindParam &&
+                    queryBuilder.getBindParam() !== config?.bindParam
+                ) {
+                    throw new NeogmaConstraintError(
+                        'given bindParam is not the same as the one used int he given queryBuilder',
+                    );
+                }
+
                 return this.run(
                     queryBuilder.getStatement(),
                     queryBuilder.getBindParam().get(),
