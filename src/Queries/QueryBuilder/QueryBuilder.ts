@@ -82,9 +82,9 @@ export type QueryBuilderParameters = {
 
 export class QueryBuilder {
     /** parameters for the query to be generated */
-    private parameters: ParameterI[];
+    private parameters: ParameterI[] = [];
     /** the statement for the query */
-    private statement: string;
+    private statement = '';
     /** the bind parameters for the query */
     private bindParam: BindParam;
 
@@ -96,11 +96,19 @@ export class QueryBuilder {
             bindParam?: BindParam;
         },
     ) {
-        this.parameters = parameters;
-
         this.bindParam = BindParam.acquire(config?.bindParam);
 
-        this.setStatementByParameters();
+        this.addParams(parameters);
+    }
+
+    public addParams(
+        /** parameters for the query */
+        parameters: QueryBuilder['parameters'],
+    ): QueryBuilder {
+        this.parameters.push(...parameters);
+        this.setStatementByParameters(parameters);
+
+        return this;
     }
 
     /** get the generated statement for the query */
@@ -114,10 +122,10 @@ export class QueryBuilder {
     }
 
     /** generates the statement by using the parameters and the bindParam */
-    private setStatementByParameters() {
+    private setStatementByParameters(parameters: QueryBuilder['parameters']) {
         const statementParts: string[] = [];
 
-        for (const param of this.parameters) {
+        for (const param of parameters) {
             if (param === null || param === undefined) {
                 continue;
             }
@@ -159,8 +167,10 @@ export class QueryBuilder {
             }
         }
 
-        // join the statement parts and trim all whitespace
-        this.statement = trimWhitespace(statementParts.join('\n'));
+        // join the statement parts and trim all whitespace. Append them to the existing statement
+        this.statement = trimWhitespace(
+            this.statement + ' ' + statementParts.join('\n'),
+        );
     }
 
     private getNodeString(node: NodeForMatchI | NodeForCreateI): string {
