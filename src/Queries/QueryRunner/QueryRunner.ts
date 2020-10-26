@@ -95,20 +95,37 @@ export class QueryRunner {
         const { label, data: options } = params;
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const { getNodeStatement } = QueryBuilder;
-        const statement = `
-            UNWIND {options} as data
-            CREATE ${getNodeStatement({ identifier, label })}
-            SET ${identifier} += data
-            RETURN ${identifier};
-        `;
+        const queryBuilder = new QueryBuilder([
+            {
+                unwind: '{options} as data',
+            },
+            {
+                create: {
+                    identifier,
+                    label,
+                },
+            },
+            {
+                set: `${identifier} += data`,
+            },
+            {
+                return: identifier,
+            },
+        ]);
 
+        // we won't use the queryBuilder bindParams as we've used "options" as a literal
         const parameters = { options };
 
-        return this.run(statement, parameters, params.session);
+        return this.run(
+            queryBuilder.getStatement(),
+            parameters,
+            params.session,
+        );
     };
 
-    public update = async <T>(params: {
+    public update = async <
+        T extends Record<string, Neo4jSupportedTypes>
+    >(params: {
         /** the label of the nodes to create */
         label?: string;
         /** the where object for matching the nodes to be edited */
@@ -122,42 +139,41 @@ export class QueryRunner {
         /** the session or transaction for running this query */
         session?: Runnable | null;
     }): Promise<QueryResult> => {
-        const { label, data } = params;
+        const { label } = params;
+
+        const data = params.data as Record<string, Neo4jSupportedTypes>;
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
         const where = Where.acquire(params.where);
 
-        /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-        const updateBindParam = BindParam.acquire(
-            where?.getBindParam().clone(),
+        return this.buildAndRun(
+            [
+                {
+                    match: {
+                        identifier,
+                        label,
+                    },
+                },
+                where && {
+                    where: where,
+                },
+                {
+                    set: {
+                        identifier,
+                        properties: data,
+                    },
+                },
+                (params.return || null) && {
+                    return: identifier,
+                },
+            ],
+            {
+                /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+                bindParam: where?.getBindParam().clone(),
+                existingSession: params.session,
+            },
         );
-
-        const statementParts: string[] = [];
-        statementParts.push(
-            `MATCH ${QueryBuilder.getNodeStatement({ identifier, label })}`,
-        );
-        if (where) {
-            statementParts.push(`WHERE ${where.getStatement('text')}`);
-        }
-
-        const { statement: setStatement } = QueryBuilder.getSetParts({
-            data,
-            bindParam: updateBindParam,
-            identifier,
-        });
-        statementParts.push(setStatement);
-
-        if (params.return) {
-            statementParts.push(`
-                RETURN ${identifier}
-            `);
-        }
-
-        const statement = statementParts.join(' ');
-        const parameters = updateBindParam.get();
-
-        return this.run(statement, parameters, params.session);
     };
 
     public delete = async (params: {
@@ -174,53 +190,38 @@ export class QueryRunner {
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const statementParts: string[] = [];
-        statementParts.push(
-            `MATCH ${QueryBuilder.getNodeStatement({ identifier, label })}`,
+        return this.buildAndRun(
+            [
+                {
+                    match: {
+                        identifier,
+                        label,
+                    },
+                },
+                where && {
+                    where,
+                },
+                {
+                    delete: {
+                        identifiers: identifier,
+                        detach,
+                    },
+                },
+            ],
+            {
+                bindParam: where?.getBindParam(),
+                existingSession: params.session,
+            },
         );
-        if (where) {
-            statementParts.push(`WHERE ${where.getStatement('text')}`);
-        }
-        if (detach) {
-            statementParts.push('DETACH');
-        }
-        statementParts.push(`DELETE ${identifier}`);
-
-        const statement = statementParts.join(' ');
-        const parameters = { ...where?.getBindParam().get() };
-
-        return this.run(statement, parameters, params.session);
     };
 
     public createRelationship = async (
         params: CreateRelationshipParamsI,
     ): Promise<QueryResult> => {
-        const { source, target, relationship, where } = params;
-        const whereInstance = Where.acquire(where);
+        const { source, target, relationship } = params;
+        const where = Where.acquire(params.where);
 
         const relationshipIdentifier = 'r';
-
-        /** the params of the relationship value */
-        const relationshipAttributesParams = BindParam.acquire(
-            whereInstance?.getBindParam(),
-        ).clone();
-        /** the properties to be converted to a string, to be put into the statement. They refer relationshipAttributesParams by their key name */
-        const relationshipProperties: string[] = [];
-        if (relationship.properties) {
-            for (const key in relationship.properties) {
-                if (!relationship.properties.hasOwnProperty(key)) {
-                    continue;
-                }
-
-                const paramName = relationshipAttributesParams.getUniqueNameAndAdd(
-                    key,
-                    relationship.properties[key],
-                );
-                relationshipProperties.push(
-                    `${relationshipIdentifier}.${key} = $${paramName}`,
-                );
-            }
-        }
 
         const identifiers = {
             source:
@@ -230,52 +231,57 @@ export class QueryRunner {
                 target.identifier ||
                 QueryRunner.identifiers.createRelationship.target,
         };
-        const { getNodeStatement } = QueryBuilder;
-        const statementParts: string[] = [];
-        statementParts.push('MATCH');
-        statementParts.push(
+
+        return this.buildAndRun(
             [
-                getNodeStatement({
-                    identifier: identifiers.source,
-                    label: source.label,
-                }),
-                getNodeStatement({
-                    identifier: identifiers.target,
-                    label: target.label,
-                }),
-            ].join(', '),
+                {
+                    match: {
+                        multiple: [
+                            {
+                                identifier: identifiers.source,
+                                label: source.label,
+                            },
+                            {
+                                identifier: identifiers.target,
+                                label: target.label,
+                            },
+                        ],
+                    },
+                },
+                where && {
+                    where,
+                },
+                {
+                    create: {
+                        related: [
+                            {
+                                identifier: identifiers.source,
+                            },
+                            {
+                                direction: relationship.direction,
+                                name: relationship.name,
+                                identifier: relationshipIdentifier,
+                            },
+                            {
+                                identifier: identifiers.target,
+                            },
+                        ],
+                    },
+                },
+                /** the relationship properties statement to be inserted into the final statement string */
+                params.relationship.properties && {
+                    set: {
+                        identifier: relationshipIdentifier,
+                        properties: params.relationship.properties,
+                    },
+                },
+            ],
+            {
+                existingSession: params.session,
+                /** the params of the relationship value */
+                bindParam: where?.getBindParam()?.clone(),
+            },
         );
-        if (whereInstance) {
-            statementParts.push(`WHERE ${whereInstance.getStatement('text')}`);
-        }
-
-        statementParts.push('CREATE');
-        // (source)
-        statementParts.push(
-            getNodeStatement({ identifier: identifiers.source }),
-        );
-        // -[relationship]-
-        statementParts.push(
-            QueryBuilder.getRelationshipStatement({
-                direction: relationship.direction,
-                name: relationship.name,
-                identifier: relationshipIdentifier,
-            }),
-        );
-        // (target)
-        statementParts.push(
-            getNodeStatement({ identifier: identifiers.target }),
-        );
-
-        /** the relationship properties statement to be inserted into the final statement string */
-        if (relationshipProperties.length) {
-            statementParts.push('SET ' + relationshipProperties.join(', '));
-        }
-
-        const statement = statementParts.join(' ');
-        const parameters = relationshipAttributesParams.get();
-
-        return this.run(statement, parameters, params.session);
     };
 
     /** maps a session object to a uuid, for logging purposes */
