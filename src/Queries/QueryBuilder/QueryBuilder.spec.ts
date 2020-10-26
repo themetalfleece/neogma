@@ -1065,7 +1065,7 @@ describe.only('QueryBuilder', () => {
     });
 
     describe('addParams', () => {
-        it('adds new params to the query', () => {
+        it('adds new params to the query by using an array', () => {
             const queryBuilder = new QueryBuilder([
                 {
                     match: {
@@ -1085,6 +1085,63 @@ describe.only('QueryBuilder', () => {
                     return: 'a',
                 },
             ]);
+
+            expectStatementEquals(
+                queryBuilder,
+                'MATCH (a { p1: $p1 }) LIMIT $limit RETURN a',
+            );
+            expectBindParamEquals(queryBuilder, {
+                p1: 'v1',
+                limit: neo4jDriver.int(1),
+            });
+        });
+
+        it('adds new params to the query by using a object', () => {
+            const queryBuilder = new QueryBuilder([
+                {
+                    match: {
+                        identifier: 'a',
+                        where: {
+                            p1: 'v1',
+                        },
+                    },
+                },
+            ]);
+
+            queryBuilder.addParams({
+                limit: 1,
+            });
+
+            expectStatementEquals(
+                queryBuilder,
+                'MATCH (a { p1: $p1 }) LIMIT $limit',
+            );
+            expectBindParamEquals(queryBuilder, {
+                p1: 'v1',
+                limit: neo4jDriver.int(1),
+            });
+        });
+
+        it('adds new params to the query by using a many object (rest param)', () => {
+            const queryBuilder = new QueryBuilder([
+                {
+                    match: {
+                        identifier: 'a',
+                        where: {
+                            p1: 'v1',
+                        },
+                    },
+                },
+            ]);
+
+            queryBuilder.addParams(
+                {
+                    limit: 1,
+                },
+                {
+                    return: 'a',
+                },
+            );
 
             expectStatementEquals(
                 queryBuilder,

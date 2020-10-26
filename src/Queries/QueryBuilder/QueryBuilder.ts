@@ -90,7 +90,7 @@ export class QueryBuilder {
 
     constructor(
         /** parameters for the query */
-        parameters: QueryBuilder['parameters'],
+        parameters: ParameterI | ParameterI[],
         config?: {
             /** an existing bindParam to be used */
             bindParam?: BindParam;
@@ -103,10 +103,19 @@ export class QueryBuilder {
 
     public addParams(
         /** parameters for the query */
-        parameters: QueryBuilder['parameters'],
+        parameters: ParameterI | ParameterI[],
+        ...restParameters: ParameterI[]
     ): QueryBuilder {
-        this.parameters.push(...parameters);
-        this.setStatementByParameters(parameters);
+        const allParameters = Array.isArray(parameters)
+            ? parameters
+            : [parameters];
+
+        if (restParameters) {
+            allParameters.push(...restParameters);
+        }
+
+        this.parameters.push(...allParameters);
+        this.setStatementByParameters(allParameters);
 
         return this;
     }
