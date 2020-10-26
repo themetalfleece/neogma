@@ -1,4 +1,4 @@
-import { int, QueryResult } from 'neo4j-driver';
+import { QueryResult } from 'neo4j-driver';
 import revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { NeogmaError } from '../Errors/NeogmaError';
@@ -205,14 +205,14 @@ interface NeogmaModelStaticsI<
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
             limit?: number;
-            order?: Array<[keyof Properties, 'ASC' | 'DESC']>;
+            order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
         },
     ) => Promise<Instance[]>;
     findOne: (
         params?: GenericConfiguration & {
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
-            order?: Array<[keyof Properties, 'ASC' | 'DESC']>;
+            order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
         },
     ) => Promise<Instance | null>;
     relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
@@ -1153,54 +1153,42 @@ export const ModelFactory = <
                 });
             }
 
-            const { getNodeStatement } = QueryBuilder;
-
-            /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-            const updateBindParam = where.getBindParam().clone();
-
-            const { statement: setStatement } = QueryBuilder.getSetParts({
-                bindParam: updateBindParam,
-                data,
-                identifier: identifiers.relationship,
-            });
-
-            const statementParts: string[] = [];
-
-            statementParts.push('MATCH');
-            // (identifier: label)
-            statementParts.push(
-                getNodeStatement({
-                    identifier: identifiers.source,
-                    label: labels.source,
-                }),
-            );
-            // -[relationship]-
-            statementParts.push(
-                QueryBuilder.getRelationshipStatement({
-                    direction: relationship.direction,
-                    name: relationship.name,
-                    identifier: identifiers.relationship,
-                }),
-            );
-            // (identifier: label)
-            statementParts.push(
-                getNodeStatement({
-                    identifier: identifiers.target,
-                    label: labels.target,
-                }),
-            );
-
-            const whereStatement = where.getStatement('text');
-            if (whereStatement) {
-                statementParts.push(`WHERE ${whereStatement}`);
-            }
-
-            statementParts.push(setStatement);
-
-            return queryRunner.run(
-                statementParts.join(' '),
-                updateBindParam.get(),
-                params?.session,
+            return queryRunner.buildAndRun(
+                [
+                    {
+                        match: {
+                            related: [
+                                {
+                                    identifier: identifiers.source,
+                                    label: labels.source,
+                                },
+                                {
+                                    direction: relationship.direction,
+                                    name: relationship.name,
+                                    identifier: identifiers.relationship,
+                                },
+                                {
+                                    identifier: identifiers.target,
+                                    label: labels.target,
+                                },
+                            ],
+                        },
+                    },
+                    where && {
+                        where,
+                    },
+                    {
+                        set: {
+                            properties: data,
+                            identifier: identifiers.relationship,
+                        },
+                    },
+                ],
+                {
+                    /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+                    bindParam: where.getBindParam().clone(),
+                    existingSession: params.session,
+                },
             );
         }
 
@@ -1277,47 +1265,39 @@ export const ModelFactory = <
                     bindParam,
                 );
 
-            const statementParts: string[] = [];
-
-            /* match the nodes of this Model */
-            statementParts.push(`
-                MATCH (${rootIdentifier}:${label})
-            `);
-            if (rootWhere) {
-                statementParts.push(`
-                    WHERE ${rootWhere.getStatement('text')}
-                `);
-            }
-            /* add the return statement */
-            statementParts.push(`
-                RETURN ${rootIdentifier}
-            `);
-
-            if (params?.order) {
-                statementParts.push(`
-                    ORDER BY ${params?.order
-                        .filter(([field]) => schemaKeys.has(field as string))
-                        .map(
-                            ([field, direction]) =>
-                                `${rootIdentifier}.${field} ${direction}`,
-                        )
-                        .join(', ')}
-                `);
-            }
-
-            if (params?.limit) {
-                const limitParam = bindParam.getUniqueNameAndAdd(
-                    'limit',
-                    int(params?.limit),
-                );
-                statementParts.push(`LIMIT $${limitParam}`);
-            }
-
-            const statement = statementParts.join(' ');
-            const res = await queryRunner.run(
-                statement,
-                bindParam.get(),
-                params?.session,
+            const res = await queryRunner.buildAndRun(
+                [
+                    {
+                        match: {
+                            identifier: rootIdentifier,
+                            label,
+                        },
+                    },
+                    rootWhere && {
+                        where: rootWhere,
+                    },
+                    {
+                        return: rootIdentifier,
+                    },
+                    params?.order && {
+                        orderBy: params.order
+                            .filter(([field]) => schemaKeys.has(field))
+                            .map(([property, direction]) => ({
+                                identifier: rootIdentifier,
+                                direction,
+                                property,
+                            })),
+                    },
+                    params?.limit
+                        ? {
+                              limit: +params.limit,
+                          }
+                        : null,
+                ],
+                {
+                    bindParam,
+                    existingSession: params?.session,
+                },
             );
 
             const instances = res.records.map((record) => {
