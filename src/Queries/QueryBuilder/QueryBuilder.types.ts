@@ -22,7 +22,9 @@ export type ParameterI =
     | LimitI
     | SkipI
     | WithI
-    | WhereI;
+    | WhereI
+    | null
+    | undefined;
 
 /** raw string to be used as is in the query */
 export type RawI = {
@@ -96,7 +98,7 @@ export type CreateNodeI = NodeForCreateI;
 /** creating a combination of related nodes and relationships */
 export type CreateRelatedI = {
     /** combination of related nodes and relationships */
-    related: Array<NodeForCreateI | RelationshipForCreateI>;
+    related: Array<Partial<NodeForCreateI> | RelationshipForCreateI>;
 };
 export const isCreateRelated = (
     param: CreateI['create'],

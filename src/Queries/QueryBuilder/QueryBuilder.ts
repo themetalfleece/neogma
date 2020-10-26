@@ -98,7 +98,7 @@ export class QueryBuilder {
     ) {
         this.parameters = parameters;
 
-        this.bindParam = config?.bindParam || new BindParam({});
+        this.bindParam = BindParam.acquire(config?.bindParam);
 
         this.setStatementByParameters();
     }
@@ -118,6 +118,10 @@ export class QueryBuilder {
         const statementParts: string[] = [];
 
         for (const param of this.parameters) {
+            if (param === null || param === undefined) {
+                continue;
+            }
+
             if (isRawParameter(param)) {
                 statementParts.push(param.raw);
             } else if (isMatchParameter(param)) {
