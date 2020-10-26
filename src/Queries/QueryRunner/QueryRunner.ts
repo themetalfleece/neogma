@@ -341,7 +341,7 @@ export class QueryRunner {
                 });
                 return this.run(
                     queryBuilder.getStatement(),
-                    queryBuilder.getBindParam(),
+                    queryBuilder.getBindParam().get(),
                     session,
                 );
             },

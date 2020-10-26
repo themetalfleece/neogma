@@ -146,7 +146,7 @@ const expectBindParamEquals = (
 describe.only('QueryBuilder', () => {
     // TODO add unit testing for create and merge
     it('does not crash when generating parameters which are not properly unit-tested', () => {
-        new QueryBuilder([
+        const queryBuilder = new QueryBuilder([
             {
                 create: '(n1:Location)',
             },
@@ -234,6 +234,15 @@ describe.only('QueryBuilder', () => {
                 },
             },
         ]);
+
+        expectStatementEquals(
+            queryBuilder,
+            'CREATE (n1:Location) CREATE (:`ModelA`), (n2:Location) CREATE (n3:Location) CREATE (n4:`ModelA`) CREATE (n4:Location)-[:HAS]->(n5:`ModelA` { testProp: $testProp })<-[:CREATES]-(n6:User) MERGE (n7:Location)-[:HAS { testProp: $testProp__aaaa }]->(n8:`ModelA`)<-[:CREATES]-(n9:User)',
+        );
+        expectBindParamEquals(queryBuilder, {
+            testProp: true,
+            testProp__aaaa: '2',
+        });
     });
 
     describe('raw', () => {

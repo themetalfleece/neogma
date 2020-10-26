@@ -344,6 +344,7 @@ export class QueryBuilder {
                 this.getNodeString({
                     identifier: create.identifier,
                     label: create.label,
+                    properties: create.properties,
                 }),
             ].join(' ');
         }
@@ -353,6 +354,7 @@ export class QueryBuilder {
                 this.getNodeString({
                     identifier: create.identifier,
                     model: create.model,
+                    properties: create.properties,
                 }),
             ].join(' ');
         }
