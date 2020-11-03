@@ -1018,7 +1018,7 @@ export const ModelFactory = <
 
             await queryRunner.buildAndRun(queryBuilderParams, {
                 bindParam,
-                existingSession: configuration?.session,
+                session: configuration?.session,
             });
 
             return instances;
@@ -1195,7 +1195,7 @@ export const ModelFactory = <
                 {
                     /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
                     bindParam: where.getBindParam().clone(),
-                    existingSession: params.session,
+                    session: params.session,
                 },
             );
         }
@@ -1304,7 +1304,7 @@ export const ModelFactory = <
                 ],
                 {
                     bindParam,
-                    existingSession: params?.session,
+                    session: params?.session,
                 },
             );
 

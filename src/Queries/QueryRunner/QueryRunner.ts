@@ -177,7 +177,7 @@ export class QueryRunner {
             {
                 /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
                 bindParam: where?.getBindParam().clone(),
-                existingSession: params.session,
+                session: params.session,
             },
         );
     };
@@ -216,7 +216,7 @@ export class QueryRunner {
             ],
             {
                 bindParam: where?.getBindParam(),
-                existingSession: params.session,
+                session: params.session,
             },
         );
     };
@@ -283,7 +283,7 @@ export class QueryRunner {
                 },
             ],
             {
-                existingSession: params.session,
+                session: params.session,
                 /** the params of the relationship value */
                 bindParam: where?.getBindParam()?.clone(),
             },
@@ -341,11 +341,11 @@ export class QueryRunner {
              */
             bindParam?: BindParam;
             /** the session or transaction for running this query */
-            existingSession?: Runnable | null;
+            session?: Runnable | null;
         },
     ): Promise<QueryResult> {
         return getRunnable(
-            config?.existingSession,
+            config?.session,
             async (session) => {
                 const queryBuilder =
                     parametersOrQueryBuilder instanceof QueryBuilder
