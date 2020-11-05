@@ -1,4 +1,4 @@
-import { Where, WhereParamsByIdentifierI, WhereParamsI } from 'Queries/Where';
+import { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
 import { Neo4jSupportedProperties, NeogmaModel } from '../..';
 
 /** returns the given type, while making the given properties required */
