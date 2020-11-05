@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { Neogma } from '../Neogma';
 import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 import * as dotenv from 'dotenv';
-import { getResultProperties } from '../QueryRunner';
+import { QueryRunner } from '../Queries/QueryRunner';
 import { neo4jDriver } from '../index';
+
+const { getResultProperties } = QueryRunner;
 
 let neogma: Neogma;
 
@@ -46,7 +49,7 @@ const expectNeo4jTypes = {
         expect(withNumber.second).toEqual(withInteger.second.low);
         expect(withNumber.nanosecond).toEqual(withInteger.nanosecond.low);
         expect(withNumber.timeZoneOffsetSeconds).toEqual(
-            withInteger.timeZoneOffsetSeconds.low,
+            withInteger.timeZoneOffsetSeconds?.low,
         );
         expect(withNumber.timeZoneId).toEqual(withInteger.timeZoneId);
     },
@@ -904,7 +907,7 @@ describe('addRelationships', () => {
         expect(userInDbData.id).toEqual(userWithOrdersData.id);
         expect(userInDbData.name).toEqual(userWithOrdersData.name);
 
-        const orderData = userWithOrdersData.Orders.properties[0];
+        const orderData = userWithOrdersData.Orders!.properties![0];
         const orderInDbResult = await neogma.queryRunner.run(
             `MATCH (n:Order {id: $id}) RETURN n`,
             { id: orderData.id },
@@ -917,7 +920,7 @@ describe('addRelationships', () => {
         expect(orderInDbData.id).toEqual(orderData.id);
         expect(orderInDbData.name).toEqual(orderData.name);
 
-        const moreOrderData = userWithOrdersData.MoreOrders.properties[0];
+        const moreOrderData = userWithOrdersData.MoreOrders!.properties![0];
         const moreOrderInDbResult = await neogma.queryRunner.run(
             `MATCH (n:Order {id: $id}) RETURN n`,
             { id: moreOrderData.id },

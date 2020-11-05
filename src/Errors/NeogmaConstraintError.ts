@@ -15,7 +15,7 @@ export class NeogmaConstraintError extends NeogmaError {
     ) {
         super(message, data);
         this.message = message || 'neogma constraint error';
-        this.data = data;
+        this.data = data || {};
 
         Object.setPrototypeOf(this, NeogmaConstraintError.prototype);
     }

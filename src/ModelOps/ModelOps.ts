@@ -1,4 +1,4 @@
-import { int, QueryResult } from 'neo4j-driver';
+import { QueryResult } from 'neo4j-driver';
 import revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { NeogmaError } from '../Errors/NeogmaError';
@@ -10,19 +10,27 @@ import {
     Neo4jSupportedTypes,
     QueryRunner,
     Runnable,
+} from '../Queries/QueryRunner';
+import { BindParam } from '../Queries/BindParam/BindParam';
+import clone from 'clone';
+import {
+    WhereParamsI,
     Where,
     WhereParamsByIdentifierI,
-    WhereParamsI,
-    getResultProperties,
-    getNodesDeleted,
-} from '../QueryRunner';
-import { BindParam } from '../QueryRunner/BindParam';
-import clone from 'clone';
+} from '../Queries/Where';
+import {
+    Neo4jSupportedProperties,
+    QueryBuilder,
+    QueryBuilderParameters,
+} from '../Queries';
 
 type AnyObject = Record<string, any>;
 
 /** the type of the properties to be added to a relationship */
-export type RelationshipPropertiesI = Record<string, Neo4jSupportedTypes>;
+export type RelationshipPropertiesI = Record<
+    string,
+    Neo4jSupportedTypes | undefined
+>;
 
 interface GenericConfiguration {
     session?: Runnable | null;
@@ -135,7 +143,7 @@ type CreateDataI<
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
-    Properties extends Record<string, Neo4jSupportedTypes>,
+    Properties extends Neo4jSupportedProperties,
     RelatedNodesToAssociateI extends AnyObject = AnyObject,
     MethodsI extends AnyObject = AnyObject,
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
@@ -147,7 +155,7 @@ interface NeogmaModelStaticsI<
     ) => void;
     getLabel: () => string;
     getRawLabels: () => string | string[];
-    getPrimaryKeyField: () => string;
+    getPrimaryKeyField: () => string | null;
     getModelName: () => string;
     __build: (
         data: CreateData,
@@ -164,10 +172,13 @@ interface NeogmaModelStaticsI<
         data: CreateData[],
         configuration?: CreateDataParamsI,
     ) => Promise<Instance[]>;
-    getRelationshipByAlias: (
+    getRelationshipConfiguration: (
         alias: keyof RelatedNodesToAssociateI,
     ) => RelationshipsI<any>[0];
-    reverseRelationshipByAlias: (
+    getRelationshipByAlias: (
+        alias: keyof RelatedNodesToAssociateI,
+    ) => Pick<RelationshipsI<any>[0], 'name' | 'direction' | 'model'>;
+    reverseRelationshipConfiguration: (
         alias: keyof RelatedNodesToAssociateI,
     ) => RelationshipsI<any>[0];
     update: (
@@ -201,14 +212,14 @@ interface NeogmaModelStaticsI<
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
             limit?: number;
-            order?: Array<[keyof Properties, 'ASC' | 'DESC']>;
+            order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
         },
     ) => Promise<Instance[]>;
     findOne: (
         params?: GenericConfiguration & {
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
-            order?: Array<[keyof Properties, 'ASC' | 'DESC']>;
+            order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
         },
     ) => Promise<Instance | null>;
     relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
@@ -234,11 +245,15 @@ interface NeogmaModelStaticsI<
     getRelationshipModel: (
         relationshipModel: NeogmaModel<any, any, any, any> | 'self',
     ) => NeogmaModel<any, any, any, any>;
-    assertPrimaryKeyField: (operation: string) => void;
+    /** asserts that the given primaryKeyField exists. Also returns it for typescript purposes */
+    assertPrimaryKeyField: (
+        primaryKeyField: string | undefined,
+        operation: string,
+    ) => string;
 }
 /** the methods of a Neogma Instance */
 interface NeogmaInstanceMethodsI<
-    Properties,
+    Properties extends Neo4jSupportedProperties,
     RelatedNodesToAssociateI extends AnyObject,
     MethodsI extends AnyObject,
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
@@ -278,7 +293,7 @@ interface NeogmaInstanceMethodsI<
 /** the type of instance of the Model */
 export type NeogmaInstance<
     /** the properties used in the Model */
-    Properties,
+    Properties extends Neo4jSupportedProperties,
     RelatedNodesToAssociateI extends AnyObject,
     /** the Methods used in the Model */
     MethodsI extends AnyObject = AnyObject
@@ -288,7 +303,7 @@ export type NeogmaInstance<
 
 /** the type of a Neogma Model */
 export type NeogmaModel<
-    Properties extends Record<string, Neo4jSupportedTypes>,
+    Properties extends Neo4jSupportedProperties,
     RelatedNodesToAssociateI extends AnyObject,
     MethodsI extends AnyObject = AnyObject,
     StaticsI extends AnyObject = AnyObject
@@ -310,7 +325,7 @@ export type FindManyIncludeI<AliasKeys> = {
  */
 export const ModelFactory = <
     /** the base Properties of the node */
-    Properties extends Record<string, Neo4jSupportedTypes>,
+    Properties extends Neo4jSupportedProperties,
     /** related nodes to associate. Label-ModelRelatedNodesI pairs */
     RelatedNodesToAssociateI extends AnyObject,
     /** interface for the statics of the model */
@@ -372,7 +387,8 @@ export const ModelFactory = <
         MethodsI
     >;
 
-    const _relationships = clone(parameters.relationships);
+    const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
+        clone(parameters.relationships) || {};
     const Model = class ModelClass implements InstanceMethodsI {
         /** whether this instance already exists in the database or it new */
         public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
@@ -385,7 +401,7 @@ export const ModelFactory = <
         private static relationships = _relationships;
         private static relationshipAliases: Array<
             keyof RelatedNodesToAssociateI
-        > = Object.keys(_relationships || {});
+        > = Object.keys(_relationships);
 
         /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
         public static addRelationships(
@@ -401,9 +417,9 @@ export const ModelFactory = <
          * @returns {String} - the normalized label of this Model
          */
         public static getLabel(
-            operation?: Parameters<typeof QueryRunner.getNormalizedLabels>[1],
+            operation?: Parameters<typeof QueryBuilder.getNormalizedLabels>[1],
         ): ReturnType<ModelStaticsI['getLabel']> {
-            return QueryRunner.getNormalizedLabels(modelLabel, operation);
+            return QueryBuilder.getNormalizedLabels(modelLabel, operation);
         }
 
         /**
@@ -422,7 +438,7 @@ export const ModelFactory = <
         public static getPrimaryKeyField(): ReturnType<
             ModelStaticsI['getPrimaryKeyField']
         > {
-            return modelPrimaryKeyField;
+            return modelPrimaryKeyField || null;
         }
 
         public static getModelName(): ReturnType<
@@ -434,7 +450,7 @@ export const ModelFactory = <
         public getDataValues(
             this: Instance,
         ): ReturnType<InstanceMethodsI['getDataValues']> {
-            const data: Properties = Object.keys(schema).reduce(
+            const properties: Properties = Object.keys(schema).reduce(
                 (acc, key: keyof Properties) => {
                     if (this[key] !== undefined) {
                         acc[key] = this[key];
@@ -444,7 +460,7 @@ export const ModelFactory = <
                 {} as Properties,
             );
 
-            return data;
+            return properties;
         }
 
         /**
@@ -463,10 +479,13 @@ export const ModelFactory = <
             );
 
             if (validationResult.errors.length) {
-                throw new NeogmaInstanceValidationError(null, {
-                    model: Model,
-                    errors: validationResult.errors,
-                });
+                throw new NeogmaInstanceValidationError(
+                    'Error while validating an instance',
+                    {
+                        model: Model,
+                        errors: validationResult.errors,
+                    },
+                );
             }
         }
 
@@ -528,7 +547,7 @@ export const ModelFactory = <
             _configuration?: Parameters<InstanceMethodsI['save']>[0],
         ): ReturnType<InstanceMethodsI['save']> {
             const instance = this as Instance;
-            const configuration = {
+            const configuration: Parameters<InstanceMethodsI['save']>[0] = {
                 validate: true,
                 ..._configuration,
             };
@@ -538,7 +557,11 @@ export const ModelFactory = <
             }
 
             if (instance.__existsInDatabase) {
-                Model.assertPrimaryKeyField('updating via save');
+                const primaryKeyField = Model.assertPrimaryKeyField(
+                    modelPrimaryKeyField,
+                    'updating via save',
+                );
+
                 // if it exists in the database, update the node by only the fields which have changed
                 const updateData = Object.entries(instance.changed).reduce(
                     (val, [key, changed]) => {
@@ -554,7 +577,7 @@ export const ModelFactory = <
                     return: false,
                     session: configuration?.session,
                     where: {
-                        [modelPrimaryKeyField]: instance[modelPrimaryKeyField],
+                        [primaryKeyField]: instance[primaryKeyField],
                     },
                 });
 
@@ -568,7 +591,13 @@ export const ModelFactory = <
                 return instance;
             } else {
                 // if it's a new one - it doesn't exist in the database yet, need to create it
-                return Model.createOne(instance, configuration);
+                return Model.createOne(
+                    instance.getDataValues() as CreateDataI<
+                        Properties,
+                        RelatedNodesToAssociateI
+                    >,
+                    configuration,
+                );
             }
         }
 
@@ -593,13 +622,6 @@ export const ModelFactory = <
             configuration = configuration || {};
             const validate = !(configuration.validate === false);
 
-            const createOrMerge = (merge?: boolean) =>
-                merge ? 'MERGE' : 'CREATE';
-
-            const statementParts: string[] = [];
-
-            /** the bind param of the query */
-            const bindParam = new BindParam();
             // used only for unique names
             const identifiers = new BindParam();
 
@@ -619,6 +641,13 @@ export const ModelFactory = <
 
             const instances: Instance[] = [];
             const bulkCreateData: Properties[] = [];
+
+            /** parameters for the QueryBuilder */
+            const queryBuilderParams: Array<
+                QueryBuilderParameters['ParameterI']
+            > = [];
+            /** Bind Param which will be used in the QueryBuilder, and in creating parameters for literals */
+            const bindParam = new BindParam();
 
             const addCreateToStatement = async (
                 model: NeogmaModel<any, any>,
@@ -640,7 +669,8 @@ export const ModelFactory = <
                     );
                     const label = model.getLabel();
 
-                    const instance = (createData instanceof (model as any)
+                    const instance = (createData instanceof
+                    ((model as unknown) as () => void)
                         ? createData
                         : model.__build(createData, {
                               status: 'new',
@@ -683,27 +713,28 @@ export const ModelFactory = <
                     ) {
                         /* if it has related nodes to associated or it has a parent node or it's to be merged, create it as a single node, with an identifier */
 
-                        const identifierWithLabel = QueryRunner.getIdentifierWithLabel(
+                        const createOrMergeProperties:
+                            | QueryBuilderParameters['CreateI']
+                            | QueryBuilderParameters['MergeI'] = {
                             identifier,
                             label,
-                        );
-
-                        statementParts.push(`
-                            ${createOrMerge(mergeProperties)} 
-                            (
-                                ${identifierWithLabel} 
-                                ${QueryRunner.getPropertiesWithParams(
-                                    instance.getDataValues(),
-                                    bindParam,
-                                )}
-                            )
-                        `);
+                            properties: instance.getDataValues(),
+                        };
+                        if (mergeProperties) {
+                            queryBuilderParams.push({
+                                merge: createOrMergeProperties,
+                            });
+                        } else {
+                            queryBuilderParams.push({
+                                create: createOrMergeProperties,
+                            });
+                        }
 
                         /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
                         const getRelationshipProperties = (
                             relationship: RelationshipsI<any>[0],
                             dataToUse,
-                        ) => {
+                        ): Neo4jSupportedProperties => {
                             const keysToUse = Object.keys(
                                 relationship.properties || {},
                             );
@@ -717,11 +748,20 @@ export const ModelFactory = <
 
                             for (const key of keysToUse) {
                                 const property =
-                                    relationship.properties[key].property;
+                                    relationship.properties?.[key]?.property;
+
+                                if (!property) {
+                                    continue;
+                                }
                                 relationshipProperties[property] =
                                     dataToUse[key];
-                                validationSchema[property] =
-                                    relationship.properties[key].schema;
+
+                                const schema =
+                                    relationship.properties?.[key]?.schema;
+                                if (!schema) {
+                                    continue;
+                                }
+                                validationSchema[property] = schema;
                             }
 
                             const validationResult = revalidator.validate(
@@ -751,57 +791,48 @@ export const ModelFactory = <
                                 identifier: parentIdentifier,
                             } = parentNode;
 
-                            const relationshipProperties = getRelationshipProperties(
-                                relationship,
-                                createData,
-                            );
+                            const relatedQueryBuilderParameters:
+                                | QueryBuilderParameters['CreateI']
+                                | QueryBuilderParameters['MergeI'] = {
+                                related: [
+                                    {
+                                        identifier: parentIdentifier,
+                                    },
+                                    {
+                                        direction: relationship.direction,
+                                        name: relationship.name,
+                                        properties:
+                                            getRelationshipProperties(
+                                                relationship,
+                                                createData,
+                                            ) || null,
+                                    },
+                                    {
+                                        identifier,
+                                    },
+                                ],
+                            };
 
-                            /* set an identifier only if we need to create relationship properties */
-                            const relationshipIdentifier =
-                                relationshipProperties &&
-                                identifiers.getUniqueNameAndAdd('r', null);
-                            const directionAndNameString = QueryRunner.getRelationshipDirectionAndName(
-                                {
-                                    direction: relationship.direction,
-                                    name: relationship.name,
-                                    identifier: relationshipIdentifier,
-                                },
-                            );
-                            statementParts.push(`
-                                ${createOrMerge(
-                                    parentNode.mergeRelationship,
-                                )} (${parentIdentifier})${directionAndNameString}(${identifier})
-                            `);
-                            if (
-                                relationshipProperties &&
-                                Object.keys(relationshipProperties).length > 0
-                            ) {
-                                /* create the relationship properties */
-                                const relationshipPropertiesParam = bindParam.getUniqueNameAndAdd(
-                                    'relationshipProperty',
-                                    relationshipProperties,
-                                );
-                                statementParts.push(`
-                                    SET ${relationshipIdentifier} += $${relationshipPropertiesParam}
-                                `);
+                            if (mergeProperties) {
+                                queryBuilderParams.push({
+                                    merge: relatedQueryBuilderParameters,
+                                });
+                            } else {
+                                queryBuilderParams.push({
+                                    create: relatedQueryBuilderParameters,
+                                });
                             }
                         }
 
                         /** create the related nodes */
                         for (const relationshipAlias in relatedNodesToAssociate) {
-                            if (
-                                !relatedNodesToAssociate.hasOwnProperty(
-                                    relationshipAlias,
-                                )
-                            ) {
+                            const relatedNodesData =
+                                relatedNodesToAssociate[relationshipAlias];
+                            if (!relatedNodesData) {
                                 continue;
                             }
 
-                            const relatedNodesData: RelationshipTypePropertyForCreateI<
-                                any,
-                                any
-                            > = relatedNodesToAssociate[relationshipAlias];
-                            const relationship = model.getRelationshipByAlias(
+                            const relationship = model.getRelationshipConfiguration(
                                 relationshipAlias,
                             );
                             const otherModel = model.getRelationshipModel(
@@ -856,7 +887,12 @@ export const ModelFactory = <
                 }
             };
 
-            await addCreateToStatement(Model, data, configuration?.merge, null);
+            await addCreateToStatement(
+                Model,
+                data,
+                configuration?.merge,
+                undefined,
+            );
 
             // parse data to bulk create
             if (bulkCreateData.length) {
@@ -872,20 +908,28 @@ export const ModelFactory = <
                     'bulkCreateData',
                     null,
                 );
-                statementParts.unshift(`
-                    UNWIND $${bulkCreateOptionsParam} as ${bulkCreateDataIdentifier}
-                `);
-                statementParts.push(`
-                    CREATE (${QueryRunner.getIdentifierWithLabel(
-                        bulkCreateIdentifier,
-                        this.getLabel(),
-                    )})
-                    SET ${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}
-                `);
+
+                /** bulk create via unwind at the beginning of the query */
+                queryBuilderParams.unshift(
+                    {
+                        unwind: {
+                            value: `$${bulkCreateOptionsParam}`,
+                            as: bulkCreateDataIdentifier,
+                        },
+                    },
+                    {
+                        create: {
+                            identifier: bulkCreateIdentifier,
+                            label: this.getLabel(),
+                        },
+                    },
+                    {
+                        set: `${bulkCreateIdentifier} += ${bulkCreateDataIdentifier}`,
+                    },
+                );
             }
 
             // parse toRelateByIdentifier
-            const relationshipByWhereParts = [];
             for (const identifier of Object.keys(toRelateByIdentifier)) {
                 /** to be used in the WITH clause */
                 const allNeededIdentifiers = Object.keys(toRelateByIdentifier);
@@ -906,31 +950,48 @@ export const ModelFactory = <
                         null,
                     );
 
-                    relationshipByWhereParts.push(
-                        `WITH DISTINCT ${allNeededIdentifiers.join(', ')}`,
-                        `MATCH (${QueryRunner.getIdentifierWithLabel(
-                            targetNodeIdentifier,
-                            targetNodeLabel,
-                        )})`,
-                        `WHERE ${
-                            new Where(
-                                {
-                                    [targetNodeIdentifier]:
-                                        relateParameters.where,
-                                },
-                                bindParam,
-                            ).statement
-                        }`,
-                        `${createOrMerge(
-                            relateParameters.merge,
-                        )} (${identifier})${QueryRunner.getRelationshipDirectionAndName(
+                    const relatedQueryBuilderParameters:
+                        | QueryBuilderParameters['CreateI']
+                        | QueryBuilderParameters['MergeI'] = {
+                        related: [
+                            {
+                                identifier,
+                            },
                             {
                                 direction: relationship.direction,
                                 name: relationship.name,
                                 identifier: relationshipIdentifier,
                             },
-                        )}(${targetNodeIdentifier})`,
+                            {
+                                identifier: targetNodeIdentifier,
+                            },
+                        ],
+                    };
+
+                    queryBuilderParams.push(
+                        {
+                            with: `DISTINCT ${allNeededIdentifiers.join(', ')}`,
+                        },
+                        {
+                            match: {
+                                identifier: targetNodeIdentifier,
+                                label: targetNodeLabel,
+                            },
+                        },
+                        {
+                            where: {
+                                [targetNodeIdentifier]: relateParameters.where,
+                            },
+                        },
+                        relateParameters.merge
+                            ? {
+                                  merge: relatedQueryBuilderParameters,
+                              }
+                            : {
+                                  create: relatedQueryBuilderParameters,
+                              },
                     );
+
                     if (
                         relateParameters.properties &&
                         Object.keys(relateParameters.properties).length > 0
@@ -940,9 +1001,10 @@ export const ModelFactory = <
                             'relationshipProperty',
                             relateParameters.properties,
                         );
-                        relationshipByWhereParts.push(`
-                            SET ${relationshipIdentifier} += $${relationshipPropertiesParam}
-                        `);
+
+                        queryBuilderParams.push({
+                            set: `${relationshipIdentifier} += $${relationshipPropertiesParam}`,
+                        });
                     }
 
                     // remove this relateParameters from the array
@@ -954,23 +1016,17 @@ export const ModelFactory = <
                 delete toRelateByIdentifier[identifier];
             }
 
-            statementParts.push(...relationshipByWhereParts);
-
-            const statement = statementParts.join(' ');
-            const queryParams = bindParam.get();
-
-            await queryRunner.run(
-                statement,
-                queryParams,
-                configuration?.session,
-            );
+            await queryRunner.buildAndRun(queryBuilderParams, {
+                bindParam,
+                session: configuration?.session,
+            });
 
             return instances;
         }
 
-        public static getRelationshipByAlias = (
-            alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
-        ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
+        public static getRelationshipConfiguration = (
+            alias: Parameters<ModelStaticsI['getRelationshipConfiguration']>[0],
+        ): ReturnType<ModelStaticsI['getRelationshipConfiguration']> => {
             if (!Model.relationships) {
                 throw new NeogmaNotFoundError(
                     `Relationship definitions can't be found for the model ${modelName}`,
@@ -993,13 +1049,29 @@ export const ModelFactory = <
             };
         };
 
+        public static getRelationshipByAlias = (
+            alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
+        ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
+            const relationshipConfiguration = Model.getRelationshipConfiguration(
+                alias,
+            );
+
+            return {
+                model: relationshipConfiguration.model,
+                direction: relationshipConfiguration.direction,
+                name: relationshipConfiguration.name,
+            };
+        };
+
         /**
          * reverses the configuration of a relationship, so it can be easily duplicated when defining another Model.
          */
-        public static reverseRelationshipByAlias = (
-            alias: Parameters<ModelStaticsI['reverseRelationshipByAlias']>[0],
-        ): ReturnType<ModelStaticsI['reverseRelationshipByAlias']> => {
-            const relationship = Model.getRelationshipByAlias(alias);
+        public static reverseRelationshipConfiguration = (
+            alias: Parameters<
+                ModelStaticsI['reverseRelationshipConfiguration']
+            >[0],
+        ): ReturnType<ModelStaticsI['reverseRelationshipConfiguration']> => {
+            const relationship = Model.getRelationshipConfiguration(alias);
 
             const reverseDirection = (
                 d: typeof relationship['direction'],
@@ -1032,18 +1104,18 @@ export const ModelFactory = <
                 ? {
                       [identifier]: params.where,
                   }
-                : null;
+                : undefined;
 
             const res = await queryRunner.update({
                 label,
                 data,
                 where,
                 identifier,
-                return: params.return,
+                return: params?.return,
                 session: params?.session,
             });
             const nodeProperties = params?.return
-                ? getResultProperties<Properties>(res, identifier)
+                ? QueryRunner.getResultProperties<Properties>(res, identifier)
                 : [];
 
             const instances = nodeProperties.map((v) =>
@@ -1062,7 +1134,9 @@ export const ModelFactory = <
             data: Parameters<ModelStaticsI['updateRelationship']>[0],
             params: Parameters<ModelStaticsI['updateRelationship']>[1],
         ): ReturnType<ModelStaticsI['updateRelationship']> {
-            const relationship = Model.getRelationshipByAlias(params.alias);
+            const relationship = Model.getRelationshipConfiguration(
+                params.alias,
+            );
 
             const identifiers = {
                 source: 'source',
@@ -1087,50 +1161,42 @@ export const ModelFactory = <
                 });
             }
 
-            const { getIdentifierWithLabel } = QueryRunner;
-
-            const directionAndNameString = QueryRunner.getRelationshipDirectionAndName(
+            return queryRunner.buildAndRun(
+                [
+                    {
+                        match: {
+                            related: [
+                                {
+                                    identifier: identifiers.source,
+                                    label: labels.source,
+                                },
+                                {
+                                    direction: relationship.direction,
+                                    name: relationship.name,
+                                    identifier: identifiers.relationship,
+                                },
+                                {
+                                    identifier: identifiers.target,
+                                    label: labels.target,
+                                },
+                            ],
+                        },
+                    },
+                    where && {
+                        where,
+                    },
+                    {
+                        set: {
+                            properties: data,
+                            identifier: identifiers.relationship,
+                        },
+                    },
+                ],
                 {
-                    direction: relationship.direction,
-                    name: relationship.name,
-                    identifier: identifiers.relationship,
+                    /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+                    bindParam: where.getBindParam().clone(),
+                    session: params.session,
                 },
-            );
-
-            /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-            const updateBindParam = where.bindParam.clone();
-
-            const { statement: setStatement } = QueryRunner.getSetParts({
-                bindParam: updateBindParam,
-                data,
-                identifier: identifiers.relationship,
-            });
-
-            const statementParts: string[] = [];
-
-            statementParts.push(`
-                    MATCH
-                    (${getIdentifierWithLabel(
-                        identifiers.source,
-                        labels.source,
-                    )})
-                    ${directionAndNameString}
-                    (${getIdentifierWithLabel(
-                        identifiers.target,
-                        labels.target,
-                    )})
-                `);
-
-            if (where.statement) {
-                statementParts.push(`WHERE ${where.statement}`);
-            }
-
-            statementParts.push(setStatement);
-
-            return queryRunner.run(
-                statementParts.join(' '),
-                updateBindParam.get(),
-                params?.session,
             );
         }
 
@@ -1138,15 +1204,16 @@ export const ModelFactory = <
             data: Parameters<InstanceMethodsI['updateRelationship']>[0],
             params: Parameters<InstanceMethodsI['updateRelationship']>[1],
         ): ReturnType<InstanceMethodsI['updateRelationship']> {
-            Model.assertPrimaryKeyField('updateRelationship');
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'updateRelationship',
+            );
             return Model.updateRelationship(data, {
                 ...params,
                 where: {
                     ...params.where,
                     source: {
-                        [modelPrimaryKeyField]: this[
-                            modelPrimaryKeyField as string
-                        ],
+                        [primaryKeyField]: this[primaryKeyField],
                     },
                 },
             });
@@ -1155,33 +1222,36 @@ export const ModelFactory = <
         public static async delete(
             configuration?: Parameters<ModelStaticsI['delete']>[0],
         ): ReturnType<ModelStaticsI['delete']> {
-            const { detach, where } = configuration;
+            const detach = configuration?.detach;
+            const whereParams = configuration?.where;
+
             const label = Model.getLabel();
 
             const identifier = 'node';
             const res = await queryRunner.delete({
                 label,
-                where: {
-                    [identifier]: where,
+                where: whereParams && {
+                    [identifier]: whereParams,
                 },
                 detach,
                 identifier,
                 session: configuration?.session,
             });
-            return getNodesDeleted(res);
+            return QueryRunner.getNodesDeleted(res);
         }
 
         public async delete(
             configuration?: Parameters<InstanceMethodsI['delete']>[0],
         ): ReturnType<InstanceMethodsI['delete']> {
-            Model.assertPrimaryKeyField('delete');
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'delete',
+            );
 
             return Model.delete({
                 ...configuration,
                 where: {
-                    [modelPrimaryKeyField]: this[
-                        modelPrimaryKeyField as string
-                    ],
+                    [primaryKeyField]: this[primaryKeyField],
                 },
             });
         }
@@ -1203,61 +1273,50 @@ export const ModelFactory = <
                     bindParam,
                 );
 
-            const statementParts: string[] = [];
-
-            /* match the nodes of this Model */
-            statementParts.push(`
-                    MATCH (${rootIdentifier}:${label})
-                `);
-            if (rootWhere) {
-                statementParts.push(`
-                        WHERE ${rootWhere.statement}
-                    `);
-            }
-            /* add the return statement */
-            statementParts.push(`
-                    RETURN ${rootIdentifier}
-                `);
-
-            if (params?.order) {
-                statementParts.push(`
-                        ORDER BY ${params?.order
-                            .filter(([field]) =>
-                                schemaKeys.has(field as string),
-                            )
-                            .map(
-                                ([field, direction]) =>
-                                    `${rootIdentifier}.${field} ${direction}`,
-                            )
-                            .join(', ')}
-                    `);
-            }
-
-            if (params?.limit) {
-                const limitParam = bindParam.getUniqueNameAndAdd(
-                    'limit',
-                    int(params?.limit),
-                );
-                statementParts.push(`LIMIT $${limitParam}`);
-            }
-
-            const statement = statementParts.join(' ');
-            const res = await queryRunner.run(
-                statement,
-                bindParam.get(),
-                params?.session,
+            const res = await queryRunner.buildAndRun(
+                [
+                    {
+                        match: {
+                            identifier: rootIdentifier,
+                            label,
+                        },
+                    },
+                    rootWhere && {
+                        where: rootWhere,
+                    },
+                    {
+                        return: rootIdentifier,
+                    },
+                    params?.order && {
+                        orderBy: params.order
+                            .filter(([field]) => schemaKeys.has(field))
+                            .map(([property, direction]) => ({
+                                identifier: rootIdentifier,
+                                direction,
+                                property,
+                            })),
+                    },
+                    params?.limit
+                        ? {
+                              limit: +params.limit,
+                          }
+                        : null,
+                ],
+                {
+                    bindParam,
+                    session: params?.session,
+                },
             );
 
             const instances = res.records.map((record) => {
                 const node = record.get(rootIdentifier);
-                const data: Properties = node.properties;
-                const instance = Model.__build(
-                    (data as unknown) as CreateDataI<
-                        Properties,
-                        RelatedNodesToAssociateI
-                    >,
-                    { status: 'existing' },
-                );
+                const properties = (node.properties as unknown) as CreateDataI<
+                    Properties,
+                    RelatedNodesToAssociateI
+                >;
+                const instance = Model.__build(properties, {
+                    status: 'existing',
+                });
                 instance.__existsInDatabase = true;
                 return instance;
             });
@@ -1279,7 +1338,7 @@ export const ModelFactory = <
         public static async relateTo(
             params: Parameters<ModelStaticsI['relateTo']>[0],
         ): ReturnType<ModelStaticsI['relateTo']> {
-            const relationship = Model.getRelationshipByAlias(
+            const relationship = Model.getRelationshipConfiguration(
                 params.alias as keyof RelatedNodesToAssociateI,
             );
 
@@ -1330,15 +1389,16 @@ export const ModelFactory = <
         public async relateTo(
             params: Parameters<InstanceMethodsI['relateTo']>[0],
         ): ReturnType<InstanceMethodsI['relateTo']> {
-            Model.assertPrimaryKeyField('relateTo');
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'relateTo',
+            );
 
             return Model.relateTo({
                 ...params,
                 where: {
                     source: {
-                        [modelPrimaryKeyField]: this[
-                            modelPrimaryKeyField as string
-                        ],
+                        [primaryKeyField]: this[primaryKeyField],
                     },
                     target: params.where,
                 },
@@ -1395,13 +1455,17 @@ export const ModelFactory = <
         }
 
         public static assertPrimaryKeyField(
-            operation: Parameters<ModelStaticsI['assertPrimaryKeyField']>[0],
+            primaryKeyField: Parameters<
+                ModelStaticsI['assertPrimaryKeyField']
+            >[0],
+            operation: Parameters<ModelStaticsI['assertPrimaryKeyField']>[1],
         ): ReturnType<ModelStaticsI['assertPrimaryKeyField']> {
-            if (!modelPrimaryKeyField) {
+            if (!primaryKeyField) {
                 throw new NeogmaConstraintError(
                     `This operation (${operation}) required the model to have a primaryKeyField`,
                 );
             }
+            return primaryKeyField;
         }
     };
 

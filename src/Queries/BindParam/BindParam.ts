@@ -1,24 +1,21 @@
 import clone from 'clone';
-import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
-import { StringSequence } from '../utils/StringSequence';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
+import { StringSequence } from '../../utils/StringSequence';
+import { NeogmaError } from '../../Errors';
 
 /**
  * the bind param which should be passed to a query. It throws an error if more than one of each key is added
  */
 export class BindParam {
     /** acquires a BindParam, so it ensures that a BindParam is always returned. If it's passed, it will be returned as is. Else, a new one will be created and returned */
-    public static acquire(bindParam: BindParam | null): BindParam {
-        if (bindParam) {
-            return bindParam;
-        }
-        return new BindParam();
+    public static acquire(bindParam?: BindParam | null): BindParam {
+        return bindParam || new BindParam();
     }
 
     /** the object with the bind param */
-    private bind: Record<string, any>;
+    private bind: Record<string, any> = {};
 
     constructor(...objects: Array<BindParam['bind']>) {
-        this.bind = {};
         this.add(...objects);
     }
 
@@ -28,26 +25,24 @@ export class BindParam {
     public add(...objects: Array<BindParam['bind']>): BindParam {
         for (const object of objects) {
             for (const key in object) {
-                if (!object.hasOwnProperty(key)) {
-                    continue;
-                }
                 if (this.bind.hasOwnProperty(key)) {
                     throw new NeogmaConstraintError(
                         `key ${key} already in the bind param`,
                     );
                 }
-                this.bind[key] = object[key];
+                this.bind[key] = clone(object[key]);
             }
         }
 
         return this;
     }
 
-    /**
-     * returns a new BindParam instance with a clone of the bind property
-     */
-    public clone(): BindParam {
-        return new BindParam(clone(this.get()));
+    /** removes the given names from the bind param */
+    public remove(names: string | string[]): void {
+        const namesToUse = Array.isArray(names) ? names : [names];
+        for (const name of namesToUse) {
+            delete this.bind[name];
+        }
     }
 
     /**
@@ -63,13 +58,22 @@ export class BindParam {
             return suffix;
         } else {
             const stringSequence = new StringSequence('a', 'zzzz', 4);
-            while (true) {
+
+            for (
+                let generationTry = 0;
+                generationTry < 10000;
+                generationTry++
+            ) {
                 const newKey =
                     suffix + '__' + stringSequence.getNextString(true);
                 if (!this.bind.hasOwnProperty(newKey)) {
                     return newKey;
                 }
             }
+
+            throw new NeogmaError(
+                'Max number of tries for string generation reached',
+            );
         }
     }
 
@@ -83,5 +87,12 @@ export class BindParam {
             [name]: value,
         });
         return name;
+    }
+
+    /**
+     * returns a new BindParam instance with a clone of the bind property
+     */
+    public clone(): BindParam {
+        return new BindParam(clone(this.get()));
     }
 }

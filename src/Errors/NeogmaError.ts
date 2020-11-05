@@ -6,7 +6,7 @@ export class NeogmaError extends Error {
     constructor(message: NeogmaError['message'], data?: NeogmaError['data']) {
         super(message);
         this.message = message || 'General neogma error';
-        this.data = data;
+        this.data = data || {};
 
         Object.setPrototypeOf(this, NeogmaError.prototype);
     }

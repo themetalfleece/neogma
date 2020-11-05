@@ -1,5 +1,5 @@
 import { Driver, Session, Transaction } from 'neo4j-driver/types';
-import { Runnable } from '../QueryRunner';
+import { Runnable } from '../Queries/QueryRunner';
 
 const isTransaction = (tx: any): tx is Transaction =>
     typeof tx?.isOpen?.() === 'boolean';
@@ -58,7 +58,7 @@ export const getTransaction = async <T>(
 
 /** runs the callback with a session or transaction. If any existing Runnable is given, it gets used. Else, a new Session is used */
 export const getRunnable = async <T>(
-    runInExisting: Runnable | null,
+    runInExisting: Runnable | null | undefined,
     callback: (tx: Runnable) => Promise<T>,
     driver: Driver,
 ): Promise<T> => {
