@@ -60,12 +60,9 @@ export interface ModelRelatedNodesI<
 
 /** to be used in create functions where the related nodes can be passed for creation */
 export type RelatedNodesCreationParamI<
-    Properties,
     RelatedNodesToAssociateI extends AnyObject
 > = {
-    [key in keyof Partial<
-        RelatedNodesToAssociateI
-    >]: RelationshipTypePropertyForCreateI<
+    [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypePropertyForCreateI<
         RelatedNodesToAssociateI[key]['CreateData'],
         RelatedNodesToAssociateI[key]['RelationshipProperties']
     >;
@@ -138,8 +135,7 @@ type CreateDataParamsI = GenericConfiguration & {
 type CreateDataI<
     Properties,
     RelatedNodesToAssociateI extends AnyObject
-> = Properties &
-    Partial<RelatedNodesCreationParamI<Properties, RelatedNodesToAssociateI>>;
+> = Properties & Partial<RelatedNodesCreationParamI<RelatedNodesToAssociateI>>;
 
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
