@@ -315,7 +315,7 @@ export type NodeForMatchObjectI = {
     /** a label to use for this node */
     label?: string;
     /** the model of this node. Automatically sets the "label" field */
-    model?: NeogmaModel<any, any>;
+    model?: NeogmaModel<any, any, any, any>;
     /** identifier for the node */
     identifier?: string;
     /** where parameters for matching this node */
@@ -343,7 +343,7 @@ export type NodeForCreateWithModelI = {
     /** identifier for the node */
     identifier?: string;
     /** the model of this node. Automatically sets the "label" field */
-    model: NeogmaModel<any, any>;
+    model: NeogmaModel<any, any, any, any>;
     /** properties of the node */
     properties?: Neo4jSupportedProperties;
 };

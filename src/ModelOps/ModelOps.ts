@@ -650,7 +650,7 @@ export const ModelFactory = <
             const bindParam = new BindParam();
 
             const addCreateToStatement = async (
-                model: NeogmaModel<any, any>,
+                model: NeogmaModel<any, any, any, any>,
                 dataToUse: Array<CreateData | Instance>,
                 /** whether to merge instead of creating the properties */
                 mergeProperties?: boolean,
