@@ -90,7 +90,7 @@ export class QueryBuilder {
 
     constructor(
         /** parameters for the query */
-        parameters?: ParameterI | ParameterI[],
+        parameters?: ParameterI | ParameterI[] | null,
         config?: {
             /** an existing bindParam to be used */
             bindParam?: BindParam;
