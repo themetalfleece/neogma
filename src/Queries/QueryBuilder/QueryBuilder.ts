@@ -90,7 +90,7 @@ export class QueryBuilder {
 
     constructor(
         /** parameters for the query */
-        parameters: ParameterI | ParameterI[],
+        parameters?: ParameterI | ParameterI[],
         config?: {
             /** an existing bindParam to be used */
             bindParam?: BindParam;
@@ -98,7 +98,53 @@ export class QueryBuilder {
     ) {
         this.bindParam = BindParam.acquire(config?.bindParam);
 
-        this.addParams(parameters);
+        this.addParams(parameters || []);
+    }
+
+    public raw(raw: RawI['raw']): QueryBuilder {
+        return this.addParams({ raw });
+    }
+    public match(match: MatchI['match']): QueryBuilder {
+        return this.addParams({ match });
+    }
+    public create(create: CreateI['create']): QueryBuilder {
+        return this.addParams({ create });
+    }
+    public merge(merge: MergeI['merge']): QueryBuilder {
+        return this.addParams({ merge });
+    }
+    public set(set: SetI['set']): QueryBuilder {
+        return this.addParams({ set });
+    }
+    public delete(deleteParam: DeleteI['delete']): QueryBuilder {
+        return this.addParams({ delete: deleteParam });
+    }
+    public remove(remove: RemoveI['remove']): QueryBuilder {
+        return this.addParams({ remove });
+    }
+    public return(returnParam: ReturnI['return']): QueryBuilder {
+        return this.addParams({ return: returnParam });
+    }
+    public limit(limit: LimitI['limit']): QueryBuilder {
+        return this.addParams({ limit });
+    }
+    public with(withParam: WithI['with']): QueryBuilder {
+        return this.addParams({ with: withParam });
+    }
+    public orderBy(orderBy: OrderByI['orderBy']): QueryBuilder {
+        return this.addParams({ orderBy });
+    }
+    public unwind(unwind: UnwindI['unwind']): QueryBuilder {
+        return this.addParams({ unwind });
+    }
+    public forEach(forEach: ForEachI['forEach']): QueryBuilder {
+        return this.addParams({ forEach });
+    }
+    public skip(skip: SkipI['skip']): QueryBuilder {
+        return this.addParams({ skip });
+    }
+    public where(where: WhereI['where']): QueryBuilder {
+        return this.addParams({ where });
     }
 
     public addParams(
