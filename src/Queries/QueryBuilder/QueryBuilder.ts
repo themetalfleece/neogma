@@ -1,6 +1,15 @@
-import { Neo4jSupportedProperties } from '../..';
-import { NeogmaConstraintError } from '../../Errors';
+import { getRunnable } from '../../Sessions';
+import { NeogmaConstraintError, NeogmaError } from '../../Errors';
 import { int } from 'neo4j-driver';
+import { QueryResult } from 'neo4j-driver/types';
+import { trimWhitespace } from '../../utils/string';
+import { BindParam } from '../BindParam';
+import { Where } from '../Where';
+import {
+    QueryRunner,
+    Runnable,
+    Neo4jSupportedProperties,
+} from '../QueryRunner';
 import {
     ParameterI,
     isRawParameter,
@@ -55,9 +64,6 @@ import {
     isOrderByParameter,
     isWhereParameter,
 } from './QueryBuilder.types';
-import { trimWhitespace } from '../../utils/string';
-import { BindParam } from '../BindParam';
-import { Where } from '../Where';
 
 type AnyObject = Record<string, any>;
 
@@ -81,6 +87,9 @@ export type QueryBuilderParameters = {
 };
 
 export class QueryBuilder {
+    /** a queryRunner instance can be set to always be used at the 'run' method */
+    public static queryRunner: QueryRunner;
+
     /** parameters for the query to be generated */
     private parameters: ParameterI[] = [];
     /** the statement for the query */
@@ -89,62 +98,10 @@ export class QueryBuilder {
     private bindParam: BindParam;
 
     constructor(
-        /** parameters for the query */
-        parameters?: ParameterI | ParameterI[] | null,
-        config?: {
-            /** an existing bindParam to be used */
-            bindParam?: BindParam;
-        },
+        /** an existing bindParam to be used */
+        bindParam?: BindParam,
     ) {
-        this.bindParam = BindParam.acquire(config?.bindParam);
-
-        this.addParams(parameters || []);
-    }
-
-    public raw(raw: RawI['raw']): QueryBuilder {
-        return this.addParams({ raw });
-    }
-    public match(match: MatchI['match']): QueryBuilder {
-        return this.addParams({ match });
-    }
-    public create(create: CreateI['create']): QueryBuilder {
-        return this.addParams({ create });
-    }
-    public merge(merge: MergeI['merge']): QueryBuilder {
-        return this.addParams({ merge });
-    }
-    public set(set: SetI['set']): QueryBuilder {
-        return this.addParams({ set });
-    }
-    public delete(deleteParam: DeleteI['delete']): QueryBuilder {
-        return this.addParams({ delete: deleteParam });
-    }
-    public remove(remove: RemoveI['remove']): QueryBuilder {
-        return this.addParams({ remove });
-    }
-    public return(returnParam: ReturnI['return']): QueryBuilder {
-        return this.addParams({ return: returnParam });
-    }
-    public limit(limit: LimitI['limit']): QueryBuilder {
-        return this.addParams({ limit });
-    }
-    public with(withParam: WithI['with']): QueryBuilder {
-        return this.addParams({ with: withParam });
-    }
-    public orderBy(orderBy: OrderByI['orderBy']): QueryBuilder {
-        return this.addParams({ orderBy });
-    }
-    public unwind(unwind: UnwindI['unwind']): QueryBuilder {
-        return this.addParams({ unwind });
-    }
-    public forEach(forEach: ForEachI['forEach']): QueryBuilder {
-        return this.addParams({ forEach });
-    }
-    public skip(skip: SkipI['skip']): QueryBuilder {
-        return this.addParams({ skip });
-    }
-    public where(where: WhereI['where']): QueryBuilder {
-        return this.addParams({ where });
+        this.bindParam = BindParam.acquire(bindParam);
     }
 
     public addParams(
@@ -791,4 +748,101 @@ export class QueryBuilder {
 
         return `{ ${parts.join(', ')} }`;
     };
+
+    /** runs this instance with the given QueryRunner instance */
+    public async run(
+        /** the QueryRunner instance to use */
+        queryRunnerOrRunnable?: QueryRunner | Runnable | null,
+        /** an existing session to use. Set it only if the first param is a QueryRunner instance */
+        existingSession?: Runnable | null,
+    ): Promise<QueryResult> {
+        const queryRunner =
+            queryRunnerOrRunnable instanceof QueryRunner
+                ? queryRunnerOrRunnable
+                : QueryBuilder.queryRunner;
+        if (!queryRunnerOrRunnable) {
+            throw new NeogmaError(
+                'A queryRunner was not given to run this builder. Make sure that the first parameter is a QueryRunner instance, or that QueryBuilder.queryRunner is set',
+            );
+        }
+
+        const sessionToGet =
+            queryRunnerOrRunnable &&
+            !(queryRunnerOrRunnable instanceof QueryRunner)
+                ? queryRunnerOrRunnable
+                : existingSession;
+
+        return getRunnable(
+            sessionToGet,
+            async (session) => {
+                return queryRunner.run(
+                    this.getStatement(),
+                    this.getBindParam().get(),
+                    session,
+                );
+            },
+            queryRunner.getDriver(),
+        );
+    }
+
+    /** a literal statement to use as is */
+    public raw(raw: RawI['raw']): QueryBuilder {
+        return this.addParams({ raw });
+    }
+    /** MATCH statement */
+    public match(match: MatchI['match']): QueryBuilder {
+        return this.addParams({ match });
+    }
+    /** CREATE statement */
+    public create(create: CreateI['create']): QueryBuilder {
+        return this.addParams({ create });
+    }
+    /** MERGE statement */
+    public merge(merge: MergeI['merge']): QueryBuilder {
+        return this.addParams({ merge });
+    }
+    /** SET statement */
+    public set(set: SetI['set']): QueryBuilder {
+        return this.addParams({ set });
+    }
+    /** DELETE statement */
+    public delete(deleteParam: DeleteI['delete']): QueryBuilder {
+        return this.addParams({ delete: deleteParam });
+    }
+    /** REMOVE statement */
+    public remove(remove: RemoveI['remove']): QueryBuilder {
+        return this.addParams({ remove });
+    }
+    /** RETURN statement */
+    public return(returnParam: ReturnI['return']): QueryBuilder {
+        return this.addParams({ return: returnParam });
+    }
+    /** LIMIT statement */
+    public limit(limit: LimitI['limit']): QueryBuilder {
+        return this.addParams({ limit });
+    }
+    /** WITH statement */
+    public with(withParam: WithI['with']): QueryBuilder {
+        return this.addParams({ with: withParam });
+    }
+    /** ORDER BY statement */
+    public orderBy(orderBy: OrderByI['orderBy']): QueryBuilder {
+        return this.addParams({ orderBy });
+    }
+    /** UNWIND statement */
+    public unwind(unwind: UnwindI['unwind']): QueryBuilder {
+        return this.addParams({ unwind });
+    }
+    /** FOR EACH statement */
+    public forEach(forEach: ForEachI['forEach']): QueryBuilder {
+        return this.addParams({ forEach });
+    }
+    /** SKIP statement */
+    public skip(skip: SkipI['skip']): QueryBuilder {
+        return this.addParams({ skip });
+    }
+    /** WHERE statement */
+    public where(where: WhereI['where']): QueryBuilder {
+        return this.addParams({ where });
+    }
 }

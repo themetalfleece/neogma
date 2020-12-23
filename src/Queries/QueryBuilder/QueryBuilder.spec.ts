@@ -146,7 +146,7 @@ const expectBindParamEquals = (
 describe.only('QueryBuilder', () => {
     // TODO add unit testing for create and merge
     it('does not crash when generating parameters which are not properly unit-tested', () => {
-        const queryBuilder = new QueryBuilder([
+        const queryBuilder = new QueryBuilder().addParams([
             {
                 create: '(n1:Location)',
             },
@@ -886,36 +886,6 @@ describe.only('QueryBuilder', () => {
 
     describe('method chaining', () => {
         it('adds multiple params by chaining method calls', () => {
-            const queryBuilder = new QueryBuilder([
-                {
-                    match: {
-                        identifier: 'a',
-                        where: {
-                            p1: 'v1',
-                        },
-                    },
-                },
-                {
-                    limit: 1,
-                },
-                {
-                    return: 'a',
-                },
-            ]);
-
-            expectStatementEquals(
-                queryBuilder,
-                'MATCH (a { p1: $p1 }) LIMIT $limit RETURN a',
-            );
-            expectBindParamEquals(queryBuilder, {
-                p1: 'v1',
-                limit: neo4jDriver.int(1),
-            });
-        });
-    });
-
-    describe('constructor', () => {
-        it('adds multiple params by using the constructor', () => {
             const queryBuilder = new QueryBuilder()
                 .match({
                     identifier: 'a',
@@ -939,7 +909,7 @@ describe.only('QueryBuilder', () => {
 
     describe('addParams', () => {
         it('adds new params to the query by using an array', () => {
-            const queryBuilder = new QueryBuilder([
+            const queryBuilder = new QueryBuilder().addParams([
                 {
                     match: {
                         identifier: 'a',
@@ -970,7 +940,7 @@ describe.only('QueryBuilder', () => {
         });
 
         it('adds new params to the query by using a object', () => {
-            const queryBuilder = new QueryBuilder([
+            const queryBuilder = new QueryBuilder().addParams([
                 {
                     match: {
                         identifier: 'a',
@@ -996,7 +966,7 @@ describe.only('QueryBuilder', () => {
         });
 
         it('adds new params to the query by using a many object (rest param)', () => {
-            const queryBuilder = new QueryBuilder([
+            const queryBuilder = new QueryBuilder().addParams([
                 {
                     match: {
                         identifier: 'a',

@@ -1016,10 +1016,10 @@ export const ModelFactory = <
                 delete toRelateByIdentifier[identifier];
             }
 
-            await queryRunner.buildAndRun(queryBuilderParams, {
-                bindParam,
-                session: configuration?.session,
-            });
+            // create a QueryBuilder instance, add the params and run it
+            await new QueryBuilder(bindParam)
+                .addParams(queryBuilderParams)
+                .run(queryRunner, configuration?.session);
 
             return instances;
         }
@@ -1161,43 +1161,39 @@ export const ModelFactory = <
                 });
             }
 
-            return queryRunner.buildAndRun(
-                [
+            const queryBuilder = new QueryBuilder(
+                /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+                where.getBindParam().clone(),
+            );
+
+            queryBuilder.match({
+                related: [
                     {
-                        match: {
-                            related: [
-                                {
-                                    identifier: identifiers.source,
-                                    label: labels.source,
-                                },
-                                {
-                                    direction: relationship.direction,
-                                    name: relationship.name,
-                                    identifier: identifiers.relationship,
-                                },
-                                {
-                                    identifier: identifiers.target,
-                                    label: labels.target,
-                                },
-                            ],
-                        },
-                    },
-                    where && {
-                        where,
+                        identifier: identifiers.source,
+                        label: labels.source,
                     },
                     {
-                        set: {
-                            properties: data,
-                            identifier: identifiers.relationship,
-                        },
+                        direction: relationship.direction,
+                        name: relationship.name,
+                        identifier: identifiers.relationship,
+                    },
+                    {
+                        identifier: identifiers.target,
+                        label: labels.target,
                     },
                 ],
-                {
-                    /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-                    bindParam: where.getBindParam().clone(),
-                    session: params.session,
-                },
-            );
+            });
+
+            if (where) {
+                queryBuilder.where(where);
+            }
+
+            queryBuilder.set({
+                properties: data,
+                identifier: identifiers.relationship,
+            });
+
+            return queryBuilder.run(queryRunner, params.session);
         }
 
         public async updateRelationship(
@@ -1273,40 +1269,36 @@ export const ModelFactory = <
                     bindParam,
                 );
 
-            const res = await queryRunner.buildAndRun(
-                [
-                    {
-                        match: {
+            const queryBuilder = new QueryBuilder(bindParam);
+
+            queryBuilder.match({
+                identifier: rootIdentifier,
+                label,
+            });
+
+            if (rootWhere) {
+                queryBuilder.where(rootWhere);
+            }
+
+            queryBuilder.return(rootIdentifier);
+
+            if (params?.order) {
+                queryBuilder.orderBy(
+                    params.order
+                        .filter(([field]) => schemaKeys.has(field))
+                        .map(([property, direction]) => ({
                             identifier: rootIdentifier,
-                            label,
-                        },
-                    },
-                    rootWhere && {
-                        where: rootWhere,
-                    },
-                    {
-                        return: rootIdentifier,
-                    },
-                    params?.order && {
-                        orderBy: params.order
-                            .filter(([field]) => schemaKeys.has(field))
-                            .map(([property, direction]) => ({
-                                identifier: rootIdentifier,
-                                direction,
-                                property,
-                            })),
-                    },
-                    params?.limit
-                        ? {
-                              limit: +params.limit,
-                          }
-                        : null,
-                ],
-                {
-                    bindParam,
-                    session: params?.session,
-                },
-            );
+                            direction,
+                            property,
+                        })),
+                );
+            }
+
+            if (params?.limit) {
+                queryBuilder.limit(+params.limit);
+            }
+
+            const res = await queryBuilder.run(queryRunner, params?.session);
 
             const instances = res.records.map((record) => {
                 const node = record.get(rootIdentifier);

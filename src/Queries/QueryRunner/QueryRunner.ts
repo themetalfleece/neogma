@@ -14,11 +14,9 @@ import {
 } from 'neo4j-driver/types';
 import * as uuid from 'uuid';
 import { getRunnable } from '../../Sessions';
-import { BindParam } from '../BindParam/BindParam';
 import { AnyWhereI, Where } from '../Where/Where';
 import { trimWhitespace } from '../../utils/string';
 import { QueryBuilder } from '../QueryBuilder';
-import { NeogmaConstraintError } from '../../Errors';
 
 type AnyObject = Record<string, any>;
 
@@ -83,6 +81,10 @@ export class QueryRunner {
         this.logger = params?.logger || null;
     }
 
+    public getDriver(): Driver {
+        return this.driver;
+    }
+
     private log(...val: Array<string | boolean | AnyObject | number>) {
         this.logger?.(...val);
     }
@@ -100,23 +102,14 @@ export class QueryRunner {
         const { label, data: options } = params;
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        const queryBuilder = new QueryBuilder([
-            {
-                unwind: '{options} as data',
-            },
-            {
-                create: {
-                    identifier,
-                    label,
-                },
-            },
-            {
-                set: `${identifier} += data`,
-            },
-            {
-                return: identifier,
-            },
-        ]);
+        const queryBuilder = new QueryBuilder()
+            .unwind('{options} as data')
+            .create({
+                identifier,
+                label,
+            })
+            .set(`${identifier} += data`)
+            .return(identifier);
 
         // we won't use the queryBuilder bindParams as we've used "options" as a literal
         const parameters = { options };
@@ -153,33 +146,30 @@ export class QueryRunner {
 
         const where = Where.acquire(params.where);
 
-        return this.buildAndRun(
-            [
-                {
-                    match: {
-                        identifier,
-                        label,
-                    },
-                },
-                where && {
-                    where: where,
-                },
-                {
-                    set: {
-                        identifier,
-                        properties: data,
-                    },
-                },
-                (params.return || null) && {
-                    return: identifier,
-                },
-            ],
-            {
-                /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
-                bindParam: where?.getBindParam().clone(),
-                session: params.session,
-            },
+        const queryBuilder = new QueryBuilder(
+            /* clone the where bind param and construct one for the update, as there might be common keys between where and data */
+            where?.getBindParam().clone(),
         );
+
+        queryBuilder.match({
+            identifier,
+            label,
+        });
+
+        if (where) {
+            queryBuilder.where(where);
+        }
+
+        queryBuilder.set({
+            identifier,
+            properties: data,
+        });
+
+        if (params.return) {
+            queryBuilder.return(identifier);
+        }
+
+        return queryBuilder.run(this, params.session);
     };
 
     public delete = async (params: {
@@ -196,29 +186,23 @@ export class QueryRunner {
 
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
-        return this.buildAndRun(
-            [
-                {
-                    match: {
-                        identifier,
-                        label,
-                    },
-                },
-                where && {
-                    where,
-                },
-                {
-                    delete: {
-                        identifiers: identifier,
-                        detach,
-                    },
-                },
-            ],
-            {
-                bindParam: where?.getBindParam(),
-                session: params.session,
-            },
-        );
+        const queryBuilder = new QueryBuilder(where?.getBindParam());
+
+        queryBuilder.match({
+            identifier,
+            label,
+        });
+
+        if (where) {
+            queryBuilder.where(where);
+        }
+
+        queryBuilder.delete({
+            identifiers: identifier,
+            detach,
+        });
+
+        return queryBuilder.run(this, params.session);
     };
 
     public createRelationship = async (
@@ -238,56 +222,53 @@ export class QueryRunner {
                 QueryRunner.identifiers.createRelationship.target,
         };
 
-        return this.buildAndRun(
-            [
+        const queryBuilder = new QueryBuilder(
+            /** the params of the relationship value */
+            where?.getBindParam()?.clone(),
+        );
+
+        queryBuilder.match({
+            multiple: [
                 {
-                    match: {
-                        multiple: [
-                            {
-                                identifier: identifiers.source,
-                                label: source.label,
-                            },
-                            {
-                                identifier: identifiers.target,
-                                label: target.label,
-                            },
-                        ],
-                    },
-                },
-                where && {
-                    where,
+                    identifier: identifiers.source,
+                    label: source.label,
                 },
                 {
-                    create: {
-                        related: [
-                            {
-                                identifier: identifiers.source,
-                            },
-                            {
-                                direction: relationship.direction,
-                                name: relationship.name,
-                                identifier: relationshipIdentifier,
-                            },
-                            {
-                                identifier: identifiers.target,
-                            },
-                        ],
-                    },
-                },
-                /** the relationship properties statement to be inserted into the final statement string */
-                params.relationship.properties && {
-                    set: {
-                        identifier: relationshipIdentifier,
-                        properties: params.relationship.properties,
-                    },
+                    identifier: identifiers.target,
+                    label: target.label,
                 },
             ],
-            {
-                session: params.session,
-                /** the params of the relationship value */
-                bindParam: where?.getBindParam()?.clone(),
-            },
-        );
+        });
+
+        if (where) {
+            queryBuilder.where(where);
+        }
+
+        queryBuilder.create({
+            related: [
+                {
+                    identifier: identifiers.source,
+                },
+                {
+                    direction: relationship.direction,
+                    name: relationship.name,
+                    identifier: relationshipIdentifier,
+                },
+                {
+                    identifier: identifiers.target,
+                },
+            ],
+        });
+
+        if (params.relationship.properties) {
+            /** the relationship properties statement to be inserted into the final statement string */
+            queryBuilder.set({
+                identifier: relationshipIdentifier,
+                properties: params.relationship.properties,
+            });
+        }
+
+        return queryBuilder.run(this, params.session);
     };
 
     /** maps a session object to a uuid, for logging purposes */
@@ -323,51 +304,6 @@ export class QueryRunner {
                 this.log(`\tStatement:`, trimmedStatement);
                 this.log(`\tParameters:`, parameters);
                 return session.run(trimmedStatement, parameters);
-            },
-            this.driver,
-        );
-    }
-
-    /** creates a QueryBuilder object and runs its statement */
-    public buildAndRun(
-        /** parameters for the query, or a QueryBuilder instance to be used */
-        parametersOrQueryBuilder:
-            | ConstructorParameters<typeof QueryBuilder>[0]
-            | QueryBuilder,
-        config?: {
-            /**
-             * an existing bindParam to be used.
-             * If the first parameter is a QueryBuilder instance, this parameter will be ignored, as the QueryBuilder bindParam will be used.
-             */
-            bindParam?: BindParam;
-            /** the session or transaction for running this query */
-            session?: Runnable | null;
-        },
-    ): Promise<QueryResult> {
-        return getRunnable(
-            config?.session,
-            async (session) => {
-                const queryBuilder =
-                    parametersOrQueryBuilder instanceof QueryBuilder
-                        ? parametersOrQueryBuilder
-                        : new QueryBuilder(parametersOrQueryBuilder, {
-                              bindParam: config?.bindParam,
-                          });
-
-                if (
-                    config?.bindParam &&
-                    queryBuilder.getBindParam() !== config?.bindParam
-                ) {
-                    throw new NeogmaConstraintError(
-                        'given bindParam is not the same as the one used int he given queryBuilder',
-                    );
-                }
-
-                return this.run(
-                    queryBuilder.getStatement(),
-                    queryBuilder.getBindParam().get(),
-                    session,
-                );
             },
             this.driver,
         );
