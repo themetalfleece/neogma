@@ -56,8 +56,8 @@ export class Neogma {
     };
 
     public getTransaction = <T>(
-        runInTransaction: Transaction | null,
-        callback: (s: Transaction) => Promise<T>,
+        runInTransaction: Runnable | null,
+        callback: (tx: Transaction) => Promise<T>,
     ): Promise<T> => {
         return getTransaction<T>(runInTransaction, callback, this.driver);
     };
