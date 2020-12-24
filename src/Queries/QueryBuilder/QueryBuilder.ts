@@ -760,7 +760,7 @@ export class QueryBuilder {
             queryRunnerOrRunnable instanceof QueryRunner
                 ? queryRunnerOrRunnable
                 : QueryBuilder.queryRunner;
-        if (!queryRunnerOrRunnable) {
+        if (!queryRunner) {
             throw new NeogmaError(
                 'A queryRunner was not given to run this builder. Make sure that the first parameter is a QueryRunner instance, or that QueryBuilder.queryRunner is set',
             );

@@ -996,4 +996,25 @@ describe.only('QueryBuilder', () => {
             });
         });
     });
+
+    describe('run', () => {
+        it('runs an instance with a given QueryRunner instance', async () => {
+            const res = await new QueryBuilder()
+                .raw('return "test"')
+                .run(neogma.queryRunner);
+
+            expect(res.records[0].get(`"test"`)).toBe('test');
+        });
+
+        it('runs an instance with the set queryRunner field', async () => {
+            const initialValue = QueryBuilder.queryRunner;
+            QueryBuilder.queryRunner = neogma.queryRunner;
+            const res = await new QueryBuilder().raw('return "test"').run();
+
+            expect(res.records[0].get(`"test"`)).toBe('test');
+
+            // set it back to the initial value
+            QueryBuilder.queryRunner = initialValue;
+        });
+    });
 });
