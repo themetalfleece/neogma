@@ -696,9 +696,11 @@ export const ModelFactory = <
                             any
                         >;
                     } = {};
-                    for (const alias of Model.relationshipAliases) {
+                    for (const alias of model.relationshipAliases) {
                         if (instance[alias]) {
-                            relatedNodesToAssociate[alias] = instance[alias];
+                            relatedNodesToAssociate[
+                                alias as keyof typeof relatedNodesToAssociate
+                            ] = instance[alias];
                         }
                     }
 
@@ -772,7 +774,7 @@ export const ModelFactory = <
                                 throw new NeogmaInstanceValidationError(
                                     `Could not validate relationship property`,
                                     {
-                                        model: Model,
+                                        model,
                                         errors: validationResult.errors,
                                     },
                                 );
