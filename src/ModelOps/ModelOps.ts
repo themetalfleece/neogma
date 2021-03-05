@@ -129,6 +129,8 @@ type CreateDataParamsI = GenericConfiguration & {
     merge?: boolean;
     /** validate all parent and children instances. default to true */
     validate?: boolean;
+    /** the relationships which were created by a "where" param must equal to this number */
+    assertRelationshipsOfWhere?: number;
 };
 
 /** type used for creating nodes. It includes their Properties and Related Nodes */
@@ -645,6 +647,9 @@ export const ModelFactory = <
             /** Bind Param which will be used in the QueryBuilder, and in creating parameters for literals */
             const bindParam = new BindParam();
 
+            /** count the number of relationships created by properties, since it's deterministic, so we can calculate the number of relationships created by where for the assertRelationshipsOfWhere param */
+            let relationshipsCreatedByProperties = 0;
+
             const addCreateToStatement = async (
                 model: NeogmaModel<any, any, any, any>,
                 dataToUse: Array<CreateData | Instance>,
@@ -852,6 +857,10 @@ export const ModelFactory = <
                                                 ?.relationship,
                                     },
                                 );
+
+                                // increment the relationships-created-by-properties by the length of the data array
+                                relationshipsCreatedByProperties +=
+                                    relatedNodesData.properties.length;
                             }
                             if (relatedNodesData.where) {
                                 const whereArr =
@@ -1015,9 +1024,30 @@ export const ModelFactory = <
             }
 
             // create a QueryBuilder instance, add the params and run it
-            await new QueryBuilder(bindParam)
+            const res = await new QueryBuilder(bindParam)
                 .addParams(queryBuilderParams)
                 .run(queryRunner, configuration?.session);
+
+            const { assertRelationshipsOfWhere } = configuration;
+            if (assertRelationshipsOfWhere) {
+                const relationshipsCreated = res.summary.counters.updates()
+                    .relationshipsCreated;
+                // the total created relationship must equal the ones created by properties (calculated) plus the ones created by where (param)
+                if (
+                    relationshipsCreated !==
+                    relationshipsCreatedByProperties +
+                        assertRelationshipsOfWhere
+                ) {
+                    throw new NeogmaError(
+                        `Not all required relationships by where param were created`,
+                        {
+                            relationshipsCreated,
+                            relationshipCreatedByProperties: relationshipsCreatedByProperties,
+                            assertRelationshipsOfWhere,
+                        },
+                    );
+                }
+            }
 
             return instances;
         }

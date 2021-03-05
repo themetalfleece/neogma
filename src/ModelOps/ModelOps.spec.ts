@@ -729,6 +729,125 @@ describe('createOne', () => {
     });
 });
 
+describe('createMany', () => {
+    it('asserts created relationships by where', async () => {
+        type OrderAttributesI = {
+            id: string;
+        };
+        interface OrdersRelatedNodesI {
+            Parent: ModelRelatedNodesI<
+                { createOne: typeof Orders['createOne'] },
+                OrdersInstance,
+                {
+                    Rating: number;
+                }
+            >;
+        }
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: {
+                    Parent: {
+                        direction: 'out',
+                        model: 'self',
+                        name: 'PARENT',
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const existingOrders = await Orders.createMany([
+            {
+                id: Math.random().toString(),
+            },
+            {
+                id: Math.random().toString(),
+            },
+        ]);
+
+        const withAssociationsCreateManyData: Parameters<
+            typeof Orders.createMany
+        >[0] = [
+            {
+                id: Math.random().toString(),
+                Parent: {
+                    properties: [
+                        {
+                            id: Math.random().toString(),
+                            Parent: {
+                                where: {
+                                    params: {
+                                        id: existingOrders[0].id,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            id: Math.random().toString(),
+                            Parent: {
+                                properties: [
+                                    {
+                                        id: Math.random().toString(),
+                                    },
+                                ],
+                                where: {
+                                    params: {
+                                        id: existingOrders[0].id,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            id: Math.random().toString(),
+                        },
+                    ],
+                    where: {
+                        params: {
+                            id: existingOrders[1].id,
+                        },
+                    },
+                },
+            },
+        ];
+
+        await Orders.createMany(withAssociationsCreateManyData, {
+            assertRelationshipsOfWhere: 3,
+        });
+
+        await expect(
+            Orders.createMany(withAssociationsCreateManyData, {
+                assertRelationshipsOfWhere: 4,
+            }),
+        ).rejects.toBeTruthy();
+    });
+});
+
 describe('addRelationships', () => {
     it('adds a relationship after the Model definition', async () => {
         /* Orders */
