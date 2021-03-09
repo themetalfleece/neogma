@@ -1328,7 +1328,7 @@ export const ModelFactory = <
             }
 
             if (params?.skip) {
-                queryBuilder.skip()
+                queryBuilder.skip(+params.skip);
             }
 
             const res = await queryBuilder.run(queryRunner, params?.session);
