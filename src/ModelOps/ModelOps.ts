@@ -210,6 +210,7 @@ interface NeogmaModelStaticsI<
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
             limit?: number;
+            skip?: number;
             order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
         },
     ) => Promise<Instance[]>;
@@ -1324,6 +1325,10 @@ export const ModelFactory = <
 
             if (params?.limit) {
                 queryBuilder.limit(+params.limit);
+            }
+
+            if (params?.skip) {
+                queryBuilder.skip()
             }
 
             const res = await queryBuilder.run(queryRunner, params?.session);
