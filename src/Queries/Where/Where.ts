@@ -169,7 +169,7 @@ export class Where {
                     this.addBindParamDataEntry({
                         identifier: nodeIdentifier,
                         property,
-                        value: value[Op.in],
+                        value: value[Op.contains],
                         operator: 'contains',
                     });
                 }

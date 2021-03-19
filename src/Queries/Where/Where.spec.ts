@@ -27,6 +27,7 @@ describe('Where', () => {
             expect(
                 where.getStatement('text').includes('identifier.d CONTAINS $d'),
             ).toBeTruthy();
+            expect(where.getBindParam().get().d).toEqual('test-string');
             expect(where.getBindParam().get().c).toEqual(inValue);
             expect(Object.keys(where.getBindParam().get()).length).toEqual(3);
         });
