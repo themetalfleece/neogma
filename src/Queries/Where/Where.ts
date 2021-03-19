@@ -8,8 +8,10 @@ import { NeogmaConstraintError } from '../../Errors';
 
 /** symbols for Where operations */
 const OpIn: unique symbol = Symbol('in');
+const OpContains: unique symbol = Symbol('contains');
 export const Op = {
     in: OpIn,
+    contains: OpContains,
 } as const;
 
 /** the type to be used for "in" */
@@ -17,8 +19,16 @@ interface WhereInI {
     [Op.in]: Neo4jSingleTypes[];
 }
 
+interface WhereContainsI {
+    [Op.contains]: string;
+}
+
 const isWhereIn = (value: WhereValuesI): value is WhereInI => {
     return value?.[Op.in];
+};
+
+const isWhereContains = (value: WhereValuesI): value is WhereContainsI => {
+    return value?.[Op.contains];
 };
 
 const isNeo4jSupportedTypes = (
@@ -48,7 +58,7 @@ const isNeo4jSupportedTypes = (
 };
 
 /** the type for the accepted values for an attribute */
-export type WhereValuesI = Neo4jSupportedTypes | WhereInI;
+export type WhereValuesI = Neo4jSupportedTypes | WhereInI | WhereContainsI;
 
 /**
  * an object to be used for a query identifier
@@ -85,7 +95,7 @@ export class Where {
         identifier: string;
         property: string;
         bindParamName: string;
-        operator: 'equals' | 'in';
+        operator: 'equals' | 'in' | 'contains';
     }> = [];
 
     constructor(
@@ -155,6 +165,13 @@ export class Where {
                         value: value[Op.in],
                         operator: 'in',
                     });
+                } else if (isWhereContains(value)) {
+                    this.addBindParamDataEntry({
+                        identifier: nodeIdentifier,
+                        property,
+                        value: value[Op.contains],
+                        operator: 'contains',
+                    });
                 }
             }
         }
@@ -222,6 +239,7 @@ export class Where {
             > = {
                 equals: '=',
                 in: 'IN',
+                contains: 'CONTAINS',
             };
 
             // else, return the appropriate text-mode operator
