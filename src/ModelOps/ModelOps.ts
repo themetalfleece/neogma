@@ -158,13 +158,12 @@ interface NeogmaModelStaticsI<
     getModelName: () => string;
     beforeCreate: (instance: Instance) => void;
     beforeDelete: (instance: Instance) => void;
-    __build: (
+    build: (
         data: CreateData,
-        params: {
-            status: 'new' | 'existing';
+        params?: {
+            status?: 'new' | 'existing';
         },
-    ) => Instance & Partial<RelatedNodesToAssociateI>;
-    build: (data: CreateData) => Instance;
+    ) => Instance;
     createOne: (
         data: CreateData,
         configuration?: CreateDataParamsI,
@@ -498,12 +497,14 @@ export const ModelFactory = <
          * builds data Instance by data, setting information fields appropriately
          * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
          */
-        public static __build(
-            data: Parameters<ModelStaticsI['__build']>[0],
-            { status }: Parameters<ModelStaticsI['__build']>[1],
-        ): ReturnType<ModelStaticsI['__build']> {
+        public static build(
+            data: Parameters<ModelStaticsI['build']>[0],
+            params: Parameters<ModelStaticsI['build']>[1],
+        ): ReturnType<ModelStaticsI['build']> {
             const instance = (new Model() as unknown) as Instance &
                 Partial<RelatedNodesToAssociateI>;
+
+            const status = params?.status || 'new';
 
             instance.__existsInDatabase = status === 'existing';
 
@@ -534,15 +535,6 @@ export const ModelFactory = <
                 });
             }
             return instance;
-        }
-
-        /**
-         * creates a new Instance of this Model, which can be saved to the database
-         */
-        public static build(
-            data: Parameters<ModelStaticsI['build']>[0],
-        ): ReturnType<ModelStaticsI['build']> {
-            return Model.__build(data, { status: 'new' });
         }
 
         /**
@@ -685,7 +677,7 @@ export const ModelFactory = <
                     const instance = (createData instanceof
                     ((model as unknown) as () => void)
                         ? createData
-                        : model.__build(createData, {
+                        : model.build(createData, {
                               status: 'new',
                           })) as Instance & Partial<RelatedNodesToAssociateI>;
 
@@ -1161,7 +1153,7 @@ export const ModelFactory = <
                 : [];
 
             const instances = nodeProperties.map((v) =>
-                Model.__build(
+                Model.build(
                     (v as unknown) as CreateDataI<
                         Properties,
                         RelatedNodesToAssociateI
@@ -1355,7 +1347,7 @@ export const ModelFactory = <
                     Properties,
                     RelatedNodesToAssociateI
                 >;
-                const instance = Model.__build(properties, {
+                const instance = Model.build(properties, {
                     status: 'existing',
                 });
                 instance.__existsInDatabase = true;

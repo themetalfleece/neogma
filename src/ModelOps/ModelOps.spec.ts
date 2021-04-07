@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv';
 import { QueryRunner } from '../Queries/QueryRunner';
 import { neo4jDriver } from '../index';
 import { QueryBuilder } from '../Queries';
+import * as uuid from 'uuid';
 
 const { getResultProperties } = QueryRunner;
 
@@ -319,8 +320,8 @@ describe('ModelFactory', () => {
         Orders.prototype.foo = () => 'bar';
 
         const order = Orders.build({
-            id: Math.random().toString(),
-            name: Math.random().toString(),
+            id: uuid.v4(),
+            name: uuid.v4(),
         });
 
         expect(order.foo()).toBe('bar');
@@ -385,7 +386,7 @@ describe('createOne', () => {
         );
 
         const orderData: OrderAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'My Order',
             optionalWillBeSet: 'set',
         };
@@ -531,18 +532,18 @@ describe('createOne', () => {
         );
 
         const existingOrderData: OrderAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'My Order 1',
         };
         const existingOrder = await Orders.createOne(existingOrderData);
 
         const userData: UserAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'My User',
             age: 10,
         };
         const orderToAssociateData: OrderAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'My Order 2',
         };
 
@@ -676,12 +677,12 @@ describe('createOne', () => {
         expect(Orders).toBeTruthy();
 
         const childOrderData: OrderAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'Child Order',
         };
 
         const parentOrderData: OrderAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'Parent Order',
         };
 
@@ -786,10 +787,10 @@ describe('createMany', () => {
 
         const existingOrders = await Orders.createMany([
             {
-                id: Math.random().toString(),
+                id: uuid.v4(),
             },
             {
-                id: Math.random().toString(),
+                id: uuid.v4(),
             },
         ]);
 
@@ -797,11 +798,11 @@ describe('createMany', () => {
             typeof Orders.createMany
         >[0] = [
             {
-                id: Math.random().toString(),
+                id: uuid.v4(),
                 Parent: {
                     properties: [
                         {
-                            id: Math.random().toString(),
+                            id: uuid.v4(),
                             Parent: {
                                 where: {
                                     params: {
@@ -811,11 +812,11 @@ describe('createMany', () => {
                             },
                         },
                         {
-                            id: Math.random().toString(),
+                            id: uuid.v4(),
                             Parent: {
                                 properties: [
                                     {
-                                        id: Math.random().toString(),
+                                        id: uuid.v4(),
                                     },
                                 ],
                                 where: {
@@ -826,7 +827,7 @@ describe('createMany', () => {
                             },
                         },
                         {
-                            id: Math.random().toString(),
+                            id: uuid.v4(),
                         },
                     ],
                     where: {
@@ -993,12 +994,12 @@ describe('addRelationships', () => {
 
         // create a user node and associate it with both associations
         const userWithOrdersData: Parameters<typeof Users['createOne']>[0] = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             name: 'User',
             MoreOrders: {
                 properties: [
                     {
-                        id: Math.random().toString(),
+                        id: uuid.v4(),
                         name: 'More Order',
                         More: true,
                     },
@@ -1007,7 +1008,7 @@ describe('addRelationships', () => {
             Orders: {
                 properties: [
                     {
-                        id: Math.random().toString(),
+                        id: uuid.v4(),
                         name: 'Order',
                         Rating: 4,
                     },
@@ -1082,6 +1083,114 @@ describe('addRelationships', () => {
     });
 });
 
+describe('build', () => {
+    it('buils an existing node', async () => {
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {}
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const userId = uuid.v4();
+
+        await Users.createOne({
+            id: userId,
+            name: 'will be changed',
+        });
+
+        const existingUserInDbResult = await new QueryBuilder()
+            .match({
+                model: Users,
+                identifier: 'n',
+                where: {
+                    id: userId,
+                },
+            })
+            .return('n')
+            .run();
+
+        const existingUserInDbData = getResultProperties<UserAttributesI>(
+            existingUserInDbResult,
+            'n',
+        )[0];
+
+        const userInstance = Users.build(existingUserInDbData, {
+            status: 'existing',
+        });
+
+        const userName = uuid.v4();
+        userInstance.name = userName;
+
+        await userInstance.save();
+
+        const finalUserInDbResult = await new QueryBuilder()
+            .match({
+                model: Users,
+                identifier: 'n',
+                where: {
+                    id: userId,
+                },
+            })
+            .return('n')
+            .run();
+
+        const finalUsersInDb = getResultProperties<UserAttributesI>(
+            finalUserInDbResult,
+            'n',
+        );
+
+        expect(finalUsersInDb.length).toBe(1);
+
+        const finalUserInDbData = finalUsersInDb[0];
+
+        expect(finalUserInDbData.name).toBe(userName);
+    });
+});
+
 describe('beforeCreate', () => {
     it('mutates data on save', async () => {
         /* Users */
@@ -1140,7 +1249,7 @@ describe('beforeCreate', () => {
             }
         };
 
-        const userId = Math.random().toString();
+        const userId = uuid.v4();
 
         const user = Users.build({
             id: userId,
@@ -1281,8 +1390,8 @@ describe('beforeCreate', () => {
             neogma,
         );
 
-        const orderId = Math.random().toString();
-        const userId = Math.random().toString();
+        const orderId = uuid.v4();
+        const userId = uuid.v4();
         const orderName = 'Order' + Math.random();
 
         Users.beforeCreate = (user) => {
@@ -1406,7 +1515,7 @@ describe('beforeDelete', () => {
             beforeDeleteUserId = user.id;
         };
 
-        const userId = Math.random().toString();
+        const userId = uuid.v4();
 
         const user = Users.build({
             id: userId,
@@ -1633,7 +1742,7 @@ describe('Neo4jSupportedTypes', () => {
         );
 
         const userData: UserAttributesI = {
-            id: Math.random().toString(),
+            id: uuid.v4(),
             number: 25,
             integer: new neo4jDriver.types.Integer(10, 10),
             string: 'John',
