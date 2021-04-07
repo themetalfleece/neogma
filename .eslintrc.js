@@ -16,6 +16,13 @@ module.exports = {
     rules: {
         '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
         '@typescript-eslint/no-explicit-any': ['off'],
+        '@typescript-eslint/no-unused-vars': [
+            'warn',
+            {
+                argsIgnorePattern: '^_',
+                ignoreRestSiblings: true,
+            },
+        ],
         semi: ['error', 'always'],
     },
 };
