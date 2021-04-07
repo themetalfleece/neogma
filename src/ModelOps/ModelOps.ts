@@ -148,6 +148,7 @@ interface NeogmaModelStaticsI<
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
 > {
     prototype: MethodsI;
+    relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>;
     addRelationships: (
         relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
     ) => void;
@@ -155,6 +156,8 @@ interface NeogmaModelStaticsI<
     getRawLabels: () => string | string[];
     getPrimaryKeyField: () => string | null;
     getModelName: () => string;
+    beforeCreate: (instance: Instance) => void;
+    beforeDelete: (instance: Instance) => void;
     __build: (
         data: CreateData,
         params: {
@@ -397,10 +400,14 @@ export const ModelFactory = <
         /** the changed properties of this instance, to be taken into account when saving it */
         public changed: InstanceMethodsI['changed'];
 
-        private static relationships = _relationships;
-        private static relationshipAliases: Array<
-            keyof RelatedNodesToAssociateI
-        > = Object.keys(_relationships);
+        public static relationships = _relationships;
+
+        public static beforeCreate(_instance: Instance) {
+            /** no-op */
+        }
+        public static beforeDelete(_instance: Instance) {
+            /** no-op */
+        }
 
         /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
         public static addRelationships(
@@ -409,7 +416,6 @@ export const ModelFactory = <
             for (const key in relationships) {
                 Model.relationships[key] = relationships[key];
             }
-            Model.relationshipAliases = Object.keys(Model.relationships);
         }
 
         /**
@@ -506,7 +512,7 @@ export const ModelFactory = <
 
             for (const _key of [
                 ...Object.keys(schema),
-                ...Object.values(Model.relationshipAliases),
+                ...Object.keys(Model.relationships),
             ]) {
                 const key = _key as keyof typeof schema;
 
@@ -652,7 +658,12 @@ export const ModelFactory = <
             let relationshipsCreatedByProperties = 0;
 
             const addCreateToStatement = async (
-                model: NeogmaModel<any, any, any, any>,
+                model: NeogmaModel<
+                    any,
+                    any,
+                    Record<never, any>,
+                    Record<never, any>
+                >,
                 dataToUse: Array<CreateData | Instance>,
                 /** whether to merge instead of creating the properties */
                 mergeProperties?: boolean,
@@ -696,13 +707,15 @@ export const ModelFactory = <
                         await instance.validate();
                     }
 
+                    await model.beforeCreate(instance);
+
                     const relatedNodesToAssociate: {
                         [key in keyof RelatedNodesToAssociateI]?: RelationshipTypePropertyForCreateI<
                             any,
                             any
                         >;
                     } = {};
-                    for (const alias of model.relationshipAliases) {
+                    for (const alias of Object.keys(model.relationships)) {
                         if (instance[alias]) {
                             relatedNodesToAssociate[
                                 alias as keyof typeof relatedNodesToAssociate
@@ -1266,12 +1279,15 @@ export const ModelFactory = <
         }
 
         public async delete(
+            this: Instance,
             configuration?: Parameters<InstanceMethodsI['delete']>[0],
         ): ReturnType<InstanceMethodsI['delete']> {
             const primaryKeyField = Model.assertPrimaryKeyField(
                 modelPrimaryKeyField,
                 'delete',
             );
+
+            await Model.beforeDelete(this);
 
             return Model.delete({
                 ...configuration,

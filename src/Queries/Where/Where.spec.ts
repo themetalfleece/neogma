@@ -7,6 +7,8 @@ describe('Where', () => {
         it('generates the correct statement and params', () => {
             const inValue = [2, 3, 4];
 
+            const containsString = `c${Math.random()}`;
+
             const where = new Where({
                 identifier: {
                     a: 1,
@@ -16,7 +18,7 @@ describe('Where', () => {
                         [Op.in]: inValue,
                     },
                     d: {
-                        [Op.contains]: 'test-string',
+                        [Op.contains]: containsString,
                     },
                 },
             });
@@ -27,7 +29,7 @@ describe('Where', () => {
             expect(
                 where.getStatement('text').includes('identifier.d CONTAINS $d'),
             ).toBeTruthy();
-            expect(where.getBindParam().get().d).toEqual('test-string');
+            expect(where.getBindParam().get().d).toEqual(containsString);
             expect(where.getBindParam().get().c).toEqual(inValue);
             expect(Object.keys(where.getBindParam().get()).length).toEqual(3);
         });

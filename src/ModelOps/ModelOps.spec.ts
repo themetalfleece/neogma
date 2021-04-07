@@ -5,6 +5,7 @@ import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 import * as dotenv from 'dotenv';
 import { QueryRunner } from '../Queries/QueryRunner';
 import { neo4jDriver } from '../index';
+import { QueryBuilder } from '../Queries';
 
 const { getResultProperties } = QueryRunner;
 
@@ -83,6 +84,7 @@ beforeAll(async () => {
         username: process.env.NEO4J_USERNAME ?? '',
         password: process.env.NEO4J_PASSWORD ?? '',
     });
+    QueryBuilder.queryRunner = neogma.queryRunner;
 });
 
 afterAll(async () => {
@@ -1077,6 +1079,345 @@ describe('addRelationships', () => {
         }>(userModeOrderRelationshipResult, 'r')[0];
         expect(userModeOrderRelationshipData).toBeTruthy();
         expect(userModeOrderRelationshipData.more).toBe(true);
+    });
+});
+
+describe('beforeCreate', () => {
+    it('mutates data on save', async () => {
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {}
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        Users.beforeCreate = (user) => {
+            if (!user.age) {
+                user.age = 18;
+            }
+        };
+
+        const userId = Math.random().toString();
+
+        const user = Users.build({
+            id: userId,
+            name: 'User' + Math.random(),
+        });
+
+        await user.save();
+
+        const userInDbResult = await neogma.queryRunner.run(
+            `MATCH (n:User {id: $id}) RETURN n`,
+            { id: userId },
+        );
+
+        const userInDbData = getResultProperties<UserAttributesI>(
+            userInDbResult,
+            'n',
+        )[0];
+
+        expect(userInDbData.age).toBe(18);
+    });
+    it('mutates data before related nodes are created', async () => {
+        /* Orders */
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {
+            Orders: ModelRelatedNodesI<
+                typeof Orders,
+                OrdersInstance,
+                {
+                    Rating: number;
+                }
+            >;
+        }
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: {
+                    Orders: {
+                        model: Orders,
+                        direction: 'out',
+                        name: 'CREATES',
+                        properties: {
+                            Rating: {
+                                property: 'rating',
+                                schema: {
+                                    type: 'number',
+                                    minimum: 0,
+                                    maximum: 5,
+                                },
+                            },
+                        },
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const orderId = Math.random().toString();
+        const userId = Math.random().toString();
+        const orderName = 'Order' + Math.random();
+
+        Users.beforeCreate = (user) => {
+            user.age = (user.age || 0) + 2;
+        };
+
+        Orders.beforeCreate = (order) => {
+            order.name = orderName;
+        };
+
+        await Users.createMany([
+            {
+                id: userId,
+                name: 'User' + Math.random(),
+                age: 18,
+                Orders: {
+                    properties: [
+                        {
+                            id: orderId,
+                            name: 'to be changed',
+                            Rating: 5,
+                        },
+                    ],
+                },
+            },
+        ]);
+
+        const userInDbResult = await new QueryBuilder()
+            .match({
+                model: Users,
+                identifier: 'n',
+                where: {
+                    id: userId,
+                },
+            })
+            .return('n')
+            .run();
+
+        const userInDbData = getResultProperties<UserAttributesI>(
+            userInDbResult,
+            'n',
+        )[0];
+
+        expect(userInDbData.age).toBe(20);
+
+        const orderInDbResult = await new QueryBuilder()
+            .match({
+                model: Orders,
+                identifier: 'n',
+                where: {
+                    id: orderId,
+                },
+            })
+            .return('n')
+            .run();
+
+        const orderInDbData = getResultProperties<OrderAttributesI>(
+            orderInDbResult,
+            'n',
+        )[0];
+
+        expect(orderInDbData.name).toBe(orderName);
+    });
+});
+
+describe('beforeDelete', () => {
+    it('runs before a node is deleted', async () => {
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {}
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        let beforeDeleteUserId = '';
+
+        Users.beforeDelete = (user) => {
+            beforeDeleteUserId = user.id;
+        };
+
+        const userId = Math.random().toString();
+
+        const user = Users.build({
+            id: userId,
+            name: 'User' + Math.random(),
+        });
+
+        await user.save();
+
+        await user.delete();
+
+        expect(beforeDeleteUserId).toBe(userId);
     });
 });
 
