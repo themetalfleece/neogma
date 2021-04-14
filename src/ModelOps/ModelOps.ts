@@ -51,9 +51,11 @@ export interface ModelRelatedNodesI<
     /** interface of the data to create */
     CreateData: Parameters<RelatedModel['createOne']>[0] &
         Partial<CreateRelationshipProperties>;
-    /** interface of the properties of the relationship */
+    /** interface of the properties of the relationship used in create functions */
     CreateRelationshipProperties: CreateRelationshipProperties;
+    /** interface of the actual properties of the relationship */
     RelationshipProperties: RelationshipProperties;
+    /** the instance of the related model */
     Instance: RelatedInstance;
 }
 
@@ -61,9 +63,7 @@ export interface ModelRelatedNodesI<
 export type RelatedNodesCreationParamI<
     RelatedNodesToAssociateI extends AnyObject
 > = {
-    [key in keyof Partial<
-        RelatedNodesToAssociateI
-    >]: RelationshipTypePropertyForCreateI<
+    [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypePropertyForCreateI<
         RelatedNodesToAssociateI[key]['CreateData'],
         RelatedNodesToAssociateI[key]['CreateRelationshipProperties']
     >;
@@ -1104,9 +1104,7 @@ export const ModelFactory = <
                 );
             }
 
-            const returnValue: RelationshipsI<
-                RelatedNodesToAssociateI
-            >[Alias] = {
+            const returnValue: RelationshipsI<RelatedNodesToAssociateI>[Alias] = {
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
