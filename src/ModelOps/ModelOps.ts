@@ -62,7 +62,9 @@ export interface ModelRelatedNodesI<
 export type RelatedNodesCreationParamI<
     RelatedNodesToAssociateI extends AnyObject
 > = {
-    [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypePropertyForCreateI<
+    [key in keyof Partial<
+        RelatedNodesToAssociateI
+    >]: RelationshipTypePropertyForCreateI<
         RelatedNodesToAssociateI[key]['CreateData'],
         RelatedNodesToAssociateI[key]['RelationshipProperties']
     >;
@@ -172,15 +174,19 @@ interface NeogmaModelStaticsI<
         data: CreateData[],
         configuration?: CreateDataParamsI,
     ) => Promise<Instance[]>;
-    getRelationshipConfiguration: (
-        alias: keyof RelatedNodesToAssociateI,
-    ) => RelationshipsI<any>[0];
-    getRelationshipByAlias: (
-        alias: keyof RelatedNodesToAssociateI,
-    ) => Pick<RelationshipsI<any>[0], 'name' | 'direction' | 'model'>;
-    reverseRelationshipConfiguration: (
-        alias: keyof RelatedNodesToAssociateI,
-    ) => RelationshipsI<any>[0];
+    getRelationshipConfiguration: <
+        Alias extends keyof RelatedNodesToAssociateI
+    >(
+        alias: Alias,
+    ) => Required<RelationshipsI<RelatedNodesToAssociateI>[Alias]>;
+    getRelationshipByAlias: <Alias extends keyof RelatedNodesToAssociateI>(
+        alias: Alias,
+    ) => Pick<RelatedNodesToAssociateI[Alias], 'name' | 'direction' | 'model'>;
+    reverseRelationshipConfiguration: <
+        Alias extends keyof RelatedNodesToAssociateI
+    >(
+        alias: Alias,
+    ) => RelationshipsI<RelatedNodesToAssociateI>[Alias];
     update: (
         data: Partial<Properties>,
         params?: GenericConfiguration & {
@@ -245,7 +251,7 @@ interface NeogmaModelStaticsI<
     ) => string;
     getRelationshipModel: (
         relationshipModel: NeogmaModel<any, any, any, any> | 'self',
-    ) => NeogmaModel<any, any, any, any>;
+    ) => NeogmaModel<any, any, Record<never, any>, Record<never, any>>;
     /** asserts that the given primaryKeyField exists. Also returns it for typescript purposes */
     assertPrimaryKeyField: (
         primaryKeyField: string | undefined,
@@ -650,12 +656,7 @@ export const ModelFactory = <
             let relationshipsCreatedByProperties = 0;
 
             const addCreateToStatement = async (
-                model: NeogmaModel<
-                    any,
-                    any,
-                    Record<never, any>,
-                    Record<never, any>
-                >,
+                _model: NeogmaModel<any, any, any, any>,
                 dataToUse: Array<CreateData | Instance>,
                 /** whether to merge instead of creating the properties */
                 mergeProperties?: boolean,
@@ -666,6 +667,14 @@ export const ModelFactory = <
                     mergeRelationship?: boolean;
                 },
             ) => {
+                // cast to no statics/method for type safety
+                const model = _model as NeogmaModel<
+                    any,
+                    any,
+                    Record<never, any>,
+                    Record<never, any>
+                >;
+
                 for (const createData of dataToUse) {
                     /** identifier for the node to create */
                     const identifier = identifiers.getUniqueNameAndAdd(
@@ -846,7 +855,7 @@ export const ModelFactory = <
                             );
                             const otherModel = model.getRelationshipModel(
                                 relationship.model,
-                            ) as ModelStaticsI;
+                            );
 
                             if (relatedNodesData.properties) {
                                 await addCreateToStatement(
@@ -1058,34 +1067,49 @@ export const ModelFactory = <
             return instances;
         }
 
-        public static getRelationshipConfiguration = (
-            alias: Parameters<ModelStaticsI['getRelationshipConfiguration']>[0],
-        ): ReturnType<ModelStaticsI['getRelationshipConfiguration']> => {
+        public static getRelationshipConfiguration = <
+            Alias extends keyof RelatedNodesToAssociateI
+        >(
+            alias: Alias,
+        ): Required<RelationshipsI<RelatedNodesToAssociateI>[Alias]> => {
             if (!Model.relationships) {
                 throw new NeogmaNotFoundError(
                     `Relationship definitions can't be found for the model ${modelName}`,
                 );
             }
 
-            const relationship = Model.relationships[alias];
+            const relationship = Model.relationships[alias as string];
 
             if (!relationship) {
                 throw new NeogmaNotFoundError(
-                    `The relationship of the alias ${alias} can't be found for the model ${modelName}`,
+                    `The relationship of the alias ${
+                        alias as string
+                    } can't be found for the model ${modelName}`,
                 );
             }
 
-            return {
+            const returnValue: RelationshipsI<
+                RelatedNodesToAssociateI
+            >[Alias] = {
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
-                properties: relationship.properties,
+                properties: relationship.properties || {},
             };
+
+            return returnValue as Required<
+                RelationshipsI<RelatedNodesToAssociateI>[Alias]
+            >;
         };
 
-        public static getRelationshipByAlias = (
-            alias: Parameters<ModelStaticsI['getRelationshipByAlias']>[0],
-        ): ReturnType<ModelStaticsI['getRelationshipByAlias']> => {
+        public static getRelationshipByAlias = <
+            Alias extends keyof RelatedNodesToAssociateI
+        >(
+            alias: Alias,
+        ): Pick<
+            RelatedNodesToAssociateI[Alias],
+            'name' | 'direction' | 'model'
+        > => {
             const relationshipConfiguration = Model.getRelationshipConfiguration(
                 alias,
             );
@@ -1100,11 +1124,11 @@ export const ModelFactory = <
         /**
          * reverses the configuration of a relationship, so it can be easily duplicated when defining another Model.
          */
-        public static reverseRelationshipConfiguration = (
-            alias: Parameters<
-                ModelStaticsI['reverseRelationshipConfiguration']
-            >[0],
-        ): ReturnType<ModelStaticsI['reverseRelationshipConfiguration']> => {
+        public static reverseRelationshipConfiguration = <
+            Alias extends keyof RelatedNodesToAssociateI
+        >(
+            alias: Alias,
+        ): RelationshipsI<RelatedNodesToAssociateI>[Alias] => {
             const relationship = Model.getRelationshipConfiguration(alias);
 
             const reverseDirection = (
