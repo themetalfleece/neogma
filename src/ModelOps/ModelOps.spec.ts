@@ -1191,6 +1191,152 @@ describe('build', () => {
     });
 });
 
+describe('save', () => {
+    it('throws an error if update fails', async () => {
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {}
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const user = await Users.createOne({
+            id: uuid.v4(),
+            name: 'User',
+        });
+
+        await user.save();
+
+        // change the id of the user, so saving should fail
+        user.id = uuid.v4();
+
+        await expect(user.save()).rejects.toThrowError();
+    });
+    it('does not save if there are no changes', async () => {
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {}
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const userId = uuid.v4();
+
+        await Users.createOne({
+            id: userId,
+            name: 'User',
+        });
+
+        const existingUserInDbResult = await new QueryBuilder()
+            .match({
+                model: Users,
+                identifier: 'n',
+                where: {
+                    id: userId,
+                },
+            })
+            .return('n')
+            .run();
+
+        const existingUserInDbData = getResultProperties<UserAttributesI>(
+            existingUserInDbResult,
+            'n',
+        )[0];
+
+        const userInstance = Users.build(existingUserInDbData, {
+            status: 'existing',
+        });
+
+        await userInstance.save();
+    });
+});
+
 describe('beforeCreate', () => {
     it('mutates data on save', async () => {
         /* Users */

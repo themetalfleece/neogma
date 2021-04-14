@@ -62,7 +62,9 @@ export interface ModelRelatedNodesI<
 export type RelatedNodesCreationParamI<
     RelatedNodesToAssociateI extends AnyObject
 > = {
-    [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypePropertyForCreateI<
+    [key in keyof Partial<
+        RelatedNodesToAssociateI
+    >]: RelationshipTypePropertyForCreateI<
         RelatedNodesToAssociateI[key]['CreateData'],
         RelatedNodesToAssociateI[key]['RelationshipProperties']
     >;
@@ -570,13 +572,29 @@ export const ModelFactory = <
                     {},
                 );
 
-                await Model.update(updateData, {
-                    return: false,
-                    session: configuration?.session,
-                    where: {
-                        [primaryKeyField]: instance[primaryKeyField],
-                    },
-                });
+                const numberOfPropertiesToSet = Object.keys(updateData).length;
+                if (numberOfPropertiesToSet) {
+                    const updateRes = await Model.update(updateData, {
+                        return: false,
+                        session: configuration?.session,
+                        where: {
+                            [primaryKeyField]: instance[primaryKeyField],
+                        },
+                    });
+
+                    const propertiesSet = updateRes[1].summary.counters.updates()
+                        .propertiesSet;
+
+                    if (propertiesSet !== numberOfPropertiesToSet) {
+                        throw new NeogmaError(
+                            'Update via save failed, not all properties were updated',
+                            {
+                                instance: this,
+                                updateRes,
+                            },
+                        );
+                    }
+                }
 
                 // set all changed to false
                 for (const key in this.changed) {
@@ -585,6 +603,7 @@ export const ModelFactory = <
                     }
                     this.changed[key] = false;
                 }
+
                 return instance;
             } else {
                 // if it's a new one - it doesn't exist in the database yet, need to create it
