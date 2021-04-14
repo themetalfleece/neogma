@@ -114,7 +114,7 @@ export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
         /** relationship properties */
         properties?: {
             /** the alias of the relationship property is the key */
-            [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]?: {
+            [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]: {
                 /** the actual property to be used on the relationship */
                 property: keyof RelatedNodesToAssociateI[alias]['RelationshipProperties'];
                 /** validation for the property */
@@ -1108,7 +1108,7 @@ export const ModelFactory = <
                 model: relationship.model,
                 direction: relationship.direction,
                 name: relationship.name,
-                properties: relationship.properties || {},
+                properties: relationship.properties,
             };
 
             return returnValue as Required<
