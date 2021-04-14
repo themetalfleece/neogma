@@ -40,20 +40,19 @@ interface GenericConfiguration {
 export interface ModelRelatedNodesI<
     /** the type of the related model */
     RelatedModel extends {
-        createOne: (
-            data: any,
-            configuration?: GenericConfiguration,
-        ) => Promise<any>;
+        createOne: NeogmaModelStaticsI<any>['createOne'];
     },
     /** the instance of the related model */
     RelatedInstance,
     /** properties for the relationship */
+    CreateRelationshipProperties extends RelationshipPropertiesI = AnyObject,
     RelationshipProperties extends RelationshipPropertiesI = AnyObject
 > {
     /** interface of the data to create */
     CreateData: Parameters<RelatedModel['createOne']>[0] &
-        Partial<RelationshipProperties>;
+        Partial<CreateRelationshipProperties>;
     /** interface of the properties of the relationship */
+    CreateRelationshipProperties: CreateRelationshipProperties;
     RelationshipProperties: RelationshipProperties;
     Instance: RelatedInstance;
 }
@@ -66,7 +65,7 @@ export type RelatedNodesCreationParamI<
         RelatedNodesToAssociateI
     >]: RelationshipTypePropertyForCreateI<
         RelatedNodesToAssociateI[key]['CreateData'],
-        RelatedNodesToAssociateI[key]['RelationshipProperties']
+        RelatedNodesToAssociateI[key]['CreateRelationshipProperties']
     >;
 };
 
@@ -115,9 +114,9 @@ export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
         /** relationship properties */
         properties?: {
             /** the alias of the relationship property is the key */
-            [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['RelationshipProperties']]?: {
+            [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]?: {
                 /** the actual property to be used on the relationship */
-                property: string;
+                property: keyof RelatedNodesToAssociateI[alias]['RelationshipProperties'];
                 /** validation for the property */
                 schema: Revalidator.ISchema<AnyObject>;
             };
@@ -235,7 +234,7 @@ interface NeogmaModelStaticsI<
             source: WhereParamsI;
             target: WhereParamsI;
         };
-        properties?: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+        properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
         /** throws an error if the number of created relationships don't equal to this number */
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
@@ -290,7 +289,7 @@ interface NeogmaInstanceMethodsI<
     relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
         alias: Alias;
         where: WhereParamsI;
-        properties?: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+        properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
         /** throws an error if the number of created relationships don't equal to this number */
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
@@ -765,8 +764,8 @@ export const ModelFactory = <
                             > = {};
 
                             for (const key of keysToUse) {
-                                const property =
-                                    relationship.properties?.[key]?.property;
+                                const property = relationship.properties?.[key]
+                                    ?.property as string;
 
                                 if (!property) {
                                     continue;

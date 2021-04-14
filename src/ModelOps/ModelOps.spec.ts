@@ -910,6 +910,9 @@ describe('addRelationships', () => {
                 OrdersInstance,
                 {
                     Rating: number;
+                },
+                {
+                    rating: number;
                 }
             >;
             MoreOrders: ModelRelatedNodesI<
@@ -976,6 +979,7 @@ describe('addRelationships', () => {
             },
             neogma,
         );
+
         Users.addRelationships({
             MoreOrders: {
                 direction: 'in',
