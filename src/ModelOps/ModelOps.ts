@@ -393,6 +393,11 @@ export const ModelFactory = <
         MethodsI
     >;
 
+    /** used for casting the Model, in order to run hooks (as they aren't defined here) */
+    type PartialHooksI = Partial<
+        Pick<ModelStaticsI, 'beforeCreate' | 'beforeDelete'>
+    >;
+
     const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
         clone(parameters.relationships) || {};
     const Model = class ModelClass implements InstanceMethodsI {
@@ -405,13 +410,6 @@ export const ModelFactory = <
         public changed: InstanceMethodsI['changed'];
 
         public static relationships = _relationships;
-
-        public static beforeCreate(_instance: Instance) {
-            /** no-op */
-        }
-        public static beforeDelete(_instance: Instance) {
-            /** no-op */
-        }
 
         /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
         public static addRelationships(
@@ -554,11 +552,11 @@ export const ModelFactory = <
                 ..._configuration,
             };
 
-            if (configuration.validate) {
-                await instance.validate();
-            }
-
             if (instance.__existsInDatabase) {
+                if (configuration.validate) {
+                    await instance.validate();
+                }
+
                 const primaryKeyField = Model.assertPrimaryKeyField(
                     modelPrimaryKeyField,
                     'updating via save',
@@ -610,6 +608,7 @@ export const ModelFactory = <
                 return instance;
             } else {
                 // if it's a new one - it doesn't exist in the database yet, need to create it
+                // do not validate here, as createOne validates the instance
                 return Model.createOne(
                     instance.getDataValues() as CreateDataI<
                         Properties,
@@ -658,7 +657,7 @@ export const ModelFactory = <
                 }>;
             } = {};
 
-            const instances: Instance[] = [];
+            const rootInstances: Instance[] = [];
             const bulkCreateData: Properties[] = [];
 
             /** parameters for the QueryBuilder */
@@ -706,6 +705,12 @@ export const ModelFactory = <
                               status: 'new',
                           })) as Instance & Partial<RelatedNodesToAssociateI>;
 
+                    await model.beforeCreate?.(instance);
+
+                    if (validate) {
+                        await instance.validate();
+                    }
+
                     instance.__existsInDatabase = true;
                     // set all changed to false as it's going to be saved
                     for (const key in instance.changed) {
@@ -717,14 +722,8 @@ export const ModelFactory = <
 
                     // push to instances only if it's the root node
                     if (!parentNode) {
-                        instances.push(instance);
+                        rootInstances.push(instance);
                     }
-
-                    if (validate) {
-                        await instance.validate();
-                    }
-
-                    await model.beforeCreate(instance);
 
                     const relatedNodesToAssociate: {
                         [key in keyof RelatedNodesToAssociateI]?: RelationshipTypePropertyForCreateI<
@@ -1080,7 +1079,7 @@ export const ModelFactory = <
                 }
             }
 
-            return instances;
+            return rootInstances;
         }
 
         public static getRelationshipConfiguration = <
@@ -1317,7 +1316,7 @@ export const ModelFactory = <
                 'delete',
             );
 
-            await Model.beforeDelete(this);
+            await ((Model as unknown) as PartialHooksI).beforeDelete?.(this);
 
             return Model.delete({
                 ...configuration,

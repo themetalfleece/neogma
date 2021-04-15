@@ -1556,7 +1556,8 @@ describe('beforeCreate', () => {
             {
                 id: userId,
                 name: 'User' + Math.random(),
-                age: 18,
+                // after beforeCreate, it should be positive and the validation should succeed
+                age: -1,
                 Orders: {
                     properties: [
                         {
@@ -1585,7 +1586,7 @@ describe('beforeCreate', () => {
             'n',
         )[0];
 
-        expect(userInDbData.age).toBe(20);
+        expect(userInDbData.age).toBe(1);
 
         const orderInDbResult = await new QueryBuilder()
             .match({
