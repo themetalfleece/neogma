@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { QueryResult } from 'neo4j-driver';
 import revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
@@ -206,6 +207,11 @@ interface NeogmaModelStaticsI<
             session?: GenericConfiguration['session'];
         },
     ) => Promise<QueryResult>;
+    /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
+    getRelationshipProperties: (
+        relationship: RelationshipsI<any>[0],
+        dataToUse: Neo4jSupportedProperties,
+    ) => Neo4jSupportedProperties;
     delete: (
         configuration?: GenericConfiguration & {
             detach?: boolean;
@@ -400,6 +406,7 @@ export const ModelFactory = <
 
     const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
         clone(parameters.relationships) || {};
+
     const Model = class ModelClass implements InstanceMethodsI {
         /** whether this instance already exists in the database or it new */
         public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
@@ -763,60 +770,6 @@ export const ModelFactory = <
                             });
                         }
 
-                        /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
-                        const getRelationshipProperties = (
-                            relationship: RelationshipsI<any>[0],
-                            dataToUse,
-                        ): Neo4jSupportedProperties => {
-                            const keysToUse = Object.keys(
-                                relationship.properties || {},
-                            );
-                            /** properties to be used in the relationship */
-                            const relationshipProperties = {};
-                            /** total validation for the properties */
-                            const validationSchema: Record<
-                                string,
-                                Revalidator.ISchema<AnyObject>
-                            > = {};
-
-                            for (const key of keysToUse) {
-                                const property = relationship.properties?.[key]
-                                    ?.property as string;
-
-                                if (!property) {
-                                    continue;
-                                }
-                                relationshipProperties[property] =
-                                    dataToUse[key];
-
-                                const schema =
-                                    relationship.properties?.[key]?.schema;
-                                if (!schema) {
-                                    continue;
-                                }
-                                validationSchema[property] = schema;
-                            }
-
-                            const validationResult = revalidator.validate(
-                                relationshipProperties,
-                                {
-                                    type: 'object',
-                                    properties: validationSchema,
-                                },
-                            );
-
-                            if (validationResult.errors.length) {
-                                throw new NeogmaInstanceValidationError(
-                                    `Could not validate relationship property`,
-                                    {
-                                        model,
-                                        errors: validationResult.errors,
-                                    },
-                                );
-                            }
-                            return relationshipProperties;
-                        };
-
                         /** if it has a parent node, also create a relationship with it */
                         if (parentNode) {
                             const {
@@ -835,7 +788,7 @@ export const ModelFactory = <
                                         direction: relationship.direction,
                                         name: relationship.name,
                                         properties:
-                                            getRelationshipProperties(
+                                            model.getRelationshipProperties(
                                                 relationship,
                                                 createData,
                                             ) || null,
@@ -903,9 +856,9 @@ export const ModelFactory = <
                                         toRelateByIdentifier[identifier] = [];
                                     }
 
-                                    const relationshipProperties = getRelationshipProperties(
+                                    const relationshipProperties = model.getRelationshipProperties(
                                         relationship,
-                                        whereEntry.relationshipProperties,
+                                        whereEntry.relationshipProperties || {},
                                     );
 
                                     toRelateByIdentifier[identifier].push({
@@ -1420,6 +1373,11 @@ export const ModelFactory = <
                     params.where.target;
             }
 
+            const relationshipProperties = Model.getRelationshipProperties(
+                relationship,
+                params.properties || {},
+            );
+
             const res = await queryRunner.createRelationship({
                 source: {
                     label: this.getLabel(),
@@ -1430,7 +1388,7 @@ export const ModelFactory = <
                 relationship: {
                     name: relationship.name,
                     direction: relationship.direction,
-                    properties: params.properties,
+                    properties: relationshipProperties,
                 },
                 where,
                 session: params.session,
@@ -1537,6 +1495,55 @@ export const ModelFactory = <
             }
             return primaryKeyField;
         }
+
+        public static getRelationshipProperties = (
+            relationship: RelationshipsI<any>[0],
+            dataToUse: Neo4jSupportedProperties,
+        ): Neo4jSupportedProperties => {
+            const keysToUse = Object.keys(relationship.properties || {});
+            /** properties to be used in the relationship */
+            const relationshipProperties = {};
+            /** total validation for the properties */
+            const validationSchema: Record<
+                string,
+                Revalidator.ISchema<AnyObject>
+            > = {};
+
+            for (const key of keysToUse) {
+                const property = relationship.properties?.[key]
+                    ?.property as string;
+
+                if (!property) {
+                    continue;
+                }
+                relationshipProperties[property] = dataToUse[key];
+
+                const schema = relationship.properties?.[key]?.schema;
+                if (!schema) {
+                    continue;
+                }
+                validationSchema[property] = schema;
+            }
+
+            const validationResult = revalidator.validate(
+                relationshipProperties,
+                {
+                    type: 'object',
+                    properties: validationSchema,
+                },
+            );
+
+            if (validationResult.errors.length) {
+                throw new NeogmaInstanceValidationError(
+                    `Could not validate relationship property`,
+                    {
+                        model: Model,
+                        errors: validationResult.errors,
+                    },
+                );
+            }
+            return relationshipProperties;
+        };
     };
 
     for (const staticKey in statics) {
