@@ -335,9 +335,9 @@ export const ModelFactory = <
     /** related nodes to associate. Label-ModelRelatedNodesI pairs */
     RelatedNodesToAssociateI extends AnyObject,
     /** interface for the statics of the model */
-    StaticsI extends AnyObject = AnyObject,
+    StaticsI extends AnyObject = Object,
     /** interface for the methods of the instance */
-    MethodsI extends AnyObject = AnyObject
+    MethodsI extends AnyObject = Object
 >(
     parameters: {
         /** the schema for the validation */
