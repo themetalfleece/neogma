@@ -722,6 +722,13 @@ export class QueryBuilder {
             setParts.push(`${identifier}.${key} = $${paramKey}`);
         }
 
+        if (!setParts.length) {
+            return {
+                parts: [],
+                statement: '',
+            };
+        }
+
         return {
             parts: setParts,
             statement: `SET ${setParts.join(', ')}`,
