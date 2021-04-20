@@ -260,11 +260,12 @@ export class QueryRunner {
             ],
         });
 
-        if (params.relationship.properties) {
+        const { properties: props } = params.relationship;
+        if (props && JSON.stringify(props) !== JSON.stringify({})) {
             /** the relationship properties statement to be inserted into the final statement string */
             queryBuilder.set({
                 identifier: relationshipIdentifier,
-                properties: params.relationship.properties,
+                properties: props,
             });
         }
 
