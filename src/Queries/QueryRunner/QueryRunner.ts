@@ -260,11 +260,15 @@ export class QueryRunner {
             ],
         });
 
-        if (params.relationship.properties) {
+        const relationshipProperties = params.relationship.properties;
+        if (
+            relationshipProperties &&
+            Object.keys(relationshipProperties).length
+        ) {
             /** the relationship properties statement to be inserted into the final statement string */
             queryBuilder.set({
                 identifier: relationshipIdentifier,
-                properties: params.relationship.properties,
+                properties: relationshipProperties,
             });
         }
 
