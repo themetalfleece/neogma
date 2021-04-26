@@ -1682,7 +1682,7 @@ describe('beforeDelete', () => {
 });
 
 describe('relateTo', () => {
-    it('relates two nodes', async () => {
+    it('relates two nodes of different models', async () => {
         /* Orders */
         type OrderAttributesI = {
             name: string;
@@ -1825,6 +1825,112 @@ describe('relateTo', () => {
 
         const relationshipData = getResultProperties<
             UsersRelatedNodesI['Orders']['RelationshipProperties']
+        >(queryRes, 'rel')[0];
+
+        expect(relationshipData).toBeTruthy();
+    });
+    it('relates two nodes of the same model (self)', async () => {
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {
+            Parent: ModelRelatedNodesI<
+                { createOne: typeof Users['createOne'] },
+                UsersInstance
+            >;
+        }
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: {
+                    Parent: {
+                        model: 'self',
+                        direction: 'out',
+                        name: 'PARENT',
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const parent = await Users.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const child = await Users.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        await child.relateTo({
+            alias: 'Parent',
+            where: {
+                id: parent.id,
+            },
+        });
+
+        const queryRes = await new QueryBuilder()
+            .match({
+                related: [
+                    {
+                        model: Users,
+                        where: { id: child.id },
+                    },
+                    {
+                        ...Users.getRelationshipByAlias('Parent'),
+                        identifier: 'rel',
+                    },
+                    {
+                        model: Users,
+                        where: { id: parent.id },
+                    },
+                ],
+            })
+            .return('rel')
+            .run();
+
+        const relationshipData = getResultProperties<
+            UsersRelatedNodesI['Parent']['RelationshipProperties']
         >(queryRes, 'rel')[0];
 
         expect(relationshipData).toBeTruthy();

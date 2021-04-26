@@ -144,8 +144,8 @@ type CreateDataI<
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
     Properties extends Neo4jSupportedProperties,
-    RelatedNodesToAssociateI extends AnyObject = AnyObject,
-    MethodsI extends AnyObject = AnyObject,
+    RelatedNodesToAssociateI extends AnyObject = Object,
+    MethodsI extends AnyObject = Object,
     CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
     Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
 > {
@@ -252,11 +252,11 @@ interface NeogmaModelStaticsI<
         },
     ) => Promise<number>;
     getLabelFromRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
+        relationshipModel: NeogmaModel<any, any, Object, Object> | 'self',
     ) => string;
     getRelationshipModel: (
-        relationshipModel: NeogmaModel<any, any, any, any> | 'self',
-    ) => NeogmaModel<any, any, Record<never, any>, Record<never, any>>;
+        relationshipModel: NeogmaModel<any, any, Object, Object> | 'self',
+    ) => NeogmaModel<any, any, Object, Object>;
     /** asserts that the given primaryKeyField exists. Also returns it for typescript purposes */
     assertPrimaryKeyField: (
         primaryKeyField: string | undefined,
@@ -317,8 +317,8 @@ export type NeogmaInstance<
 export type NeogmaModel<
     Properties extends Neo4jSupportedProperties,
     RelatedNodesToAssociateI extends AnyObject,
-    MethodsI extends AnyObject = AnyObject,
-    StaticsI extends AnyObject = AnyObject
+    MethodsI extends AnyObject = Object,
+    StaticsI extends AnyObject = Object
 > = NeogmaModelStaticsI<Properties, RelatedNodesToAssociateI, MethodsI> &
     StaticsI;
 
@@ -678,7 +678,7 @@ export const ModelFactory = <
             let relationshipsCreatedByProperties = 0;
 
             const addCreateToStatement = async (
-                _model: NeogmaModel<any, any, any, any>,
+                _model: NeogmaModel<any, any, Object, Object>,
                 dataToUse: Array<CreateData | Instance>,
                 /** whether to merge instead of creating the properties */
                 mergeProperties?: boolean,
@@ -690,12 +690,7 @@ export const ModelFactory = <
                 },
             ) => {
                 // cast to no statics/method for type safety
-                const model = _model as NeogmaModel<
-                    any,
-                    any,
-                    Record<never, any>,
-                    Record<never, any>
-                >;
+                const model = _model as NeogmaModel<any, any>;
 
                 for (const createData of dataToUse) {
                     /** identifier for the node to create */
@@ -878,7 +873,7 @@ export const ModelFactory = <
             };
 
             await addCreateToStatement(
-                Model,
+                (Model as unknown) as NeogmaModel<any, any>,
                 data,
                 configuration?.merge,
                 undefined,
@@ -1169,7 +1164,9 @@ export const ModelFactory = <
             };
             const labels = {
                 source: Model.getLabel(),
-                target: relationship.model.getLabel(),
+                target: Model.getRelationshipModel(
+                    relationship.model,
+                ).getLabel(),
             };
 
             const where: Where = new Where({});
@@ -1383,7 +1380,9 @@ export const ModelFactory = <
                     label: this.getLabel(),
                 },
                 target: {
-                    label: relationship.model.getLabel(),
+                    label: Model.getRelationshipModel(
+                        relationship.model,
+                    ).getLabel(),
                 },
                 relationship: {
                     name: relationship.name,
@@ -1479,7 +1478,9 @@ export const ModelFactory = <
                 ModelStaticsI['getRelationshipModel']
             >[0],
         ): ReturnType<ModelStaticsI['getRelationshipModel']> {
-            return relationshipModel === 'self' ? Model : relationshipModel;
+            return relationshipModel === 'self'
+                ? ((Model as unknown) as NeogmaModel<any, any>)
+                : relationshipModel;
         }
 
         public static assertPrimaryKeyField(
