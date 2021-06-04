@@ -13,7 +13,7 @@
         "@types/revalidator": "^0.3.7",
         "clone": "^2.1.2",
         "dotenv": "^8.2.0",
-        "neo4j-driver": "^4.2.1",
+        "neo4j-driver": "^4.3.0",
         "revalidator": "^0.3.1",
         "uuid": "^8.3.2"
     },

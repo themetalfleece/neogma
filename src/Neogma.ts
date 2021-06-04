@@ -1,5 +1,5 @@
 import * as neo4j_driver from 'neo4j-driver';
-import { Config, Driver, Session, Transaction } from 'neo4j-driver/types';
+import { Config, Driver, Session, Transaction } from 'neo4j-driver';
 import { NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
