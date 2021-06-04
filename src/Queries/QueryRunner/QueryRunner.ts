@@ -11,7 +11,7 @@ import {
     LocalDateTime as Neo4jLocalDateTime,
     LocalTime as Neo4jLocalTime,
     Duration as Neo4jDuration,
-} from 'neo4j-driver/types';
+} from 'neo4j-driver';
 import * as uuid from 'uuid';
 import { getRunnable } from '../../Sessions';
 import { AnyWhereI, Where } from '../Where/Where';
@@ -103,7 +103,7 @@ export class QueryRunner {
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
         const queryBuilder = new QueryBuilder()
-            .unwind('{options} as data')
+            .unwind('$options as data')
             .create({
                 identifier,
                 label,

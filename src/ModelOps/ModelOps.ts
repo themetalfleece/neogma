@@ -154,18 +154,29 @@ interface NeogmaModelStaticsI<
     addRelationships: (
         relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
     ) => void;
-    getLabel: () => string;
-    getRawLabels: () => string | string[];
+    getLabel: (
+        operation?: Parameters<typeof QueryBuilder.getNormalizedLabels>[1],
+    ) => string;
+    getRawLabels: () => string[];
     getPrimaryKeyField: () => string | null;
     getModelName: () => string;
     beforeCreate: (instance: Instance) => void;
     beforeDelete: (instance: Instance) => void;
+    /**
+     * builds data Instance by data, setting information fields appropriately
+     * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
+     */
     build: (
         data: CreateData,
         params?: {
             status?: 'new' | 'existing';
         },
     ) => Instance;
+    /** builds an instance from a database record. It needs to correspond to a node, by having a "properties" and "labels" field */
+    buildFromRecord: (record: {
+        properties: Properties;
+        labels: string[];
+    }) => Instance;
     createOne: (
         data: CreateData,
         configuration?: CreateDataParamsI,
@@ -225,6 +236,8 @@ interface NeogmaModelStaticsI<
             limit?: number;
             skip?: number;
             order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
+            /** throws an error if no nodes are found (results length 0) */
+            throwIfNoneFound?: boolean;
         },
     ) => Promise<Instance[]>;
     findOne: (
@@ -232,6 +245,8 @@ interface NeogmaModelStaticsI<
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
             order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
+            /** throws an error if the node is not found */
+            throwIfNotFound?: boolean;
         },
     ) => Promise<Instance | null>;
     relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
@@ -262,6 +277,27 @@ interface NeogmaModelStaticsI<
         primaryKeyField: string | undefined,
         operation: string,
     ) => string;
+    findRelationships: <
+        Alias extends keyof RelatedNodesToAssociateI,
+        SourceProperties = Object,
+        TargetProperties = Object
+    >(params: {
+        alias: Alias;
+        where?: {
+            source?: WhereParamsI;
+            target?: WhereParamsI;
+            relationship?: WhereParamsI;
+        };
+        /** a limit to apply to the fetched relationships */
+        limit?: number;
+        session?: GenericConfiguration['session'];
+    }) => Promise<
+        Array<{
+            source: SourceProperties;
+            target: TargetProperties;
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+        }>
+    >;
 }
 /** the methods of a Neogma Instance */
 interface NeogmaInstanceMethodsI<
@@ -273,6 +309,7 @@ interface NeogmaInstanceMethodsI<
     __existsInDatabase: boolean;
     dataValues: Properties;
     changed: Record<keyof Properties, boolean>;
+    labels: string[];
     getDataValues: () => Properties;
     save: (configuration?: CreateDataParamsI) => Promise<Instance>;
     validate: () => Promise<void>;
@@ -300,6 +337,26 @@ interface NeogmaInstanceMethodsI<
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
     }) => Promise<number>;
+    findRelationships: <
+        Alias extends keyof RelatedNodesToAssociateI,
+        SourceProperties = Object,
+        TargetProperties = Object
+    >(params: {
+        alias: Alias;
+        where?: {
+            relationship: WhereParamsI;
+            target: WhereParamsI;
+        };
+        /** a limit to apply to the fetched relationships */
+        limit?: number;
+        session?: GenericConfiguration['session'];
+    }) => Promise<
+        Array<{
+            source: SourceProperties;
+            target: TargetProperties;
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+        }>
+    >;
 }
 
 /** the type of instance of the Model */
@@ -417,6 +474,7 @@ export const ModelFactory = <
         public changed: InstanceMethodsI['changed'];
 
         public static relationships = _relationships;
+        public labels: string[] = [];
 
         /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
         public static addRelationships(
@@ -431,18 +489,18 @@ export const ModelFactory = <
          * @returns {String} - the normalized label of this Model
          */
         public static getLabel(
-            operation?: Parameters<typeof QueryBuilder.getNormalizedLabels>[1],
+            operation?: Parameters<ModelStaticsI['getLabel']>[0],
         ): ReturnType<ModelStaticsI['getLabel']> {
             return QueryBuilder.getNormalizedLabels(modelLabel, operation);
         }
 
         /**
-         * @returns {String} - the label or labels of this Model as given in its definition
+         * @returns {String} - a new array of the labels of this Model, as given in its definition
          */
         public static getRawLabels(): ReturnType<
             ModelStaticsI['getRawLabels']
         > {
-            return modelLabel;
+            return Array.isArray(modelLabel) ? [...modelLabel] : [modelLabel];
         }
 
         /**
@@ -503,10 +561,6 @@ export const ModelFactory = <
             }
         }
 
-        /**
-         * builds data Instance by data, setting information fields appropriately
-         * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
-         */
         public static build(
             data: Parameters<ModelStaticsI['build']>[0],
             params: Parameters<ModelStaticsI['build']>[1],
@@ -544,6 +598,24 @@ export const ModelFactory = <
                     },
                 });
             }
+            return instance;
+        }
+
+        public static buildFromRecord(
+            record: Parameters<ModelStaticsI['buildFromRecord']>[0],
+        ): ReturnType<ModelStaticsI['buildFromRecord']> {
+            if (!record.properties || !record.labels) {
+                throw new NeogmaConstraintError(
+                    'record is missing the "properties" or "labels" field',
+                    { actual: record },
+                );
+            }
+            const instance = Model.build(record.properties as any, {
+                status: 'existing',
+            });
+
+            instance.labels = record.labels;
+
             return instance;
         }
 
@@ -700,12 +772,18 @@ export const ModelFactory = <
                     );
                     const label = model.getLabel();
 
-                    const instance = (createData instanceof
-                    ((model as unknown) as () => void)
+                    // if the data given is already an instance of the model, use them as is. Else, create a new one and set its labels
+                    const isCreateDataAnInstanceOfModel =
+                        createData instanceof (model as any);
+                    const instance = (isCreateDataAnInstanceOfModel
                         ? createData
                         : model.build(createData, {
                               status: 'new',
                           })) as Instance & Partial<RelatedNodesToAssociateI>;
+
+                    if (!isCreateDataAnInstanceOfModel) {
+                        instance.labels = Model.getRawLabels();
+                    }
 
                     await model.beforeCreate?.(instance);
 
@@ -1063,25 +1141,6 @@ export const ModelFactory = <
             >;
         };
 
-        public static getRelationshipByAlias = <
-            Alias extends keyof RelatedNodesToAssociateI
-        >(
-            alias: Alias,
-        ): Pick<
-            RelatedNodesToAssociateI[Alias],
-            'name' | 'direction' | 'model'
-        > => {
-            const relationshipConfiguration = Model.getRelationshipConfiguration(
-                alias,
-            );
-
-            return {
-                model: relationshipConfiguration.model,
-                direction: relationshipConfiguration.direction,
-                name: relationshipConfiguration.name,
-            };
-        };
-
         /**
          * reverses the configuration of a relationship, so it can be easily duplicated when defining another Model.
          */
@@ -1133,19 +1192,11 @@ export const ModelFactory = <
                 return: params?.return,
                 session: params?.session,
             });
-            const nodeProperties = params?.return
-                ? QueryRunner.getResultProperties<Properties>(res, identifier)
-                : [];
 
-            const instances = nodeProperties.map((v) =>
-                Model.build(
-                    (v as unknown) as CreateDataI<
-                        Properties,
-                        RelatedNodesToAssociateI
-                    >,
-                    { status: 'existing' },
-                ),
+            const instances = res.records.map((record) =>
+                Model.buildFromRecord(record.get(identifier)),
             );
+
             return [instances, res] as [Instance[], QueryResult];
         }
 
@@ -1329,17 +1380,18 @@ export const ModelFactory = <
             const res = await queryBuilder.run(queryRunner, params?.session);
 
             const instances = res.records.map((record) => {
-                const node = record.get(rootIdentifier);
-                const properties = (node.properties as unknown) as CreateDataI<
-                    Properties,
-                    RelatedNodesToAssociateI
-                >;
-                const instance = Model.build(properties, {
-                    status: 'existing',
-                });
+                const instance = Model.buildFromRecord(
+                    record.get(rootIdentifier),
+                );
                 instance.__existsInDatabase = true;
                 return instance;
             });
+
+            if (params?.throwIfNoneFound && !instances.length) {
+                throw new NeogmaNotFoundError(`No node was found`, {
+                    label: Model.getLabel(),
+                });
+            }
 
             return instances;
         }
@@ -1351,7 +1403,16 @@ export const ModelFactory = <
                 ...params,
                 limit: 1,
             });
-            return instances?.[0] || null;
+
+            const instance = instances?.[0];
+
+            if (params?.throwIfNotFound && !instance) {
+                throw new NeogmaNotFoundError('Nodes not found', {
+                    label: Model.getLabel(),
+                });
+            }
+
+            return instance || null;
         }
 
         /** creates a relationship by using the configuration specified in "relationships" from the given alias */
@@ -1430,6 +1491,109 @@ export const ModelFactory = <
                     target: params.where,
                 },
             });
+        }
+
+        public static async findRelationships<
+            Alias extends keyof RelatedNodesToAssociateI,
+            SourceProperties = Object,
+            TargetProperties = Object
+        >(
+            params: Parameters<ModelStaticsI['findRelationships']>[0],
+        ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
+            const { alias, where, limit, session } = params;
+
+            const identifiers = {
+                source: 'source',
+                target: 'target',
+                relationship: 'relationship',
+            };
+
+            const relationship = Model.getRelationshipByAlias(
+                alias as keyof RelatedNodesToAssociateI,
+            );
+            const relationshipModel = Model.getRelationshipModel(
+                relationship.model,
+            );
+
+            const queryBuilder = new QueryBuilder()
+                .match({
+                    related: [
+                        {
+                            model: Model,
+                            where: where?.source,
+                            identifier: identifiers.source,
+                        },
+                        {
+                            ...relationship,
+                            where: where?.relationship,
+                            identifier: identifiers.relationship,
+                        },
+                        {
+                            label: relationshipModel.getLabel(),
+                            where: where?.target,
+                            identifier: identifiers.target,
+                        },
+                    ],
+                })
+                .return(Object.values(identifiers));
+            if (limit) {
+                queryBuilder.limit(limit);
+            }
+
+            const res = await queryBuilder.run(queryRunner, session);
+
+            return res.records.map((record) => ({
+                source: record.get(identifiers.source).properties,
+                target: record.get(identifiers.target).properties,
+                relationship: record.get(identifiers.relationship).properties,
+            })) as Array<{
+                source: SourceProperties;
+                target: TargetProperties;
+                relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+            }>;
+        }
+
+        public async findRelationships<
+            Alias extends keyof RelatedNodesToAssociateI,
+            SourceProperties = Object,
+            TargetProperties = Object
+        >(
+            params: Parameters<InstanceMethodsI['findRelationships']>[0],
+        ): Promise<
+            Array<{
+                source: SourceProperties;
+                target: TargetProperties;
+                relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+            }>
+        > {
+            const { where, alias, limit, session } = params;
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'relateTo',
+            );
+
+            const res = await Model.findRelationships<
+                Alias,
+                SourceProperties,
+                TargetProperties
+            >({
+                alias,
+                limit,
+                session,
+                where: {
+                    relationship: where?.relationship,
+                    target: where?.target,
+                    source: {
+                        [primaryKeyField]: this[primaryKeyField],
+                    },
+                },
+            });
+
+            return res as Array<{
+                source: SourceProperties;
+                target: TargetProperties;
+                relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+            }>;
         }
 
         /**
@@ -1544,6 +1708,25 @@ export const ModelFactory = <
                 );
             }
             return relationshipProperties;
+        };
+
+        public static getRelationshipByAlias = <
+            Alias extends keyof RelatedNodesToAssociateI
+        >(
+            alias: Alias,
+        ): Pick<
+            RelatedNodesToAssociateI[Alias],
+            'name' | 'direction' | 'model'
+        > => {
+            const relationshipConfiguration = Model.getRelationshipConfiguration(
+                alias,
+            );
+
+            return {
+                model: relationshipConfiguration.model,
+                direction: relationshipConfiguration.direction,
+                name: relationshipConfiguration.name,
+            };
         };
     };
 

@@ -1,7 +1,7 @@
 import { getRunnable } from '../../Sessions';
 import { NeogmaConstraintError, NeogmaError } from '../../Errors';
 import { int } from 'neo4j-driver';
-import { QueryResult } from 'neo4j-driver/types';
+import { QueryResult } from 'neo4j-driver';
 import { trimWhitespace } from '../../utils/string';
 import { BindParam } from '../BindParam';
 import { Where } from '../Where';

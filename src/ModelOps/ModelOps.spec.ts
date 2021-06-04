@@ -1088,7 +1088,7 @@ describe('addRelationships', () => {
 });
 
 describe('build', () => {
-    it('buils an existing node', async () => {
+    it('builds an instance from an existing node', async () => {
         /* Users */
         type UserAttributesI = {
             name: string;
@@ -1192,6 +1192,80 @@ describe('build', () => {
         const finalUserInDbData = finalUsersInDb[0];
 
         expect(finalUserInDbData.name).toBe(userName);
+    });
+});
+
+describe('buildFromRecord', () => {
+    it('builds an instance from a query result record', async () => {
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const orderData: OrderAttributesI = {
+            id: uuid.v4(),
+            name: uuid.v4(),
+        };
+
+        await Orders.createOne(orderData);
+
+        const existingOrderInDbResult = await new QueryBuilder()
+            .match({
+                model: Orders,
+                identifier: 'n',
+                where: {
+                    id: orderData.id,
+                },
+            })
+            .return('n')
+            .run();
+
+        const orderInstance = Orders.buildFromRecord(
+            existingOrderInDbResult.records[0].get('n'),
+        );
+
+        expect(orderInstance.getDataValues()).toEqual(orderData);
+        expect(orderInstance.labels.sort()).toEqual(
+            Orders.getRawLabels().sort(),
+        );
     });
 });
 
@@ -2261,6 +2335,578 @@ describe('relateTo', () => {
                 },
             }),
         ).rejects.toThrowError();
+    });
+});
+
+describe('findRelationships', () => {
+    it('method: gets all the relationships of an instance', async () => {
+        /* Orders */
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {
+            Orders: ModelRelatedNodesI<
+                typeof Orders,
+                OrdersInstance,
+                {
+                    Rating: number;
+                },
+                {
+                    rating: number;
+                }
+            >;
+        }
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: {
+                    Orders: {
+                        model: Orders,
+                        direction: 'out',
+                        name: 'CREATES',
+                        properties: {
+                            Rating: {
+                                property: 'rating',
+                                schema: {
+                                    type: 'number',
+                                    minimum: 0,
+                                    maximum: 5,
+                                },
+                            },
+                        },
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const user = await Users.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const order1 = await Orders.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const relationship1Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] = {
+            rating: 3,
+        };
+        const order2 = await Orders.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+        const relationship2Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] = {
+            rating: 5,
+        };
+
+        await user.relateTo({
+            alias: 'Orders',
+            where: {
+                id: order1.id,
+            },
+            properties: {
+                Rating: relationship1Properties.rating,
+            },
+        });
+        await user.relateTo({
+            alias: 'Orders',
+            where: {
+                id: order2.id,
+            },
+            properties: {
+                Rating: relationship2Properties.rating,
+            },
+        });
+
+        const relationships = await user.findRelationships<
+            'Orders',
+            UserAttributesI,
+            OrderAttributesI
+        >({
+            alias: 'Orders',
+        });
+
+        const relationship1 = relationships.find(
+            (v) => v.target.id === order1.id,
+        );
+        const relationship2 = relationships.find(
+            (v) => v.target.id === order2.id,
+        );
+
+        expect(relationship1).toBeTruthy();
+        expect(relationship2).toBeTruthy();
+
+        expect(relationship1?.source).toEqual(user.getDataValues());
+        expect(relationship1?.target).toEqual(order1.getDataValues());
+        expect(relationship1?.relationship.rating).toEqual(
+            relationship1Properties.rating,
+        );
+
+        expect(relationship2?.source).toEqual(user.getDataValues());
+        expect(relationship2?.target).toEqual(order2.getDataValues());
+        expect(relationship2?.relationship.rating).toEqual(
+            relationship2Properties.rating,
+        );
+    });
+    it('method: the relationships of an instance with a limit', async () => {
+        /* Orders */
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {
+            Orders: ModelRelatedNodesI<
+                typeof Orders,
+                OrdersInstance,
+                {
+                    Rating: number;
+                },
+                {
+                    rating: number;
+                }
+            >;
+        }
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: {
+                    Orders: {
+                        model: Orders,
+                        direction: 'out',
+                        name: 'CREATES',
+                        properties: {
+                            Rating: {
+                                property: 'rating',
+                                schema: {
+                                    type: 'number',
+                                    minimum: 0,
+                                    maximum: 5,
+                                },
+                            },
+                        },
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const user = await Users.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const order1 = await Orders.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const relationship1Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] = {
+            rating: 3,
+        };
+        const order2 = await Orders.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+        const relationship2Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] = {
+            rating: 5,
+        };
+
+        await user.relateTo({
+            alias: 'Orders',
+            where: {
+                id: order1.id,
+            },
+            properties: {
+                Rating: relationship1Properties.rating,
+            },
+        });
+        await user.relateTo({
+            alias: 'Orders',
+            where: {
+                id: order2.id,
+            },
+            properties: {
+                Rating: relationship2Properties.rating,
+            },
+        });
+
+        const relationships = await user.findRelationships<
+            'Orders',
+            UserAttributesI,
+            OrderAttributesI
+        >({
+            alias: 'Orders',
+            limit: 1,
+        });
+
+        expect(relationships.length).toBe(1);
+
+        const relationship = relationships[0];
+
+        expect(relationship).toBeTruthy();
+    });
+    it('static: gets all the relationships via where params', async () => {
+        /* Orders */
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        /* Users */
+        type UserAttributesI = {
+            name: string;
+            age?: number;
+            id: string;
+        };
+
+        interface UsersRelatedNodesI {
+            Orders: ModelRelatedNodesI<
+                typeof Orders,
+                OrdersInstance,
+                {
+                    Rating: number;
+                },
+                {
+                    rating: number;
+                }
+            >;
+        }
+
+        interface UsersMethodsI {}
+
+        interface UsersStaticsI {}
+
+        type UsersInstance = NeogmaInstance<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersMethodsI
+        >;
+
+        const Users = ModelFactory<
+            UserAttributesI,
+            UsersRelatedNodesI,
+            UsersStaticsI,
+            UsersMethodsI
+        >(
+            {
+                label: 'User',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    age: {
+                        type: 'number',
+                        minimum: 0,
+                        required: false,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: {
+                    Orders: {
+                        model: Orders,
+                        direction: 'out',
+                        name: 'CREATES',
+                        properties: {
+                            Rating: {
+                                property: 'rating',
+                                schema: {
+                                    type: 'number',
+                                    minimum: 0,
+                                    maximum: 5,
+                                },
+                            },
+                        },
+                    },
+                },
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const user = await Users.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const order1 = await Orders.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+
+        const relationship1Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] = {
+            rating: 3,
+        };
+        const order2 = await Orders.createOne({
+            id: uuid.v4(),
+            name: uuid.v4(),
+        });
+        const relationship2Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] = {
+            rating: 5,
+        };
+
+        await user.relateTo({
+            alias: 'Orders',
+            where: {
+                id: order1.id,
+            },
+            properties: {
+                Rating: relationship1Properties.rating,
+            },
+        });
+        await user.relateTo({
+            alias: 'Orders',
+            where: {
+                id: order2.id,
+            },
+            properties: {
+                Rating: relationship2Properties.rating,
+            },
+        });
+
+        const relationships = await Users.findRelationships<
+            'Orders',
+            UserAttributesI,
+            OrderAttributesI
+        >({
+            alias: 'Orders',
+            where: {
+                source: {
+                    id: user.id,
+                },
+            },
+        });
+
+        const relationship1 = relationships.find(
+            (v) => v.target.id === order1.id,
+        );
+        const relationship2 = relationships.find(
+            (v) => v.target.id === order2.id,
+        );
+
+        expect(relationship1).toBeTruthy();
+        expect(relationship2).toBeTruthy();
+
+        expect(relationship1?.source).toEqual(user.getDataValues());
+        expect(relationship1?.target).toEqual(order1.getDataValues());
+        expect(relationship1?.relationship.rating).toEqual(
+            relationship1Properties.rating,
+        );
+
+        expect(relationship2?.source).toEqual(user.getDataValues());
+        expect(relationship2?.target).toEqual(order2.getDataValues());
+        expect(relationship2?.relationship.rating).toEqual(
+            relationship2Properties.rating,
+        );
     });
 });
 

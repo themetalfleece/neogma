@@ -1,4 +1,4 @@
-import { Driver, Session, Transaction } from 'neo4j-driver/types';
+import { Driver, Session, Transaction } from 'neo4j-driver';
 import { Runnable } from '../Queries/QueryRunner';
 
 const isTransaction = (tx: any): tx is Transaction =>
