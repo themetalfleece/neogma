@@ -262,6 +262,27 @@ interface NeogmaModelStaticsI<
         primaryKeyField: string | undefined,
         operation: string,
     ) => string;
+    findRelationships: <
+        Alias extends keyof RelatedNodesToAssociateI,
+        SourceProperties = Object,
+        TargetProperties = Object
+    >(params: {
+        alias: Alias;
+        where?: {
+            source?: WhereParamsI;
+            target?: WhereParamsI;
+            relationship?: WhereParamsI;
+        };
+        /** a limit to apply to the fetched relationships */
+        limit?: number;
+        session?: GenericConfiguration['session'];
+    }) => Promise<
+        Array<{
+            source: SourceProperties;
+            target: TargetProperties;
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+        }>
+    >;
 }
 /** the methods of a Neogma Instance */
 interface NeogmaInstanceMethodsI<
@@ -300,6 +321,26 @@ interface NeogmaInstanceMethodsI<
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
     }) => Promise<number>;
+    findRelationships: <
+        Alias extends keyof RelatedNodesToAssociateI,
+        SourceProperties = Object,
+        TargetProperties = Object
+    >(params: {
+        alias: Alias;
+        where?: {
+            relationship: WhereParamsI;
+            target: WhereParamsI;
+        };
+        /** a limit to apply to the fetched relationships */
+        limit?: number;
+        session?: GenericConfiguration['session'];
+    }) => Promise<
+        Array<{
+            source: SourceProperties;
+            target: TargetProperties;
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+        }>
+    >;
 }
 
 /** the type of instance of the Model */
@@ -1063,25 +1104,6 @@ export const ModelFactory = <
             >;
         };
 
-        public static getRelationshipByAlias = <
-            Alias extends keyof RelatedNodesToAssociateI
-        >(
-            alias: Alias,
-        ): Pick<
-            RelatedNodesToAssociateI[Alias],
-            'name' | 'direction' | 'model'
-        > => {
-            const relationshipConfiguration = Model.getRelationshipConfiguration(
-                alias,
-            );
-
-            return {
-                model: relationshipConfiguration.model,
-                direction: relationshipConfiguration.direction,
-                name: relationshipConfiguration.name,
-            };
-        };
-
         /**
          * reverses the configuration of a relationship, so it can be easily duplicated when defining another Model.
          */
@@ -1432,6 +1454,109 @@ export const ModelFactory = <
             });
         }
 
+        public static async findRelationships<
+            Alias extends keyof RelatedNodesToAssociateI,
+            SourceProperties = Object,
+            TargetProperties = Object
+        >(
+            params: Parameters<ModelStaticsI['findRelationships']>[0],
+        ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
+            const { alias, where, limit, session } = params;
+
+            const identifiers = {
+                source: 'source',
+                target: 'target',
+                relationship: 'relationship',
+            };
+
+            const relationship = Model.getRelationshipByAlias(
+                alias as keyof RelatedNodesToAssociateI,
+            );
+            const relationshipModel = Model.getRelationshipModel(
+                relationship.model,
+            );
+
+            const queryBuilder = new QueryBuilder()
+                .match({
+                    related: [
+                        {
+                            model: Model,
+                            where: where?.source,
+                            identifier: identifiers.source,
+                        },
+                        {
+                            ...relationship,
+                            where: where?.relationship,
+                            identifier: identifiers.relationship,
+                        },
+                        {
+                            label: relationshipModel.getLabel(),
+                            where: where?.target,
+                            identifier: identifiers.target,
+                        },
+                    ],
+                })
+                .return(Object.values(identifiers));
+            if (limit) {
+                queryBuilder.limit(limit);
+            }
+
+            const res = await queryBuilder.run(queryRunner, session);
+
+            return res.records.map((record) => ({
+                source: record.get(identifiers.source).properties,
+                target: record.get(identifiers.target).properties,
+                relationship: record.get(identifiers.relationship).properties,
+            })) as Array<{
+                source: SourceProperties;
+                target: TargetProperties;
+                relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+            }>;
+        }
+
+        public async findRelationships<
+            Alias extends keyof RelatedNodesToAssociateI,
+            SourceProperties = Object,
+            TargetProperties = Object
+        >(
+            params: Parameters<InstanceMethodsI['findRelationships']>[0],
+        ): Promise<
+            Array<{
+                source: SourceProperties;
+                target: TargetProperties;
+                relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+            }>
+        > {
+            const { where, alias, limit, session } = params;
+            const primaryKeyField = Model.assertPrimaryKeyField(
+                modelPrimaryKeyField,
+                'relateTo',
+            );
+
+            const res = await Model.findRelationships<
+                Alias,
+                SourceProperties,
+                TargetProperties
+            >({
+                alias,
+                limit,
+                session,
+                where: {
+                    relationship: where?.relationship,
+                    target: where?.target,
+                    source: {
+                        [primaryKeyField]: this[primaryKeyField],
+                    },
+                },
+            });
+
+            return res as Array<{
+                source: SourceProperties;
+                target: TargetProperties;
+                relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+            }>;
+        }
+
         /**
          * @param {queryRunner.CreateRelationshipParamsI} - the parameters including the 2 nodes and the label/direction of the relationship between them
          * @param {GenericConfiguration} configuration - query configuration
@@ -1544,6 +1669,25 @@ export const ModelFactory = <
                 );
             }
             return relationshipProperties;
+        };
+
+        public static getRelationshipByAlias = <
+            Alias extends keyof RelatedNodesToAssociateI
+        >(
+            alias: Alias,
+        ): Pick<
+            RelatedNodesToAssociateI[Alias],
+            'name' | 'direction' | 'model'
+        > => {
+            const relationshipConfiguration = Model.getRelationshipConfiguration(
+                alias,
+            );
+
+            return {
+                model: relationshipConfiguration.model,
+                direction: relationshipConfiguration.direction,
+                name: relationshipConfiguration.name,
+            };
         };
     };
 
