@@ -1088,7 +1088,7 @@ describe('addRelationships', () => {
 });
 
 describe('build', () => {
-    it('buils an existing node', async () => {
+    it('builds an instance from an existing node', async () => {
         /* Users */
         type UserAttributesI = {
             name: string;
@@ -1192,6 +1192,80 @@ describe('build', () => {
         const finalUserInDbData = finalUsersInDb[0];
 
         expect(finalUserInDbData.name).toBe(userName);
+    });
+});
+
+describe('buildFromRecord', () => {
+    it('builds an instance from a query result record', async () => {
+        type OrderAttributesI = {
+            name: string;
+            id: string;
+        };
+        interface OrdersRelatedNodesI {}
+
+        interface OrdersMethodsI {}
+
+        interface OrdersStaticsI {}
+
+        type OrdersInstance = NeogmaInstance<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersMethodsI
+        >;
+
+        const Orders = ModelFactory<
+            OrderAttributesI,
+            OrdersRelatedNodesI,
+            OrdersStaticsI,
+            OrdersMethodsI
+        >(
+            {
+                label: 'Order',
+                schema: {
+                    name: {
+                        type: 'string',
+                        minLength: 3,
+                        required: true,
+                    },
+                    id: {
+                        type: 'string',
+                        required: true,
+                    },
+                },
+                relationships: [],
+                primaryKeyField: 'id',
+                statics: {},
+                methods: {},
+            },
+            neogma,
+        );
+
+        const orderData: OrderAttributesI = {
+            id: uuid.v4(),
+            name: uuid.v4(),
+        };
+
+        await Orders.createOne(orderData);
+
+        const existingOrderInDbResult = await new QueryBuilder()
+            .match({
+                model: Orders,
+                identifier: 'n',
+                where: {
+                    id: orderData.id,
+                },
+            })
+            .return('n')
+            .run();
+
+        const orderInstance = Orders.buildFromRecord(
+            existingOrderInDbResult.records[0].get('n'),
+        );
+
+        expect(orderInstance.getDataValues()).toEqual(orderData);
+        expect(orderInstance.labels.sort()).toEqual(
+            Orders.getRawLabels().sort(),
+        );
     });
 });
 

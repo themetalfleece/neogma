@@ -162,12 +162,21 @@ interface NeogmaModelStaticsI<
     getModelName: () => string;
     beforeCreate: (instance: Instance) => void;
     beforeDelete: (instance: Instance) => void;
+    /**
+     * builds data Instance by data, setting information fields appropriately
+     * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
+     */
     build: (
         data: CreateData,
         params?: {
             status?: 'new' | 'existing';
         },
     ) => Instance;
+    /** builds an instance from a database record. It needs to correspond to a node, by having a "properties" and "labels" field */
+    buildFromRecord: (record: {
+        properties: Properties;
+        labels: string[];
+    }) => Instance;
     createOne: (
         data: CreateData,
         configuration?: CreateDataParamsI,
@@ -296,6 +305,7 @@ interface NeogmaInstanceMethodsI<
     __existsInDatabase: boolean;
     dataValues: Properties;
     changed: Record<keyof Properties, boolean>;
+    labels: string[];
     getDataValues: () => Properties;
     save: (configuration?: CreateDataParamsI) => Promise<Instance>;
     validate: () => Promise<void>;
@@ -460,6 +470,7 @@ export const ModelFactory = <
         public changed: InstanceMethodsI['changed'];
 
         public static relationships = _relationships;
+        public labels: string[] = [];
 
         /** adds more relationship configurations to the Model (instead of using the "relationships" param on the ModelFactory constructor) */
         public static addRelationships(
@@ -480,12 +491,12 @@ export const ModelFactory = <
         }
 
         /**
-         * @returns {String} - the label or labels of this Model as given in its definition
+         * @returns {String} - a new array of the labels of this Model, as given in its definition
          */
         public static getRawLabels(): ReturnType<
             ModelStaticsI['getRawLabels']
         > {
-            return Array.isArray(modelLabel) ? modelLabel : [modelLabel];
+            return Array.isArray(modelLabel) ? [...modelLabel] : [modelLabel];
         }
 
         /**
@@ -546,10 +557,6 @@ export const ModelFactory = <
             }
         }
 
-        /**
-         * builds data Instance by data, setting information fields appropriately
-         * status 'new' can be called publicly (hence the .build wrapper), but 'existing' should be used only internally when building instances after finding nodes from the database
-         */
         public static build(
             data: Parameters<ModelStaticsI['build']>[0],
             params: Parameters<ModelStaticsI['build']>[1],
@@ -587,6 +594,24 @@ export const ModelFactory = <
                     },
                 });
             }
+            return instance;
+        }
+
+        public static buildFromRecord(
+            record: Parameters<ModelStaticsI['buildFromRecord']>[0],
+        ): ReturnType<ModelStaticsI['buildFromRecord']> {
+            if (!record.properties || !record.labels) {
+                throw new NeogmaConstraintError(
+                    'record is missing the "properties" or "labels" field',
+                    { actual: record },
+                );
+            }
+            const instance = Model.build(record.properties as any, {
+                status: 'existing',
+            });
+
+            instance.labels = record.labels;
+
             return instance;
         }
 
@@ -743,12 +768,18 @@ export const ModelFactory = <
                     );
                     const label = model.getLabel();
 
-                    const instance = (createData instanceof
-                    ((model as unknown) as () => void)
+                    // if the data given is already an instance of the model, use them as is. Else, create a new one and set its labels
+                    const isCreateDataAnInstanceOfModel =
+                        createData instanceof (model as any);
+                    const instance = (isCreateDataAnInstanceOfModel
                         ? createData
                         : model.build(createData, {
                               status: 'new',
                           })) as Instance & Partial<RelatedNodesToAssociateI>;
+
+                    if (!isCreateDataAnInstanceOfModel) {
+                        instance.labels = Model.getRawLabels();
+                    }
 
                     await model.beforeCreate?.(instance);
 
@@ -1157,19 +1188,11 @@ export const ModelFactory = <
                 return: params?.return,
                 session: params?.session,
             });
-            const nodeProperties = params?.return
-                ? QueryRunner.getResultProperties<Properties>(res, identifier)
-                : [];
 
-            const instances = nodeProperties.map((v) =>
-                Model.build(
-                    (v as unknown) as CreateDataI<
-                        Properties,
-                        RelatedNodesToAssociateI
-                    >,
-                    { status: 'existing' },
-                ),
+            const instances = res.records.map((record) =>
+                Model.buildFromRecord(record.get(identifier)),
             );
+
             return [instances, res] as [Instance[], QueryResult];
         }
 
@@ -1353,14 +1376,9 @@ export const ModelFactory = <
             const res = await queryBuilder.run(queryRunner, params?.session);
 
             const instances = res.records.map((record) => {
-                const node = record.get(rootIdentifier);
-                const properties = (node.properties as unknown) as CreateDataI<
-                    Properties,
-                    RelatedNodesToAssociateI
-                >;
-                const instance = Model.build(properties, {
-                    status: 'existing',
-                });
+                const instance = Model.buildFromRecord(
+                    record.get(rootIdentifier),
+                );
                 instance.__existsInDatabase = true;
                 return instance;
             });
