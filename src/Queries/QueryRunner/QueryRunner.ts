@@ -103,7 +103,7 @@ export class QueryRunner {
         const identifier = params.identifier || QueryRunner.identifiers.default;
 
         const queryBuilder = new QueryBuilder()
-            .unwind('{options} as data')
+            .unwind('$options as data')
             .create({
                 identifier,
                 label,
