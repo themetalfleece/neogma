@@ -236,6 +236,8 @@ interface NeogmaModelStaticsI<
             limit?: number;
             skip?: number;
             order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
+            /** throws an error if no nodes are found (results length 0) */
+            throwIfNoneFound?: boolean;
         },
     ) => Promise<Instance[]>;
     findOne: (
@@ -243,6 +245,8 @@ interface NeogmaModelStaticsI<
             /** where params for the nodes of this Model */
             where?: WhereParamsI;
             order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
+            /** throws an error if the node is not found */
+            throwIfNotFound?: boolean;
         },
     ) => Promise<Instance | null>;
     relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
@@ -1383,6 +1387,12 @@ export const ModelFactory = <
                 return instance;
             });
 
+            if (params?.throwIfNoneFound && !instances.length) {
+                throw new NeogmaNotFoundError(`No node was found`, {
+                    label: Model.getLabel(),
+                });
+            }
+
             return instances;
         }
 
@@ -1393,7 +1403,16 @@ export const ModelFactory = <
                 ...params,
                 limit: 1,
             });
-            return instances?.[0] || null;
+
+            const instance = instances?.[0];
+
+            if (params?.throwIfNotFound && !instance) {
+                throw new NeogmaNotFoundError('Nodes not found', {
+                    label: Model.getLabel(),
+                });
+            }
+
+            return instance || null;
         }
 
         /** creates a relationship by using the configuration specified in "relationships" from the given alias */
