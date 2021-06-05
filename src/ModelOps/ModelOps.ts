@@ -249,17 +249,6 @@ interface NeogmaModelStaticsI<
             throwIfNotFound?: boolean;
         },
     ) => Promise<Instance | null>;
-    relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
-        alias: Alias;
-        where: {
-            source: WhereParamsI;
-            target: WhereParamsI;
-        };
-        properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
-        /** throws an error if the number of created relationships don't equal to this number */
-        assertCreatedRelationships?: number;
-        session?: GenericConfiguration['session'];
-    }) => Promise<number>;
     createRelationship: (
         params: CreateRelationshipParamsI & {
             /** throws an error if the number of created relationships don't equal to this number */
@@ -277,11 +266,18 @@ interface NeogmaModelStaticsI<
         primaryKeyField: string | undefined,
         operation: string,
     ) => string;
-    findRelationships: <
-        Alias extends keyof RelatedNodesToAssociateI,
-        SourceProperties = Object,
-        TargetProperties = Object
-    >(params: {
+    relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
+        alias: Alias;
+        where: {
+            source: WhereParamsI;
+            target: WhereParamsI;
+        };
+        properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
+        /** throws an error if the number of created relationships don't equal to this number */
+        assertCreatedRelationships?: number;
+        session?: GenericConfiguration['session'];
+    }) => Promise<number>;
+    findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
         alias: Alias;
         where?: {
             source?: WhereParamsI;
@@ -293,8 +289,8 @@ interface NeogmaModelStaticsI<
         session?: GenericConfiguration['session'];
     }) => Promise<
         Array<{
-            source: SourceProperties;
-            target: TargetProperties;
+            source: Instance;
+            target: RelatedNodesToAssociateI[Alias]['Instance'];
             relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
         }>
     >;
@@ -337,11 +333,7 @@ interface NeogmaInstanceMethodsI<
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];
     }) => Promise<number>;
-    findRelationships: <
-        Alias extends keyof RelatedNodesToAssociateI,
-        SourceProperties = Object,
-        TargetProperties = Object
-    >(params: {
+    findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
         alias: Alias;
         where?: {
             relationship: WhereParamsI;
@@ -352,8 +344,8 @@ interface NeogmaInstanceMethodsI<
         session?: GenericConfiguration['session'];
     }) => Promise<
         Array<{
-            source: SourceProperties;
-            target: TargetProperties;
+            source: Instance;
+            target: RelatedNodesToAssociateI[Alias]['Instance'];
             relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
         }>
     >;
@@ -1494,9 +1486,7 @@ export const ModelFactory = <
         }
 
         public static async findRelationships<
-            Alias extends keyof RelatedNodesToAssociateI,
-            SourceProperties = Object,
-            TargetProperties = Object
+            Alias extends keyof RelatedNodesToAssociateI
         >(
             params: Parameters<ModelStaticsI['findRelationships']>[0],
         ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
@@ -1543,26 +1533,26 @@ export const ModelFactory = <
             const res = await queryBuilder.run(queryRunner, session);
 
             return res.records.map((record) => ({
-                source: record.get(identifiers.source).properties,
-                target: record.get(identifiers.target).properties,
+                source: Model.buildFromRecord(record.get(identifiers.source)),
+                target: relationshipModel.buildFromRecord(
+                    record.get(identifiers.target),
+                ),
                 relationship: record.get(identifiers.relationship).properties,
             })) as Array<{
-                source: SourceProperties;
-                target: TargetProperties;
+                source: Instance;
+                target: RelatedNodesToAssociateI[Alias]['Instance'];
                 relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
             }>;
         }
 
         public async findRelationships<
-            Alias extends keyof RelatedNodesToAssociateI,
-            SourceProperties = Object,
-            TargetProperties = Object
+            Alias extends keyof RelatedNodesToAssociateI
         >(
             params: Parameters<InstanceMethodsI['findRelationships']>[0],
         ): Promise<
             Array<{
-                source: SourceProperties;
-                target: TargetProperties;
+                source: Instance;
+                target: RelatedNodesToAssociateI[Alias]['Instance'];
                 relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
             }>
         > {
@@ -1572,11 +1562,7 @@ export const ModelFactory = <
                 'relateTo',
             );
 
-            const res = await Model.findRelationships<
-                Alias,
-                SourceProperties,
-                TargetProperties
-            >({
+            const res = await Model.findRelationships<Alias>({
                 alias,
                 limit,
                 session,
@@ -1590,8 +1576,8 @@ export const ModelFactory = <
             });
 
             return res as Array<{
-                source: SourceProperties;
-                target: TargetProperties;
+                source: Instance;
+                target: RelatedNodesToAssociateI[Alias]['Instance'];
                 relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
             }>;
         }

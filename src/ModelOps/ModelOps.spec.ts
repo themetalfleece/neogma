@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { Neogma } from '../Neogma';
@@ -2502,11 +2503,7 @@ describe('findRelationships', () => {
             },
         });
 
-        const relationships = await user.findRelationships<
-            'Orders',
-            UserAttributesI,
-            OrderAttributesI
-        >({
+        const relationships = await user.findRelationships<'Orders'>({
             alias: 'Orders',
         });
 
@@ -2520,14 +2517,22 @@ describe('findRelationships', () => {
         expect(relationship1).toBeTruthy();
         expect(relationship2).toBeTruthy();
 
-        expect(relationship1?.source).toEqual(user.getDataValues());
-        expect(relationship1?.target).toEqual(order1.getDataValues());
+        expect(relationship1?.source.getDataValues()).toEqual(
+            user.getDataValues(),
+        );
+        expect(relationship1?.target.getDataValues()).toEqual(
+            order1.getDataValues(),
+        );
         expect(relationship1?.relationship.rating).toEqual(
             relationship1Properties.rating,
         );
 
-        expect(relationship2?.source).toEqual(user.getDataValues());
-        expect(relationship2?.target).toEqual(order2.getDataValues());
+        expect(relationship2?.source.getDataValues()).toEqual(
+            user.getDataValues(),
+        );
+        expect(relationship2?.target.getDataValues()).toEqual(
+            order2.getDataValues(),
+        );
         expect(relationship2?.relationship.rating).toEqual(
             relationship2Properties.rating,
         );
@@ -2695,11 +2700,7 @@ describe('findRelationships', () => {
             },
         });
 
-        const relationships = await user.findRelationships<
-            'Orders',
-            UserAttributesI,
-            OrderAttributesI
-        >({
+        const relationships = await user.findRelationships<'Orders'>({
             alias: 'Orders',
             limit: 1,
         });
@@ -2873,11 +2874,7 @@ describe('findRelationships', () => {
             },
         });
 
-        const relationships = await Users.findRelationships<
-            'Orders',
-            UserAttributesI,
-            OrderAttributesI
-        >({
+        const relationships = await Users.findRelationships<'Orders'>({
             alias: 'Orders',
             where: {
                 source: {
@@ -2896,14 +2893,22 @@ describe('findRelationships', () => {
         expect(relationship1).toBeTruthy();
         expect(relationship2).toBeTruthy();
 
-        expect(relationship1?.source).toEqual(user.getDataValues());
-        expect(relationship1?.target).toEqual(order1.getDataValues());
+        expect(relationship1?.source.getDataValues()).toEqual(
+            user.getDataValues(),
+        );
+        expect(relationship1?.target.getDataValues()).toEqual(
+            order1.getDataValues(),
+        );
         expect(relationship1?.relationship.rating).toEqual(
             relationship1Properties.rating,
         );
 
-        expect(relationship2?.source).toEqual(user.getDataValues());
-        expect(relationship2?.target).toEqual(order2.getDataValues());
+        expect(relationship2?.source.getDataValues()).toEqual(
+            user.getDataValues(),
+        );
+        expect(relationship2?.target.getDataValues()).toEqual(
+            order2.getDataValues(),
+        );
         expect(relationship2?.relationship.rating).toEqual(
             relationship2Properties.rating,
         );
