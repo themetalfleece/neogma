@@ -177,5 +177,5 @@ All the user-specified values are automatically used in the query with bind para
 
 ## Acknowledgements
 
--   Neogma logo created by Greg Magkos
+-   Neogma logo created by [Greg Magkos](https://github.com/grigmag)
 -   Development was made possible thanks to these open source libraries: [typescript](https://www.npmjs.com/package/typescript), [neo4j-driver](https://www.npmjs.com/package/neo4j-driver), [revalidator](https://www.npmjs.com/package/revalidator), [clone](https://www.npmjs.com/package/clone), [uuid](https://www.npmjs.com/package/uuid), [jest](https://www.npmjs.com/package/jest), [eslint](https://www.npmjs.com/package/eslint), [prettier](https://www.npmjs.com/package/prettier), [dotenv](https://www.npmjs.com/package/dotenv) and others which can be found in package.json.
