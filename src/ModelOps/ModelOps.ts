@@ -286,6 +286,10 @@ interface NeogmaModelStaticsI<
         };
         /** a limit to apply to the fetched relationships */
         limit?: number;
+        /** variable length relationship: minimum hops */
+        minHops?: number;
+        /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
+        maxHops?: number;
         session?: GenericConfiguration['session'];
     }) => Promise<
         Array<{
@@ -1490,7 +1494,7 @@ export const ModelFactory = <
         >(
             params: Parameters<ModelStaticsI['findRelationships']>[0],
         ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
-            const { alias, where, limit, session } = params;
+            const { alias, where, limit, session, minHops, maxHops } = params;
 
             const identifiers = {
                 source: 'source',
@@ -1517,6 +1521,8 @@ export const ModelFactory = <
                             ...relationship,
                             where: where?.relationship,
                             identifier: identifiers.relationship,
+                            minHops,
+                            maxHops,
                         },
                         {
                             label: relationshipModel.getLabel(),

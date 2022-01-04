@@ -231,7 +231,7 @@ export class QueryBuilder {
         }
 
         // else, it's a relationship object
-        const { direction, identifier, name } = relationship;
+        const { direction, identifier, name, minHops, maxHops } = relationship;
 
         const getRelationshipStatementParams: Parameters<
             typeof QueryBuilder.getRelationshipStatement
@@ -239,6 +239,8 @@ export class QueryBuilder {
             direction,
             identifier: relationship.identifier,
             name,
+            minHops,
+            maxHops,
         };
 
         if (isRelationshipWithWhere(relationship)) {
@@ -641,7 +643,7 @@ export class QueryBuilder {
 
     /**
      * returns the appropriate string for a relationship, ready to be put in a statement
-     * example: -[identifier: name {where}]->
+     * example: -[identifier:name*minHops..maxHops {where}]->
      */
     public static getRelationshipStatement = (params: {
         /** relationship direction */
@@ -650,6 +652,10 @@ export class QueryBuilder {
         name?: string;
         /** relationship identifier. If empty, no identifier will be used */
         identifier?: string;
+        /** variable length relationship: minimum hops */
+        minHops?: number;
+        /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
+        maxHops?: number;
         /** a statement to be used inside the relationship, like a where condition or properties */
         inner?:
             | string
@@ -659,7 +665,7 @@ export class QueryBuilder {
                   bindParam: BindParam;
               };
     }): string => {
-        const { direction, name, inner } = params;
+        const { direction, name, inner, minHops, maxHops } = params;
         const identifier = params.identifier || '';
 
         const allParts: string[] = [];
@@ -674,6 +680,19 @@ export class QueryBuilder {
             innerRelationshipParts.push(
                 QueryBuilder.getIdentifierWithLabel(identifier, name),
             );
+        }
+        if (minHops === Infinity || maxHops === Infinity) {
+            innerRelationshipParts.push('*');
+        } else {
+            const variableLength = [minHops, maxHops]
+                .filter((v) => typeof v === 'number')
+                .join('..');
+
+            if (variableLength) {
+                innerRelationshipParts.push('*' + variableLength);
+            }
+        }
+        if (typeof minHops === 'number' || typeof maxHops === 'number') {
         }
         if (inner) {
             if (typeof inner === 'string') {

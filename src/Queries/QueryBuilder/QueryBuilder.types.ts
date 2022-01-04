@@ -380,6 +380,10 @@ export type RelationshipForMatchObjectI = {
     identifier?: string;
     /** where parameters for matching this relationship */
     where?: WhereParamsI;
+    /** variable length relationship: minimum hops */
+    minHops?: number;
+    /** variable length relationship: maximum hops */
+    maxHops?: number;
 };
 /** relationship type used for creating/merging */
 export type RelationshipForCreateI = string | RelationshipForCreateObjectI;
@@ -392,6 +396,10 @@ export type RelationshipForCreateObjectI = {
     identifier?: string;
     /** properties of the relationship */
     properties?: Neo4jSupportedProperties;
+    /** variable length relationship: minimum hops */
+    minHops?: number;
+    /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
+    maxHops?: number;
 };
 export const isRelationshipWithWhere = (
     relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
