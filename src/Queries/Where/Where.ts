@@ -7,29 +7,113 @@ import { neo4jDriver } from '../..';
 import { NeogmaConstraintError } from '../../Errors';
 
 /** symbols for Where operations */
+const OpEq: unique symbol = Symbol('eq');
 const OpIn: unique symbol = Symbol('in');
 const OpContains: unique symbol = Symbol('contains');
+const OpGt: unique symbol = Symbol('gt');
+const OpGte: unique symbol = Symbol('gte');
+const OpLt: unique symbol = Symbol('lt');
+const OpLte: unique symbol = Symbol('lte');
+const OpNe: unique symbol = Symbol('ne');
 export const Op = {
+    eq: OpEq,
     in: OpIn,
     contains: OpContains,
+    gt: OpGt,
+    gte: OpGte,
+    lt: OpLt,
+    lte: OpLte,
+    ne: OpNe,
 } as const;
 
-/** the type to be used for "in" */
-interface WhereInI {
-    [Op.in]: Neo4jSingleTypes[];
-}
-
-interface WhereContainsI {
-    [Op.contains]: string;
-}
-
-const isWhereIn = (value: WhereValuesI): value is WhereInI => {
-    return value?.[Op.in];
+type WhereTypes = {
+    Eq: {
+        [Op.eq]: Neo4jSingleTypes;
+    };
+    Ne: {
+        [Op.ne]: Neo4jSingleTypes;
+    };
+    In: {
+        [Op.in]: Neo4jSingleTypes[];
+    };
+    Contains: {
+        [Op.contains]: Neo4jSingleTypes;
+    };
+    Gt: {
+        [Op.gt]: Neo4jSingleTypes;
+    };
+    Gte: {
+        [Op.gte]: Neo4jSingleTypes;
+    };
+    Lt: {
+        [Op.lt]: Neo4jSingleTypes;
+    };
+    Lte: {
+        [Op.lte]: Neo4jSingleTypes;
+    };
 };
 
-const isWhereContains = (value: WhereValuesI): value is WhereContainsI => {
-    return value?.[Op.contains];
-};
+const operators = [
+    'eq',
+    'in',
+    'contains',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'ne',
+] as const;
+
+const isOperator = {
+    eq: (value: WhereValuesI): value is WhereTypes['Eq'] =>
+        typeof value === 'object' && value && Op.eq in value,
+    in: (value: WhereValuesI): value is WhereTypes['In'] =>
+        typeof value === 'object' && value && Op.in in value,
+    contains: (value: WhereValuesI): value is WhereTypes['Contains'] =>
+        typeof value === 'object' && value && Op.contains in value,
+    gt: (value: WhereValuesI): value is WhereTypes['Gt'] =>
+        typeof value === 'object' && value && Op.gt in value,
+    gte: (value: WhereValuesI): value is WhereTypes['Gte'] =>
+        typeof value === 'object' && value && Op.gte in value,
+    lt: (value: WhereValuesI): value is WhereTypes['Lt'] =>
+        typeof value === 'object' && value && Op.lt in value,
+    lte: (value: WhereValuesI): value is WhereTypes['Lte'] =>
+        typeof value === 'object' && value && Op.lte in value,
+    ne: (value: WhereValuesI): value is WhereTypes['Ne'] =>
+        typeof value === 'object' && value && Op.ne in value,
+} as const;
+
+/** the type for the accepted values for an attribute */
+export type WhereValuesI =
+    | Neo4jSupportedTypes
+    | WhereTypes['Eq']
+    | WhereTypes['In']
+    | WhereTypes['Contains']
+    | WhereTypes['Gt']
+    | WhereTypes['Gte']
+    | WhereTypes['Lt']
+    | WhereTypes['Lte']
+    | WhereTypes['Ne'];
+
+/**
+ * an object to be used for a query identifier
+ * Its keys are the identifier attributes for the where, and the values are the values for that attribute
+ */
+export interface WhereParamsI {
+    /** the attribute and values for an identifier */
+    [attribute: string]: WhereValuesI;
+}
+
+/**
+ * an object with the query identifiers as keys and the attributes+types as value
+ */
+export interface WhereParamsByIdentifierI {
+    /** the identifiers to use */
+    [identifier: string]: WhereParamsI;
+}
+
+/** a Where instance or the basic object which can create a Where instance */
+export type AnyWhereI = WhereParamsByIdentifierI | Where;
 
 const isNeo4jSupportedTypes = (
     value: WhereValuesI,
@@ -57,29 +141,6 @@ const isNeo4jSupportedTypes = (
     return isSupportedSingleType(value);
 };
 
-/** the type for the accepted values for an attribute */
-export type WhereValuesI = Neo4jSupportedTypes | WhereInI | WhereContainsI;
-
-/**
- * an object to be used for a query identifier
- * Its keys are the identifier attributes for the where, and the values are the values for that attribute
- */
-export interface WhereParamsI {
-    /** the attribute and values for an identifier */
-    [attribute: string]: WhereValuesI;
-}
-
-/**
- * an object with the query identifiers as keys and the attributes+types as value
- */
-export interface WhereParamsByIdentifierI {
-    /** the identifiers to use */
-    [identifier: string]: WhereParamsI;
-}
-
-/** a Where instance or the basic object which can create a Where instance */
-export type AnyWhereI = WhereParamsByIdentifierI | Where;
-
 export class Where {
     /** where bind params. Ensures that keys of the bind param are unique */
     private bindParam: BindParam;
@@ -95,7 +156,7 @@ export class Where {
         identifier: string;
         property: string;
         bindParamName: string;
-        operator: 'equals' | 'in' | 'contains';
+        operator: typeof operators[number];
     }> = [];
 
     constructor(
@@ -156,22 +217,20 @@ export class Where {
                         identifier: nodeIdentifier,
                         property,
                         value,
-                        operator: 'equals',
+                        operator: 'eq',
                     });
-                } else if (isWhereIn(value)) {
-                    this.addBindParamDataEntry({
-                        identifier: nodeIdentifier,
-                        property,
-                        value: value[Op.in],
-                        operator: 'in',
-                    });
-                } else if (isWhereContains(value)) {
-                    this.addBindParamDataEntry({
-                        identifier: nodeIdentifier,
-                        property,
-                        value: value[Op.contains],
-                        operator: 'contains',
-                    });
+                } else if (value !== null && value !== undefined) {
+                    for (const operator of operators) {
+                        if (isOperator[operator](value)) {
+                            this.addBindParamDataEntry({
+                                identifier: nodeIdentifier,
+                                property,
+                                value: value[Op[operator]],
+                                operator,
+                            });
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -217,9 +276,9 @@ export class Where {
             operator: Where['identifierPropertyData'][0]['operator'],
         ) => {
             if (mode === 'object') {
-                if (operator !== 'equals') {
+                if (operator !== 'eq') {
                     throw new NeogmaConstraintError(
-                        'The only operator which is supported for object mode is "equals"',
+                        'The only operator which is supported for object mode is "eq"',
                         {
                             actual: {
                                 mode,
@@ -237,9 +296,14 @@ export class Where {
                 Where['identifierPropertyData'][0]['operator'],
                 string
             > = {
-                equals: '=',
+                eq: '=',
                 in: 'IN',
                 contains: 'CONTAINS',
+                gt: '>',
+                gte: '>=',
+                lt: '<',
+                lte: '<=',
+                ne: '<>',
             };
 
             // else, return the appropriate text-mode operator
