@@ -122,7 +122,7 @@ export class QueryRunner {
     };
 
     public update = async <T extends Neo4jSupportedProperties>(params: {
-        /** the label of the nodes to create */
+        /** the label of the nodes to update */
         label?: string;
         /** the where object for matching the nodes to be edited */
         data: Partial<T>;
@@ -304,9 +304,12 @@ export class QueryRunner {
                 }
 
                 const trimmedStatement = trimWhitespace(statement);
-                this.log(sessionIdentifier);
-                this.log(`\tStatement:`, trimmedStatement);
-                this.log(`\tParameters:`, parameters);
+                const messageToLog = [
+                    sessionIdentifier,
+                    trimmedStatement,
+                    parameters,
+                ].join(' ** ');
+                this.log(messageToLog);
                 return session.run(trimmedStatement, parameters);
             },
             this.driver,
