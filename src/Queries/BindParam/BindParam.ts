@@ -2,6 +2,7 @@ import clone from 'clone';
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { StringSequence } from '../../utils/StringSequence';
 import { NeogmaError } from '../../Errors';
+import { Literal } from '../Literal';
 
 /**
  * the bind param which should be passed to a query. It throws an error if more than one of each key is added
@@ -87,6 +88,27 @@ export class BindParam {
             [name]: value,
         });
         return name;
+    }
+
+    /**
+     * Returns a name which isn't a key of bind and adds the value to the bind param with the created name.
+     * In case the given value is a Literal, it will be returned as is, without affecting the bind param names and values.
+     */
+    public getUniqueNameAndAddWithLiteral(
+        suffix: Parameters<
+            typeof BindParam['prototype']['getUniqueNameAndAdd']
+        >[0],
+        valueOrLiteral:
+            | Parameters<
+                  typeof BindParam['prototype']['getUniqueNameAndAdd']
+              >[1]
+            | Literal,
+    ): string | Literal {
+        if (valueOrLiteral instanceof Literal) {
+            return valueOrLiteral;
+        }
+
+        return this.getUniqueNameAndAdd(suffix, valueOrLiteral);
     }
 
     /**
