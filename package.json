@@ -1,6 +1,6 @@
 {
     "name": "neogma",
-    "version": "1.9.1",
+    "version": "1.10.0",
     "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
