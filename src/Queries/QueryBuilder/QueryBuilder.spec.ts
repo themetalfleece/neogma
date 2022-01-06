@@ -4,6 +4,8 @@ import { Neogma } from '../../Neogma';
 import * as dotenv from 'dotenv';
 import { ModelFactory, neo4jDriver, NeogmaInstance } from '../..';
 import { ModelRelatedNodesI } from '../../ModelOps';
+import { Literal } from '../Literal';
+import { Op } from '../Where';
 
 dotenv.config();
 
@@ -492,6 +494,7 @@ describe.only('QueryBuilder', () => {
                         direction: 'in',
                         where: {
                             relProp1: 1,
+                            someLiteral: new Literal('"exact literal"'),
                         },
                     },
                     {},
@@ -576,7 +579,7 @@ describe.only('QueryBuilder', () => {
 
             expectStatementEquals(
                 queryBuilder,
-                'MATCH (a1)<-[]-(:MyLabelA1)-[:RelationshipName1]->(a2:MyLabelA2)-[r1]-(:`ModelA`)<-[{ relProp1: $relProp1 }]-()-[r2:RelationshipName2]->({ id: $id })<-[:RelationshipName3 { relProp2: $relProp2 }]-(a3 { age: $age })-[r3 { relProp3: $relProp3 }]-(a3:`ModelB` { name: $name })-[r4:RelationshipName4 { relProp4: $relProp4 }]->(a4)-[:RELNAME]->(:`ModelA`)-[*2]->(:`ModelB`)<-[*]-(:`ModelA`)-[*2..5]-(:`ModelB`)',
+                'MATCH (a1)<-[]-(:MyLabelA1)-[:RelationshipName1]->(a2:MyLabelA2)-[r1]-(:`ModelA`)<-[{ relProp1: $relProp1, someLiteral: "exact literal" }]-()-[r2:RelationshipName2]->({ id: $id })<-[:RelationshipName3 { relProp2: $relProp2 }]-(a3 { age: $age })-[r3 { relProp3: $relProp3 }]-(a3:`ModelB` { name: $name })-[r4:RelationshipName4 { relProp4: $relProp4 }]->(a4)-[:RELNAME]->(:`ModelA`)-[*2]->(:`ModelB`)<-[*]-(:`ModelA`)-[*2..5]-(:`ModelB`)',
             );
             expectBindParamEquals(queryBuilder, {
                 relProp1: 1,
@@ -608,11 +611,16 @@ describe.only('QueryBuilder', () => {
                     id: '21',
                     name: 'J',
                 },
+                i3: {
+                    id: {
+                        [Op.gt]: new Literal('i2.id'),
+                    },
+                },
             });
 
             expectStatementEquals(
                 queryBuilder,
-                'WHERE i1.id = $id AND i2.id = $id__aaaa AND i2.name = $name',
+                'WHERE i1.id = $id AND i2.id = $id__aaaa AND i2.name = $name AND i3.id > i2.id',
             );
             expectBindParamEquals(queryBuilder, {
                 id: '20',

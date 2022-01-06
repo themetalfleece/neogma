@@ -5,6 +5,7 @@ import {
 } from '../QueryRunner/QueryRunner';
 import { neo4jDriver } from '../..';
 import { NeogmaConstraintError } from '../../Errors';
+import { Literal } from '../Literal';
 
 /** symbols for Where operations */
 const OpEq: unique symbol = Symbol('eq');
@@ -28,28 +29,28 @@ export const Op = {
 
 type WhereTypes = {
     Eq: {
-        [Op.eq]: Neo4jSingleTypes;
+        [Op.eq]: Neo4jSingleTypes | Literal;
     };
     Ne: {
-        [Op.ne]: Neo4jSingleTypes;
+        [Op.ne]: Neo4jSingleTypes | Literal;
     };
     In: {
-        [Op.in]: Neo4jSingleTypes[];
+        [Op.in]: Neo4jSingleTypes[] | Literal;
     };
     Contains: {
-        [Op.contains]: Neo4jSingleTypes;
+        [Op.contains]: Neo4jSingleTypes | Literal;
     };
     Gt: {
-        [Op.gt]: Neo4jSingleTypes;
+        [Op.gt]: Neo4jSingleTypes | Literal;
     };
     Gte: {
-        [Op.gte]: Neo4jSingleTypes;
+        [Op.gte]: Neo4jSingleTypes | Literal;
     };
     Lt: {
-        [Op.lt]: Neo4jSingleTypes;
+        [Op.lt]: Neo4jSingleTypes | Literal;
     };
     Lte: {
-        [Op.lte]: Neo4jSingleTypes;
+        [Op.lte]: Neo4jSingleTypes | Literal;
     };
 };
 
@@ -93,7 +94,8 @@ export type WhereValuesI =
     | WhereTypes['Gte']
     | WhereTypes['Lt']
     | WhereTypes['Lte']
-    | WhereTypes['Ne'];
+    | WhereTypes['Ne']
+    | Literal;
 
 /**
  * an object to be used for a query identifier
@@ -120,6 +122,7 @@ const isNeo4jSupportedTypes = (
 ): value is Neo4jSupportedTypes => {
     const isSupportedSingleType = (value: WhereValuesI): boolean => {
         return (
+            value instanceof Literal ||
             typeof value === 'string' ||
             typeof value === 'number' ||
             typeof value === 'boolean' ||
@@ -155,7 +158,7 @@ export class Where {
     private identifierPropertyData: Array<{
         identifier: string;
         property: string;
-        bindParamName: string;
+        bindParamName: string | Literal;
         operator: typeof operators[number];
     }> = [];
 
@@ -201,9 +204,9 @@ export class Where {
 
         // remove all used bind param names from the bind param, since we're gonna set them again from scratch
         this.bindParam.remove(
-            this.identifierPropertyData.map(
-                ({ bindParamName }) => bindParamName,
-            ),
+            this.identifierPropertyData
+                .map(({ bindParamName }) => bindParamName)
+                .filter((v) => typeof v === 'string') as string[],
         );
         // reset identifierPropertyData as they've been removed from the bindParam
         this.identifierPropertyData = [];
@@ -250,7 +253,7 @@ export class Where {
         operator: Where['identifierPropertyData'][0]['operator'];
         value: Neo4jSupportedTypes;
     }) => {
-        const bindParamName = this.bindParam.getUniqueNameAndAdd(
+        const bindParamName = this.bindParam.getUniqueNameAndAddWithLiteral(
             property,
             value,
         );
@@ -312,11 +315,16 @@ export class Where {
 
         if (mode === 'text') {
             for (const bindParamData of this.identifierPropertyData) {
+                const { bindParamName } = bindParamData;
+                const name =
+                    bindParamName instanceof Literal
+                        ? bindParamName.getValue()
+                        : `$${bindParamName}`;
                 statementParts.push(
                     [
                         `${bindParamData.identifier}.${bindParamData.property}`,
                         operatorForStatement(bindParamData.operator),
-                        `$${bindParamData.bindParamName}`,
+                        name,
                     ].join(' '),
                 );
             }
@@ -326,11 +334,16 @@ export class Where {
 
         if (mode === 'object') {
             for (const bindParamData of this.identifierPropertyData) {
+                const { bindParamName } = bindParamData;
+                const name =
+                    bindParamName instanceof Literal
+                        ? bindParamName.getValue()
+                        : `$${bindParamName}`;
                 statementParts.push(
                     [
                         bindParamData.property,
                         operatorForStatement(bindParamData.operator),
-                        ` $${bindParamData.bindParamName}`,
+                        ` ${name}`,
                     ].join(''),
                 );
             }
