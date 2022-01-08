@@ -293,9 +293,8 @@ export class QueryRunner {
                 parameters = parameters || {};
                 /** an identifier to be used for logging purposes */
                 let sessionIdentifier = 'Default';
-                const existingSessionIdentifier = this.sessionIdentifiers.get(
-                    session,
-                );
+                const existingSessionIdentifier =
+                    this.sessionIdentifiers.get(session);
                 if (existingSessionIdentifier) {
                     sessionIdentifier = existingSessionIdentifier;
                 } else {
@@ -307,7 +306,7 @@ export class QueryRunner {
                 const messageToLog = [
                     sessionIdentifier,
                     trimmedStatement,
-                    parameters,
+                    JSON.stringify(parameters),
                 ].join(' ** ');
                 this.log(messageToLog);
                 return session.run(trimmedStatement, parameters);
