@@ -124,12 +124,12 @@ export class QueryBuilder {
     }
 
     /** get the generated statement for the query */
-    public getStatement(): QueryBuilder['statement'] {
+    public getStatement(): string {
         return this.statement;
     }
 
     /** get the bind parameter for the query */
-    public getBindParam(): QueryBuilder['bindParam'] {
+    public getBindParam(): BindParam {
         return this.bindParam;
     }
 
