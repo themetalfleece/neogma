@@ -1366,12 +1366,12 @@ export const ModelFactory = <
                 );
             }
 
-            if (params?.limit) {
-                queryBuilder.limit(+params.limit);
-            }
-
             if (params?.skip) {
                 queryBuilder.skip(+params.skip);
+            }
+
+            if (params?.limit) {
+                queryBuilder.limit(+params.limit);
             }
 
             const res = await queryBuilder.run(queryRunner, params?.session);
