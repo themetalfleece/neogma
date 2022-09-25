@@ -28,14 +28,14 @@ jobs:
           git config --global user.name 'Neogma publisher'
           git config --global user.email 'themetalfleece@users.noreply.github.com'
           npm version ${{ inputs.version }}
+      - name: Publish to npm
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
       - name: Push
         run: git push
       - name: Push tags
         run: git push --tags
-      - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publishDocs:
     needs: publishPackage
