@@ -37,5 +37,4 @@ jobs:
           commit_message: Build docs
           branch: docs
           file_pattern: 'docs/* index.html favicon.ico'
-          push_options: '--force'
-          skip_dirty_check: true
+          skip_checkout: true
