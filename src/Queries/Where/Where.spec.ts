@@ -62,7 +62,7 @@ describe('Where', () => {
         where.getStatement('text').includes('identifier.in IN $in'),
       ).toBeTruthy();
       expect(
-        where.getStatement('text').includes('$in IN identifier.in'),
+        where.getStatement('text').includes('$in IN identifier._in'),
       ).toBeTruthy();
       expect(
         where
