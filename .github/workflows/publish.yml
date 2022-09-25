@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd documentation/.codedoc
-          npm i
+          npm ci
           cd ../
       - name: Build docs
         run: |
