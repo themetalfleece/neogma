@@ -81,16 +81,11 @@ const expectNeo4jTypes = {
 
 beforeAll(async () => {
   dotenv.config();
-  neogma = new Neogma(
-    {
-      url: process.env.NEO4J_URL ?? '',
-      username: process.env.NEO4J_USERNAME ?? '',
-      password: process.env.NEO4J_PASSWORD ?? '',
-    },
-    {
-      encrypted: true,
-    },
-  );
+  neogma = new Neogma({
+    url: process.env.NEO4J_URL ?? '',
+    username: process.env.NEO4J_USERNAME ?? '',
+    password: process.env.NEO4J_PASSWORD ?? '',
+  });
   QueryBuilder.queryRunner = neogma.queryRunner;
 });
 
