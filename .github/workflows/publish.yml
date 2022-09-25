@@ -1,0 +1,45 @@
+name: Publish package
+
+on: workflow_dispatch
+
+jobs:
+  publishDocs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install codedoc
+        run: |
+          npm i -g @codedoc/cli
+      - name: Install dependencies
+        run: |
+          cd documentation/.codedoc
+          npm ci
+          cd ../
+      - name: Build docs
+        run: |
+          cd documentation
+          codedoc build
+          cd ../
+      - name: Move related files to tmp
+        run: |
+          mkdir /tmp/neogma
+          cp -r ./documentation/docs /tmp/neogma/docs
+          cp documentation/index.html /tmp/neogma/index.html
+          cp documentation/favicon.ico /tmp/neogma/favicon.ico
+      - name: Checkout docs
+        uses: actions/checkout@v3
+        with:
+          ref: docs
+      - name: Push built files
+        run: |
+          rm -rf docs
+          rm -f index.html
+          rm -f favicon.ico
+          cp -r /tmp/neogma/* .
+          git config --global user.name 'Docs builder'
+          git config --global user.email 'themetalfleece@users.noreply.github.com'
+          git add .
+          git commit -m "Build docs"
+          git push --force origin docs
