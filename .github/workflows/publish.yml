@@ -16,12 +16,10 @@ jobs:
         run: |
           cd documentation/.codedoc
           npm ci
-          cd ../
       - name: Build docs
         run: |
           cd documentation
           codedoc build
-          cd ../
       - name: Move related files to tmp
         run: |
           mkdir /tmp/neogma
