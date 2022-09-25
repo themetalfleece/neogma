@@ -26,7 +26,7 @@ jobs:
       - name: Build docs
         run: |
           cd documentation
-          codedoc build
+          timeout 30 codedoc serve || true
       - name: Move related files to root
         run: |
           cp -r ./documentation/docs ./docs
