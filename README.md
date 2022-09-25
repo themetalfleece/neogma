@@ -1,4 +1,4 @@
-![neogma logo](https://themetalfleece.github.io/neogma/assets/images/logo-text-horizontal.svg)
+![neogma logo](https://themetalfleece.github.io/neogma/assets/logo-text-horizontal.svg)
 
 Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and flexible node and relationship operations
 
