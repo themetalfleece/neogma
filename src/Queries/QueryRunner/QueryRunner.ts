@@ -325,4 +325,8 @@ export class QueryRunner {
   public static getNodesDeleted = (result: QueryResult): number => {
     return result.summary.counters.updates().nodesDeleted;
   };
+
+  public static getRelationshipsDeleted = (result: QueryResult): number => {
+    return result.summary.counters.updates().relationshipsDeleted;
+  };
 }

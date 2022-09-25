@@ -2,7 +2,7 @@
 
 ## Deleting Nodes via the Model static
 
-Using the `delete` static of a Model and providing a Where paramter, nodes of the Model can be deleted
+Using the `delete` static of a Model and providing a Where parameter, nodes of the Model can be deleted
 
 ```js
 await Users.delete({

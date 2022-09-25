@@ -1916,6 +1916,49 @@ describe('findRelationships', () => {
   });
 });
 
+describe('deleteRelationships', () => {
+  it('method: gets all the relationships of an instance', async () => {
+    const user = await Users.createOne({
+      id: uuid.v4(),
+      name: uuid.v4(),
+    });
+
+    const order = await Orders.createOne({
+      id: uuid.v4(),
+      name: uuid.v4(),
+    });
+
+    const relationshipProperties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
+      {
+        rating: 3,
+      };
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: {
+        id: order.id,
+      },
+      properties: {
+        Rating: relationshipProperties.rating,
+      },
+    });
+
+    const deletedCount = await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          id: user.id,
+        },
+        target: {
+          id: order.id,
+        },
+      },
+    });
+
+    expect(deletedCount).toBe(1);
+  });
+});
+
 describe('Neo4jSupportedTypes', () => {
   const expectNeo4jTypes = {
     point: (
