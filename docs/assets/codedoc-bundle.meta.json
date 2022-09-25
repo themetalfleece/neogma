@@ -1,0 +1,121 @@
+{
+  "init": [
+    {
+      "name": "initJssCs",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/transport/setup-jss.js",
+      "hash": "C8J8SodgGeEc81vbSn6lag=="
+    },
+    {
+      "name": "installTheme",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/content/theme.ts",
+      "hash": "UvdtnjQVd5Iq8s806LOEhA=="
+    },
+    {
+      "name": "codeSelection",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/code/selection.js",
+      "hash": "vWb92zqYsTclMTJXeo23MA=="
+    },
+    {
+      "name": "sameLineLengthInCodes",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/code/same-line-length.js",
+      "hash": "WfpnvbwviTv8XawGIMz6Iw=="
+    },
+    {
+      "name": "initHintBox",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/code/line-hint/index.js",
+      "hash": "xztyVGCS1BT5kGZcbaihcw=="
+    },
+    {
+      "name": "initCodeLineRef",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/code/line-ref/index.js",
+      "hash": "lKXKzBjSecbHXBB8/WeDSw=="
+    },
+    {
+      "name": "initSmartCopy",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/code/smart-copy.js",
+      "hash": "soKS9i2zephnR1aK/BU9zg=="
+    },
+    {
+      "name": "copyHeadings",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/heading/copy-headings.js",
+      "hash": "PdcCFxSaKsiCvIHPkifbDg=="
+    },
+    {
+      "name": "contentNavHighlight",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/page/contentnav/highlight.js",
+      "hash": "KkqwnvvYqJ/atGqHhAOESg=="
+    },
+    {
+      "name": "loadDeferredIFrames",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/transport/deferred-iframe.js",
+      "hash": "uhRB/QV/o1jlVezcsiIzkQ=="
+    },
+    {
+      "name": "smoothLoading",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/transport/smooth-loading.js",
+      "hash": "fC2bgKHMQ+/sWlBI87Zwgw=="
+    },
+    {
+      "name": "tocHighlight",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/page/toc/toc-highlight.js",
+      "hash": "ZfTJJHXbq3tQB/fyqhjxnw=="
+    },
+    {
+      "name": "postNavSearch",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/page/toc/search/post-nav/index.js",
+      "hash": "+PF7V3W1hngx8bqD9WgQDQ=="
+    },
+    {
+      "name": "copyLineLinks",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/code/line-links/copy-line-link.js",
+      "hash": "36zgWnqz0RTHbWu/HwGljA=="
+    },
+    {
+      "name": "gatherFootnotes",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/footnote/gather-footnotes.js",
+      "hash": "8lPC0GBksqOnwJWij0wDTA=="
+    }
+  ],
+  "components": [
+    {
+      "name": "ToCPrevNext",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/page/toc/prevnext/index.js",
+      "hash": "AsY3Cz3g0O4EhZ4OzvMrWQ=="
+    },
+    {
+      "name": "CollapseControl",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/collapse/collapse-control.js",
+      "hash": "KX5ZK67OHCU+/01r/gHlLQ=="
+    },
+    {
+      "name": "GithubSearch",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/misc/github/search.js",
+      "hash": "P326USDq1PcQ0EFNW+ygZA=="
+    },
+    {
+      "name": "ToCToggle",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/page/toc/toggle/index.js",
+      "hash": "uEyFByOUMxM0e17JubQPxA=="
+    },
+    {
+      "name": "DarkModeSwitch",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/darkmode/index.js",
+      "hash": "YYrmLrayDkYmTa1Ak0jt2w=="
+    },
+    {
+      "name": "ConfigTransport",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/transport/config.js",
+      "hash": "lccoUbeCvlKlHHNP78vUCg=="
+    },
+    {
+      "name": "TabSelector",
+      "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/components/tabs/selector.js",
+      "hash": "6u5c/vYs/0UUli2bssj/jA=="
+    }
+  ],
+  "renderer": {
+    "name": "getRenderer",
+    "filename": "/home/runner/work/neogma/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es6/transport/renderer.js",
+    "hash": "aagLL+zjyl4Zfn4vMmfCkQ=="
+  }
+}
