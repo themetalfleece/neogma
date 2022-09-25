@@ -31,7 +31,7 @@ jobs:
         run: sudo systemctl start neo4j.service
       - name: Run tests
         run: |
-          export NEO4J_URL="bolt://localhost:7687"
+          export NEO4J_URL="bolt+s://localhost:7687"
           export NEO4J_USERNAME="neo4j"
           export NEO4J_PASSWORD="ci"
           yarn test
