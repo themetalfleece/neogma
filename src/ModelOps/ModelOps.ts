@@ -293,7 +293,20 @@ interface NeogmaModelStaticsI<
       relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
     }>
   >;
+  /**
+   * returns the count of the deleted relationships
+   */
+  deleteRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
+    alias: Alias;
+    where: {
+      source?: WhereParamsI;
+      target?: WhereParamsI;
+      relationship?: WhereParamsI;
+    };
+    session?: GenericConfiguration['session'];
+  }) => Promise<number>
 }
+
 /** the methods of a Neogma Instance */
 interface NeogmaInstanceMethodsI<
   Properties extends Neo4jSupportedProperties,
@@ -1506,6 +1519,55 @@ export const ModelFactory = <
         target: RelatedNodesToAssociateI[Alias]['Instance'];
         relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
       }>;
+    }
+
+    public static async deleteRelationships(
+      params: Parameters<ModelStaticsI['deleteRelationships']>[0],
+    ): Promise<ReturnType<ModelStaticsI['deleteRelationships']>> {
+      const { alias, where, session } = params;
+
+      if (!where) {
+        throw new NeogmaError('`where` param was not given to deleteRelationships');
+      }
+
+      const identifiers = {
+        source: 'source',
+        target: 'target',
+        relationship: 'relationship',
+      };
+
+      const relationship = Model.getRelationshipByAlias(
+        alias as keyof RelatedNodesToAssociateI,
+      );
+      const relationshipModel = Model.getRelationshipModel(relationship.model);
+
+      const queryBuilder = new QueryBuilder()
+        .match({
+          related: [
+            {
+              model: Model,
+              where: where.source,
+              identifier: identifiers.source,
+            },
+            {
+              ...relationship,
+              where: where.relationship,
+              identifier: identifiers.relationship,
+            },
+            {
+              label: relationshipModel.getLabel(),
+              where: where.target,
+              identifier: identifiers.target,
+            },
+          ],
+        })
+        .delete({
+          identifiers: identifiers.relationship
+        });
+
+      const res = await queryBuilder.run(queryRunner, session);
+
+      return QueryRunner.getRelationshipsDeleted(res);
     }
 
     public async findRelationships<
