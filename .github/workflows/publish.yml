@@ -14,7 +14,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install codedoc
-        run: npm i -g @codedoc/cli
+        run: | 
+        npm i -g @codedoc/cli
+        npm i -g ts-node@latest
       - name: Install dependencies
         run: |
           cd documentation/.codedoc
