@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Install codedoc
         run: | 
-          npm ci -g @codedoc/cli
+          npm i -g @codedoc/cli@0.2.24
       - name: Install dependencies
         run: |
           cd documentation/.codedoc
