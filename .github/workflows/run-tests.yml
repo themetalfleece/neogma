@@ -22,6 +22,8 @@ jobs:
         with:
           tag: 'latest'
           password: 'ci'
+      - name: Set neo4j password
+        run: neo4j-admin set-initial-password ci
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
