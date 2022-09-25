@@ -10,6 +10,7 @@ import { Literal } from '../Literal';
 /** symbols for Where operations */
 const OpEq: unique symbol = Symbol('eq');
 const OpIn: unique symbol = Symbol('in');
+const Op_In: unique symbol = Symbol('_in');
 const OpContains: unique symbol = Symbol('contains');
 const OpGt: unique symbol = Symbol('gt');
 const OpGte: unique symbol = Symbol('gte');
@@ -19,6 +20,7 @@ const OpNe: unique symbol = Symbol('ne');
 export const Op = {
   eq: OpEq,
   in: OpIn,
+  _in: Op_In,
   contains: OpContains,
   gt: OpGt,
   gte: OpGte,
@@ -36,6 +38,9 @@ type WhereTypes = {
   };
   In: {
     [Op.in]: Neo4jSingleTypes[] | Literal;
+  };
+  _In: {
+    [Op._in]: Neo4jSingleTypes[] | Literal;
   };
   Contains: {
     [Op.contains]: Neo4jSingleTypes | Literal;
@@ -57,6 +62,7 @@ type WhereTypes = {
 const operators = [
   'eq',
   'in',
+  '_in',
   'contains',
   'gt',
   'gte',
@@ -70,6 +76,8 @@ const isOperator = {
     typeof value === 'object' && value && Op.eq in value,
   in: (value: WhereValuesI): value is WhereTypes['In'] =>
     typeof value === 'object' && value && Op.in in value,
+  _in: (value: WhereValuesI): value is WhereTypes['_In'] =>
+    typeof value === 'object' && value && Op._in in value,
   contains: (value: WhereValuesI): value is WhereTypes['Contains'] =>
     typeof value === 'object' && value && Op.contains in value,
   gt: (value: WhereValuesI): value is WhereTypes['Gt'] =>
@@ -89,6 +97,7 @@ export type WhereValuesI =
   | Neo4jSupportedTypes
   | WhereTypes['Eq']
   | WhereTypes['In']
+  | WhereTypes['_In']
   | WhereTypes['Contains']
   | WhereTypes['Gt']
   | WhereTypes['Gte']
@@ -301,6 +310,7 @@ export class Where {
       > = {
         eq: '=',
         in: 'IN',
+        _in: 'IN',
         contains: 'CONTAINS',
         gt: '>',
         gte: '>=',
@@ -313,6 +323,20 @@ export class Where {
       return textMap[operator];
     };
 
+    /**
+     * if false, it will be in the format: property operator param
+     * if true, it will be in the format: param operator property
+     */
+    const isReverseOperator = (
+      operator: Where['identifierPropertyData'][0]['operator'],
+    ) => {
+      if (operator === '_in') {
+        return true;
+      }
+
+      return false;
+    };
+
     if (mode === 'text') {
       for (const bindParamData of this.identifierPropertyData) {
         const { bindParamName } = bindParamData;
@@ -320,13 +344,24 @@ export class Where {
           bindParamName instanceof Literal
             ? bindParamName.getValue()
             : `$${bindParamName}`;
-        statementParts.push(
-          [
-            `${bindParamData.identifier}.${bindParamData.property}`,
-            operatorForStatement(bindParamData.operator),
-            name,
-          ].join(' '),
-        );
+
+        if (isReverseOperator(bindParamData.operator)) {
+          statementParts.push(
+            [
+              name,
+              operatorForStatement(bindParamData.operator),
+              `${bindParamData.identifier}.${bindParamData.property}`,
+            ].join(' '),
+          );
+        } else {
+          statementParts.push(
+            [
+              `${bindParamData.identifier}.${bindParamData.property}`,
+              operatorForStatement(bindParamData.operator),
+              name,
+            ].join(' '),
+          );
+        }
       }
 
       return statementParts.join(' AND ');

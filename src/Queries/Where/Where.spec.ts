@@ -26,6 +26,9 @@ describe('Where', () => {
           in: {
             [Op.in]: expectedValues.in,
           },
+          _in: {
+            [Op._in]: expectedValues.in,
+          },
           contains: {
             [Op.contains]: expectedValues.contains,
           },
@@ -57,6 +60,9 @@ describe('Where', () => {
       ).toBeTruthy();
       expect(
         where.getStatement('text').includes('identifier.in IN $in'),
+      ).toBeTruthy();
+      expect(
+        where.getStatement('text').includes('$in IN identifier.in'),
       ).toBeTruthy();
       expect(
         where
