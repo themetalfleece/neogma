@@ -14,8 +14,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install codedoc
-        run: | 
-          npm i -g @codedoc/cli@0.2.8
+        run: |
+          npm i -g @codedoc/cli
       - name: Install dependencies
         run: |
           cd documentation/.codedoc
@@ -24,7 +24,7 @@ jobs:
       - name: Build docs
         run: |
           cd documentation
-          timeout 60 codedoc serve || true
+          codedoc build
           cd ../
       - name: Move related files to root
         run: |
