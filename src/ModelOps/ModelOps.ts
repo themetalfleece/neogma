@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
 import { QueryResult } from 'neo4j-driver';
 import revalidator from 'revalidator';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
@@ -46,8 +45,8 @@ export interface ModelRelatedNodesI<
   /** the instance of the related model */
   RelatedInstance,
   /** properties for the relationship */
-  CreateRelationshipProperties extends RelationshipPropertiesI = AnyObject,
-  RelationshipProperties extends RelationshipPropertiesI = AnyObject,
+  CreateRelationshipProperties extends RelationshipPropertiesI | Object = Object,
+  RelationshipProperties extends RelationshipPropertiesI | Object = Object,
 > {
   /** interface of the data to create */
   CreateData: Parameters<RelatedModel['createOne']>[0] &
@@ -357,7 +356,7 @@ export type NeogmaInstance<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   /** the Methods used in the Model */
-  MethodsI extends AnyObject = AnyObject,
+  MethodsI extends AnyObject = Object,
 > = Properties &
   NeogmaInstanceMethodsI<Properties, RelatedNodesToAssociateI, MethodsI> &
   MethodsI;
@@ -388,7 +387,7 @@ export const ModelFactory = <
   /** the base Properties of the node */
   Properties extends Neo4jSupportedProperties,
   /** related nodes to associate. Label-ModelRelatedNodesI pairs */
-  RelatedNodesToAssociateI extends AnyObject,
+  RelatedNodesToAssociateI extends AnyObject = Object,
   /** interface for the statics of the model */
   StaticsI extends AnyObject = Object,
   /** interface for the methods of the instance */

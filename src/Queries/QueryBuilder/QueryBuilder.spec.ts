@@ -74,6 +74,9 @@ interface ModelBRelatedNodesI {
     ModelAInstance,
     {
       Available: number;
+    },
+    {
+      available: number;
     }
   >;
 }
