@@ -2,6 +2,7 @@
 
 Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and flexible node and relationship operations
 
+[![Tests](https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml/badge.svg?branch=master)](https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml)
 [![npm version](https://badgen.net/npm/v/neogma)](https://www.npmjs.com/package/neogma)
 [![npm downloads](https://badgen.net/npm/dt/neogma)](https://www.npmjs.com/package/neogma)
 [![types includes](https://badgen.net/npm/types/tslib)](https://www.typescriptlang.org/)
