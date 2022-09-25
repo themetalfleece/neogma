@@ -38,6 +38,8 @@ jobs:
           ref: docs
       - name: Push built files
         run: |
-          git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rmdir
+          rm -rf docs
+          rm -f index.html
+          rm -f favicon.ico
           cp -r /tmp/neogma/* .
           git push --force origin docs
