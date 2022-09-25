@@ -199,6 +199,9 @@ describe('ModelFactory', () => {
         OrdersInstance,
         {
           Rating: number;
+        },
+        {
+          rating: number;
         }
       >;
     }
@@ -471,6 +474,9 @@ describe('createOne', () => {
         OrdersInstance,
         {
           Rating: number;
+        },
+        {
+          rating: number;
         }
       >;
     }
@@ -620,6 +626,9 @@ describe('createOne', () => {
         OrdersInstance,
         {
           Rating: number;
+        },
+        {
+          rating: number;
         }
       >;
     }
@@ -919,7 +928,8 @@ describe('addRelationships', () => {
       MoreOrders: ModelRelatedNodesI<
         typeof Orders,
         OrdersInstance,
-        { More: boolean }
+        { More: boolean },
+        { more: boolean }
       >;
     }
 
@@ -1551,6 +1561,9 @@ describe('beforeCreate', () => {
         OrdersInstance,
         {
           Rating: number;
+        },
+        {
+          rating: number;
         }
       >;
     }
