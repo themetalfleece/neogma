@@ -9,5 +9,5 @@ dist
 # test coverage
 coverage
 # generated docs
-docs/docs
-docs/index.html
+documentation/docs
+documentation/index.html
