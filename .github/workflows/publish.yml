@@ -15,8 +15,9 @@ jobs:
         uses: actions/checkout@v3
       - name: Install codedoc
         run: | 
+          npm i -g ts-node-dev@latest ts-node@latest
           npm i -g @codedoc/cli
-          npm i -g ts-node@latest
+          npm i -g ts-node-dev@latest ts-node@latest
       - name: Install dependencies
         run: |
           cd documentation/.codedoc
@@ -25,7 +26,7 @@ jobs:
       - name: Build docs
         run: |
           cd documentation
-          codedoc build || true
+          codedoc build
       - name: Move related files to root
         run: |
           cp -r ./documentation/docs ./docs
