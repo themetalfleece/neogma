@@ -1,6 +1,6 @@
 ## This is the repository for the documentation of [neogma](https://github.com/themetalfleece/neogma)
 
-# [Documentation webpage index](https://themetalfleece.github.io/neogma-docs)
+# [Documentation webpage index](https://themetalfleece.github.io/neogma)
 
 The docs are built with [codedoc](https://github.com/CONNECT-platform/codedoc).
 

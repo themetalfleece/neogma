@@ -6,7 +6,7 @@ export const config = /*#__PURE__*/configuration({
   theme, // --> add the theme. modify `./theme.ts` for chaning the theme.
   page: {
     title: {
-      base: 'Neogma Docs' // --> the base title of your doc pages
+      base: 'Neogma Documentation' // --> the base title of your doc pages
     },
     favicon: '/favicon.ico'
   },
@@ -15,7 +15,7 @@ export const config = /*#__PURE__*/configuration({
   },
   dest: {
     html: '.',
-    namespace: '/neogma-docs',
+    namespace: '/neogma',
   },
   misc: {
     github: {

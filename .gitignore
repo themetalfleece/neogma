@@ -8,3 +8,6 @@ dist
 .vscode
 # test coverage
 coverage
+# generated docs
+docs/docs
+docs/index.html
