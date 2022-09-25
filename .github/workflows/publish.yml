@@ -34,7 +34,8 @@ jobs:
           cp documentation/favicon.ico /tmp/neogma/favicon.ico
       - name: Push built files
         run: |
-          git checkout --force docs
+          git checkout -- .
+          git checkout docs
           rm -rf docs
           rm index.html
           rm favicon.ico
