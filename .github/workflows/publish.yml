@@ -26,8 +26,8 @@ jobs:
         run: |
           cd documentation
           codedoc build
-          cd ../
       - name: Move related files to root
+        if: always()
         run: |
           cp -r ./documentation/docs ./docs
           cp documentation/index.html ./index.html
