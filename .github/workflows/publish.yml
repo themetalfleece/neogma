@@ -26,16 +26,18 @@ jobs:
           cd documentation
           codedoc build
           cd ../
-      - name: Move related files to root
+      - name: Move related files to var
         run: |
-          cp -r ./documentation/docs ./docs
-          cp documentation/index.html ./index.html
-          cp documentation/favicon.ico ./favicon.ico
-      - name: Push to docs branch
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: Build docs
-          branch: docs
-          file_pattern: 'docs/* index.html favicon.ico'
-          push_options: '--force'
-          skip_checkout: true
+          mkdir /var/neogma
+          cp -r ./documentation/docs /var/neogma/docs
+          cp documentation/index.html /var/neogma/index.html
+          cp documentation/favicon.ico /var/neogma/favicon.ico
+      - name: Push built files
+        run: |
+          git revert .
+          git checkout docs
+          rm -rf docs
+          rm index.html
+          rm favicon.ico
+          cp -r /var/neogma/* .
+          git push --force
