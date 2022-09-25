@@ -42,6 +42,6 @@ jobs:
           rm -f index.html
           rm -f favicon.ico
           cp -r /tmp/neogma/* .
-          echo $(ls)
-          echo $(ls /tmp/neogma)
+          git add .
+          git commit -m "Build docs"
           git push --force origin docs
