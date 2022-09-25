@@ -38,3 +38,4 @@ jobs:
           branch: docs
           file_pattern: 'docs/* index.html favicon.ico'
           push_options: '--force'
+          status_options: '--untracked-files=no'
