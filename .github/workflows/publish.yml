@@ -43,4 +43,5 @@ jobs:
           rm -f favicon.ico
           cp -r /tmp/neogma/* .
           echo $(ls)
+          echo $(ls /tmp/neogma)
           git push --force origin docs
