@@ -32,10 +32,12 @@ jobs:
           cp -r ./documentation/docs /tmp/neogma/docs
           cp documentation/index.html /tmp/neogma/index.html
           cp documentation/favicon.ico /tmp/neogma/favicon.ico
+      - name: Checkout docs
+        uses: actions/checkout@v3
+        with:
+          ref: docs
       - name: Push built files
         run: |
-          git checkout -- .
-          git checkout origin/docs
           rm -rf docs
           rm index.html
           rm favicon.ico
