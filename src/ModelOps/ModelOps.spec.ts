@@ -185,24 +185,15 @@ describe('ModelFactory', () => {
       name: string;
       id: string;
     };
-    interface OrdersRelatedNodesI {}
 
     interface OrdersMethodsI {
       foo: () => string;
     }
 
-    interface OrdersStaticsI {}
-
-    type OrdersInstance = NeogmaInstance<
-      OrderAttributesI,
-      OrdersRelatedNodesI,
-      OrdersMethodsI
-    >;
-
     const Orders = ModelFactory<
       OrderAttributesI,
-      OrdersRelatedNodesI,
-      OrdersStaticsI,
+      Object,
+      Object,
       OrdersMethodsI
     >(
       {
@@ -218,7 +209,6 @@ describe('ModelFactory', () => {
             required: true,
           },
         },
-        relationships: [],
         primaryKeyField: 'id',
         statics: {},
         methods: {},
@@ -247,17 +237,6 @@ describe('createOne', () => {
       optionalWillBeSet?: string;
       optionalWillNotBeSet?: string;
     };
-    interface OrdersRelatedNodesI {}
-
-    interface OrdersMethodsI {}
-
-    interface OrdersStaticsI {}
-
-    type OrdersInstance = NeogmaInstance<
-      OrderAttributesI,
-      OrdersRelatedNodesI,
-      OrdersMethodsI
-    >;
 
     const Orders = ModelFactory<
       OrderAttributesI,
@@ -404,6 +383,7 @@ describe('createOne', () => {
       name: string;
       id: string;
     };
+
     interface OrdersRelatedNodesI {
       Parent: ModelRelatedNodesI<
         { createOne: typeof Orders['createOne'] },
@@ -417,21 +397,14 @@ describe('createOne', () => {
       >;
     }
 
-    interface OrdersMethodsI {}
-
-    interface OrdersStaticsI {}
-
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
-      OrdersRelatedNodesI,
-      OrdersMethodsI
+      OrdersRelatedNodesI
     >;
 
     const Orders = ModelFactory<
       OrderAttributesI,
-      OrdersRelatedNodesI,
-      OrdersStaticsI,
-      OrdersMethodsI
+      OrdersRelatedNodesI
     >(
       {
         label: 'Order',
@@ -541,10 +514,6 @@ describe('createMany', () => {
       >;
     }
 
-    interface OrdersMethodsI {}
-
-    interface OrdersStaticsI {}
-
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
       OrdersRelatedNodesI,
@@ -553,9 +522,7 @@ describe('createMany', () => {
 
     const Orders = ModelFactory<
       OrderAttributesI,
-      OrdersRelatedNodesI,
-      OrdersStaticsI,
-      OrdersMethodsI
+      OrdersRelatedNodesI
     >(
       {
         label: 'Order',
@@ -652,11 +619,10 @@ describe('addRelationships', () => {
       name: string;
       id: string;
     };
-    interface OrdersRelatedNodesI {}
 
-    interface OrdersMethodsI {}
-
-    interface OrdersStaticsI {}
+    type OrdersRelatedNodesI = {};
+    type OrdersMethodsI = {};
+    type OrdersStaticsI = {};
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -1102,11 +1068,10 @@ describe('beforeCreate', () => {
       name: string;
       id: string;
     };
-    interface OrdersRelatedNodesI {}
 
-    interface OrdersMethodsI {}
-
-    interface OrdersStaticsI {}
+    type OrdersRelatedNodesI = {};
+    type OrdersMethodsI = {};
+    type OrdersStaticsI = {};
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -1367,11 +1332,10 @@ describe('relateTo', () => {
       name: string;
       id: string;
     };
-    interface OrdersRelatedNodesI {}
 
-    interface OrdersMethodsI {}
-
-    interface OrdersStaticsI {}
+    type OrdersRelatedNodesI = {};
+    type OrdersMethodsI = {};
+    type OrdersStaticsI = {};
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
