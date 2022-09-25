@@ -23,6 +23,12 @@ module.exports = {
         ignoreRestSiblings: true,
       },
     ],
+    '@typescript-eslint/ban-types': [
+      'error',
+      {
+        Object: 'false',
+      },
+    ],
     semi: ['error', 'always'],
   },
 };
