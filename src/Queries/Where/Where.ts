@@ -40,7 +40,7 @@ type WhereTypes = {
     [Op.in]: Neo4jSingleTypes[] | Literal;
   };
   _In: {
-    [Op._in]: Neo4jSingleTypes[] | Literal;
+    [Op._in]: Neo4jSingleTypes | Literal;
   };
   Contains: {
     [Op.contains]: Neo4jSingleTypes | Literal;

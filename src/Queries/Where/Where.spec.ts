@@ -9,7 +9,7 @@ describe('Where', () => {
         equals: Math.random(),
         eq: 'eq' + Math.random(),
         in: [Math.random(), Math.random()],
-        _in: [Math.random(), Math.random()],
+        _in: Math.random(),
         contains: 'contains' + Math.random(),
         gt: Math.random(),
         gte: Math.random(),
