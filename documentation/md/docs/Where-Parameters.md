@@ -255,6 +255,28 @@ console.log(where.getStatement('text')); // n.x IN $x AND n.y = $y AND o.z IN $z
 console.log(where.bindParam.get()); // { x: [1, 2, 3], y: 2, z: [4, 5, 6] }
 ```
 
+In case the given param needs to be IN the properties, the `_in` operator can be used:
+
+```js
+const where = new Where({
+    n: {
+        x: { 
+            [Op._in]: 1,
+        },
+        y: 2
+    },
+    o: {
+        z: {
+            [Op._in]: 2,
+        }
+    }
+});
+
+console.log(where.getStatement('text')); // $x IN n.x AND n.y = $y AND $z IN o.z
+// "object" statement not available
+console.log(where.bindParam.get()); // { x: 1, y: 2, z: 2 }
+```
+
 ### Comparison
 The following operators are available:
 
