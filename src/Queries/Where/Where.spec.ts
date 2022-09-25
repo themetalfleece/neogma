@@ -9,6 +9,7 @@ describe('Where', () => {
         equals: Math.random(),
         eq: 'eq' + Math.random(),
         in: [Math.random(), Math.random()],
+        _in: [Math.random(), Math.random()],
         contains: 'contains' + Math.random(),
         gt: Math.random(),
         gte: Math.random(),
@@ -27,7 +28,7 @@ describe('Where', () => {
             [Op.in]: expectedValues.in,
           },
           _in: {
-            [Op._in]: expectedValues.in,
+            [Op._in]: expectedValues._in,
           },
           contains: {
             [Op.contains]: expectedValues.contains,
@@ -62,7 +63,7 @@ describe('Where', () => {
         where.getStatement('text').includes('identifier.in IN $in'),
       ).toBeTruthy();
       expect(
-        where.getStatement('text').includes('$in IN identifier._in'),
+        where.getStatement('text').includes('$_in IN identifier._in'),
       ).toBeTruthy();
       expect(
         where
