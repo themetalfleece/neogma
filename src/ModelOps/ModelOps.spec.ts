@@ -151,6 +151,8 @@ describe('ModelFactory', () => {
                 property: 'rating',
                 schema: {
                   type: 'number',
+                  minimum: 1,
+                  maximum: 5,
                 },
               },
             },
