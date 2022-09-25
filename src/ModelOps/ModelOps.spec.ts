@@ -397,15 +397,9 @@ describe('createOne', () => {
       >;
     }
 
-    type OrdersInstance = NeogmaInstance<
-      OrderAttributesI,
-      OrdersRelatedNodesI
-    >;
+    type OrdersInstance = NeogmaInstance<OrderAttributesI, OrdersRelatedNodesI>;
 
-    const Orders = ModelFactory<
-      OrderAttributesI,
-      OrdersRelatedNodesI
-    >(
+    const Orders = ModelFactory<OrderAttributesI, OrdersRelatedNodesI>(
       {
         label: 'Order',
         schema: {
@@ -520,10 +514,7 @@ describe('createMany', () => {
       OrdersMethodsI
     >;
 
-    const Orders = ModelFactory<
-      OrderAttributesI,
-      OrdersRelatedNodesI
-    >(
+    const Orders = ModelFactory<OrderAttributesI, OrdersRelatedNodesI>(
       {
         label: 'Order',
         schema: {
@@ -620,9 +611,9 @@ describe('addRelationships', () => {
       id: string;
     };
 
-    type OrdersRelatedNodesI = {};
-    type OrdersMethodsI = {};
-    type OrdersStaticsI = {};
+    type OrdersRelatedNodesI = Object;
+    type OrdersMethodsI = Object;
+    type OrdersStaticsI = Object;
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -649,7 +640,6 @@ describe('addRelationships', () => {
             required: true,
           },
         },
-        relationships: [],
         primaryKeyField: 'id',
         statics: {},
         methods: {},
@@ -1069,9 +1059,9 @@ describe('beforeCreate', () => {
       id: string;
     };
 
-    type OrdersRelatedNodesI = {};
-    type OrdersMethodsI = {};
-    type OrdersStaticsI = {};
+    type OrdersRelatedNodesI = Object;
+    type OrdersMethodsI = Object;
+    type OrdersStaticsI = Object;
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -1098,7 +1088,6 @@ describe('beforeCreate', () => {
             required: true,
           },
         },
-        relationships: [],
         primaryKeyField: 'id',
         statics: {},
         methods: {},
@@ -1333,9 +1322,9 @@ describe('relateTo', () => {
       id: string;
     };
 
-    type OrdersRelatedNodesI = {};
-    type OrdersMethodsI = {};
-    type OrdersStaticsI = {};
+    type OrdersRelatedNodesI = Object;
+    type OrdersMethodsI = Object;
+    type OrdersStaticsI = Object;
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -1362,7 +1351,6 @@ describe('relateTo', () => {
             required: true,
           },
         },
-        relationships: [],
         primaryKeyField: 'id',
         statics: {},
         methods: {},

@@ -45,7 +45,9 @@ export interface ModelRelatedNodesI<
   /** the instance of the related model */
   RelatedInstance,
   /** properties for the relationship */
-  CreateRelationshipProperties extends RelationshipPropertiesI | Object = Object,
+  CreateRelationshipProperties extends
+    | RelationshipPropertiesI
+    | Object = Object,
   RelationshipProperties extends RelationshipPropertiesI | Object = Object,
 > {
   /** interface of the data to create */
@@ -304,7 +306,7 @@ interface NeogmaModelStaticsI<
       relationship?: WhereParamsI;
     };
     session?: GenericConfiguration['session'];
-  }) => Promise<number>
+  }) => Promise<number>;
 }
 
 /** the methods of a Neogma Instance */
@@ -1527,7 +1529,9 @@ export const ModelFactory = <
       const { alias, where, session } = params;
 
       if (!where) {
-        throw new NeogmaError('`where` param was not given to deleteRelationships');
+        throw new NeogmaError(
+          '`where` param was not given to deleteRelationships',
+        );
       }
 
       const identifiers = {
@@ -1562,7 +1566,7 @@ export const ModelFactory = <
           ],
         })
         .delete({
-          identifiers: identifiers.relationship
+          identifiers: identifiers.relationship,
         });
 
       const res = await queryBuilder.run(queryRunner, session);

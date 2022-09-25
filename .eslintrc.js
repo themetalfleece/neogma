@@ -26,7 +26,9 @@ module.exports = {
     '@typescript-eslint/ban-types': [
       'error',
       {
-        Object: 'false',
+        types: {
+          Object: false,
+        },
       },
     ],
     semi: ['error', 'always'],
