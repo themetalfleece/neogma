@@ -1,8 +1,8 @@
 import { build } from '@codedoc/core';
 
 import { config } from './config';
-import { installTheme$ } from './content/theme';
 import { content } from './content';
+import { installTheme$ } from './content/theme';
 
 build(config, content, installTheme$, {
   resolve: {

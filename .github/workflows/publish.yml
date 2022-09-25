@@ -24,12 +24,10 @@ jobs:
       - name: Build docs
         run: |
           cd documentation
-          codedoc build
+          timeout 60 codedoc serve || true
           cd ../
       - name: Move related files to root
         run: |
-          echo $(pwd)
-          echo $(ls)
           cp -r ./documentation/docs ./docs
           cp documentation/index.html ./index.html
           cp documentation/favicon.ico ./favicon.ico
