@@ -1,7 +1,7 @@
 export class Literal {
-    constructor(private value: string) {}
+  constructor(private value: string) {}
 
-    public getValue(): string {
-        return this.value;
-    }
+  public getValue(): string {
+    return this.value;
+  }
 }
