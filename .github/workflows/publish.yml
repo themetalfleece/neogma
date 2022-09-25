@@ -42,6 +42,8 @@ jobs:
           rm -f index.html
           rm -f favicon.ico
           cp -r /tmp/neogma/* .
+          git config --global user.name 'Docs builder'
+          git config --global user.email 'themetalfleece@users.noreply.github.com'
           git add .
           git commit -m "Build docs"
           git push --force origin docs
