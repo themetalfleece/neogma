@@ -35,7 +35,7 @@ jobs:
       - name: Push built files
         run: |
           git checkout -- .
-          git checkout docs
+          git checkout origin/docs
           rm -rf docs
           rm index.html
           rm favicon.ico
