@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  test:
+  runTests:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,7 +32,7 @@ jobs:
       - name: Wait for neo4j
         uses: ifaxity/wait-on-action@v1
         with:
-          resource: localhost:7687
+          resource: http://localhost:7474
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
