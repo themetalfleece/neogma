@@ -26,12 +26,12 @@ jobs:
           cd documentation
           codedoc build
           cd ../
-      - name: Move related files to var
+      - name: Move related files to home
         run: |
-          mkdir /var/neogma
-          cp -r ./documentation/docs /var/neogma/docs
-          cp documentation/index.html /var/neogma/index.html
-          cp documentation/favicon.ico /var/neogma/favicon.ico
+          mkdir /home/neogma
+          cp -r ./documentation/docs /home/neogma/docs
+          cp documentation/index.html /home/neogma/index.html
+          cp documentation/favicon.ico /home/neogma/favicon.ico
       - name: Push built files
         run: |
           git revert .
@@ -39,5 +39,5 @@ jobs:
           rm -rf docs
           rm index.html
           rm favicon.ico
-          cp -r /var/neogma/* .
+          cp -r /home/neogma/* .
           git push --force
