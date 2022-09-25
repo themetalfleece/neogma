@@ -1,0 +1,30 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: yarn
+      - name: Setup Neo4j
+        uses: baptouuuu/setup-neo4j@v1.2.0
+        with:
+          tag: 'latest'
+          password: 'ci'
+      - name: Run tests
+        run: |
+          export NEO4J_URL="bolt://localhost"
+          export NEO4J_USERNAME="neo4j"
+          export NEO4J_PASSWORD="ci"
+          yarn test
