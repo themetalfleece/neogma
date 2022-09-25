@@ -24,7 +24,10 @@ jobs:
       - name: Build
         run: yarn build
       - name: Bump version
-        run: npm version ${{ inputs.version }}
+        run: |
+          git config --global user.name 'Neogma publisher'
+          git config --global user.email 'themetalfleece@users.noreply.github.com'
+          npm version ${{ inputs.version }}
       - name: Push
         run: git push
       - name: Push tags
