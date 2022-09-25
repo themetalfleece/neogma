@@ -35,7 +35,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publishDocs:
-    needs: publish
+    needs: publishPackage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
