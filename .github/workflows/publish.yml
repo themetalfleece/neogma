@@ -1,0 +1,40 @@
+name: Publish package
+
+# TODO: temporary while testing
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  publishDocs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install codedoc
+        run: npm i -g codedoc
+      - name: Install dependencies
+        run: |
+          cd documentation/.codedoc
+          npm i
+          cd ../
+      - name: Build docs
+        run: |
+          cd documentation
+          codedoc build
+          cd ../
+      - name: Move related files to root
+        run: |
+          cp -r ./documentation/docs ./docs
+          cp documentation/index.html ./index.html
+          cp documentation/favicon.ico ./favicon.ico
+      - name: Push to docs branch
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Build docs
+          branch: docs
+          file_pattern: 'docs/* index.html favicon.ico'
+          push_options: '--force'
+          
