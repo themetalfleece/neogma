@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install neo4j
       - name: Config neo4j
-        run: neo4j-admin set-initial-password ci
+        run: sudo neo4j-admin set-initial-password ci
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
