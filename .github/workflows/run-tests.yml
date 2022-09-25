@@ -29,12 +29,13 @@ jobs:
         run: sudo neo4j-admin set-initial-password ci
       - name: Start neo4j
         run: sudo systemctl start neo4j.service
-      - name: Sleep for 30 seconds
-        run: sleep 30s
-        shell: bash
+      - name: Wait for neo4j
+        uses: ifaxity/wait-on-action@v1
+        with:
+          resource: localhost:7687
       - name: Run tests
         run: |
-          export NEO4J_URL="bolt://localhost"
+          export NEO4J_URL="bolt://localhost:7687"
           export NEO4J_USERNAME="neo4j"
           export NEO4J_PASSWORD="ci"
           yarn test
