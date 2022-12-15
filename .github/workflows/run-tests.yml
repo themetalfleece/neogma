@@ -15,10 +15,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Setup java
-        run: |
-          sudo apt update
-          sudo apt install openjdk-17-jdk openjdk-17-jre
+      - script: |
+          java -version
+        env:
+          JAVA_HOME: $(JAVA_HOME_17_X64)
+          PATH: $(JAVA_HOME_17_X64)/bin:$(PATH)
       - name: Install dependencies
         run: yarn
       - name: Install neo4j
