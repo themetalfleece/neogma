@@ -16,10 +16,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup java
-        uses: actions/setup-java@v3
-        with:
-          java-version: 18
-          distribution: zulu
+        run: |
+          sudo apt update
+          sudo apt install openjdk-17-jdk openjdk-17-jre
       - name: Install dependencies
         run: yarn
       - name: Install neo4j
