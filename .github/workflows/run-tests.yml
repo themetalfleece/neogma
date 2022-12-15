@@ -28,10 +28,12 @@ jobs:
       - name: Config neo4j
         run: sudo neo4j-admin set-initial-password ci
       - name: Start neo4j
-        run: sudo service neo4j start
-      - name: Sleep for 30 seconds
-        run: sleep 30s
+        run: sudo systemctl start neo4j.service
+      - name: Sleep for 10 seconds
+        run: sleep 10s
         shell: bash
+      - name: Get neo4j status
+        run: sudo systemctl status neo4j.service
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
