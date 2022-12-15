@@ -28,12 +28,13 @@ jobs:
       - name: Config neo4j
         run: sudo neo4j-admin set-initial-password ci
       - name: Start neo4j
-        run: sudo systemctl start neo4j.service
+        run: sudo service neo4j start
       - name: Wait for neo4j
         uses: ifaxity/wait-on-action@v1
         with:
-          resource: http://localhost:7474
+          resource: http://127.0.0.1:7474
           log: true
+          timeout: 1800000
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
