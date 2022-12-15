@@ -33,6 +33,7 @@ jobs:
         uses: ifaxity/wait-on-action@v1
         with:
           resource: http://localhost:7474
+          log: true
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
