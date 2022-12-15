@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - script: |
+      - run: |
           java -version
         env:
           JAVA_HOME: $(JAVA_HOME_17_X64)
