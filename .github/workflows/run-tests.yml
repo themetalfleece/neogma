@@ -25,15 +25,6 @@ jobs:
           echo 'deb https://debian.neo4j.com stable 4.4' | sudo tee -a /etc/apt/sources.list.d/neo4j.list
           sudo apt-get update
           sudo apt-get install neo4j
-      - name: Setup java
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: zulu
-      - run: java -version
-        env:
-          JAVA_HOME: $(JAVA_HOME_17_X64)
-          PATH: $(JAVA_HOME_17_X64)/bin:$(PATH)
       - name: Config neo4j
         run: sudo neo4j-admin set-initial-password ci
       - name: Start neo4j
