@@ -34,7 +34,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install neo4j
       - name: Config neo4j
-        run: sudo neo4j-admin dbms set-initial-password $NEO4J_PASSWORD
+        run: sudo -E neo4j-admin dbms set-initial-password $NEO4J_PASSWORD
       - name: Start neo4j
         run: systemctl start neo4j.service
       - name: Get neo4j status
