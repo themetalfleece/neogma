@@ -39,11 +39,9 @@ jobs:
         run: sudo systemctl start neo4j.service
       - name: Get neo4j status
         run: sudo systemctl status neo4j.service
-      - name: Wait for neo4j
-        uses: ifaxity/wait-on-action@v1.1.0
-        with:
-          resource: http://localhost:7474
-          log: true
+      - name: Sleep for 10 seconds
+        run: sleep 10s
+        shell: bash
       - name: Run tests
         run: |
           export NEO4J_URL="bolt://localhost:7687"
