@@ -36,9 +36,9 @@ jobs:
       - name: Config neo4j
         run: sudo -E neo4j-admin dbms set-initial-password $NEO4J_PASSWORD
       - name: Start neo4j
-        run: systemctl start neo4j.service
+        run: sudo systemctl start neo4j.service
       - name: Get neo4j status
-        run: systemctl status neo4j.service
+        run: sudo systemctl status neo4j.service
       - name: Wait for neo4j
         uses: ifaxity/wait-on-action@v1.1.0
         with:
