@@ -36,7 +36,7 @@ jobs:
       - name: Config neo4j
         run: sudo -E neo4j-admin dbms set-initial-password $NEO4J_PASSWORD
       - name: Start neo4j
-        run: sudo systemctl start neo4j.service
+        run: sudo -E systemctl start neo4j.service
       - name: Get neo4j status
         run: sudo systemctl status neo4j.service
       - name: Sleep for 10 seconds
