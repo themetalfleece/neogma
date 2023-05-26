@@ -12,6 +12,9 @@ jobs:
   runTests:
     runs-on: ubuntu-latest
 
+    env:
+      NEO4J_PASSWORD: cicicici
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -31,7 +34,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install neo4j
       - name: Config neo4j
-        run: neo4j-admin set-initial-password ci
+        run: neo4j-admin dbms set-initial-password $NEO4J_PASSWORD
       - name: Start neo4j
         run: systemctl start neo4j.service
       - name: Get neo4j status
@@ -45,5 +48,5 @@ jobs:
         run: |
           export NEO4J_URL="bolt://localhost:7687"
           export NEO4J_USERNAME="neo4j"
-          export NEO4J_PASSWORD="ci"
+          export NEO4J_PASSWORD="$NEO4J_PASSWORD"
           yarn test
