@@ -26,7 +26,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Setup Java environemt
-        run: sed -i 's/^JAVA_HOME.*/JAVA_HOME=$JAVA_HOME/' /etc/environment
+        run: sudo sed -i 's/^JAVA_HOME.*/JAVA_HOME=$JAVA_HOME/' /etc/environment
       - name: Get environment
         run: cat /etc/environment
       - name: Install neo4j
