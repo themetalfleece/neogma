@@ -389,7 +389,7 @@ describe('createOne', () => {
 
     interface OrdersRelatedNodesI {
       Parent: ModelRelatedNodesI<
-        { createOne: typeof Orders['createOne'] },
+        { createOne: (typeof Orders)['createOne'] },
         OrdersInstance,
         {
           Rating: number;
@@ -503,7 +503,7 @@ describe('createMany', () => {
     };
     interface OrdersRelatedNodesI {
       Parent: ModelRelatedNodesI<
-        { createOne: typeof Orders['createOne'] },
+        { createOne: (typeof Orders)['createOne'] },
         OrdersInstance,
         {
           Rating: number;
@@ -699,7 +699,7 @@ describe('findMany', () => {
     expect(users).toEqual([user1Data, user2Data]);
     // @ts-expect-error -- dataValues is not defined on plain
     users[0].dataValues?.id;
-    // @ts-expect-error
+    // @ts-expect-error -- dataValues is not defined on plain
     users[1].dataValues?.id;
   });
 });
@@ -849,7 +849,7 @@ describe('addRelationships', () => {
     });
 
     // create a user node and associate it with both associations
-    const userWithOrdersData: Parameters<typeof Users['createOne']>[0] = {
+    const userWithOrdersData: Parameters<(typeof Users)['createOne']>[0] = {
       id: uuid.v4(),
       name: 'User',
       MoreOrders: {
@@ -1572,7 +1572,7 @@ describe('relateTo', () => {
 
     interface UsersRelatedNodesI {
       Parent: ModelRelatedNodesI<
-        { createOne: typeof Users['createOne'] },
+        { createOne: (typeof Users)['createOne'] },
         UsersInstance
       >;
     }

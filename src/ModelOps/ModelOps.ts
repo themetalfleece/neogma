@@ -1137,8 +1137,8 @@ export const ModelFactory = <
       const relationship = Model.getRelationshipConfiguration(alias);
 
       const reverseDirection = (
-        d: typeof relationship['direction'],
-      ): typeof relationship['direction'] => {
+        d: (typeof relationship)['direction'],
+      ): (typeof relationship)['direction'] => {
         if (d === 'in') {
           return 'out';
         }

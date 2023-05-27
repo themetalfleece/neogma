@@ -75,8 +75,8 @@ export class BindParam {
 
   /** returns a name which isn't a key of bind and adds the value to the bind param with the created name */
   public getUniqueNameAndAdd(
-    suffix: Parameters<typeof BindParam['prototype']['getUniqueName']>[0],
-    value: Parameters<typeof BindParam['prototype']['add']>[0][0],
+    suffix: Parameters<(typeof BindParam)['prototype']['getUniqueName']>[0],
+    value: Parameters<(typeof BindParam)['prototype']['add']>[0][0],
   ): string {
     const name = this.getUniqueName(suffix);
     this.add({
@@ -90,9 +90,11 @@ export class BindParam {
    * In case the given value is a Literal, it will be returned as is, without affecting the bind param names and values.
    */
   public getUniqueNameAndAddWithLiteral(
-    suffix: Parameters<typeof BindParam['prototype']['getUniqueNameAndAdd']>[0],
+    suffix: Parameters<
+      (typeof BindParam)['prototype']['getUniqueNameAndAdd']
+    >[0],
     valueOrLiteral:
-      | Parameters<typeof BindParam['prototype']['getUniqueNameAndAdd']>[1]
+      | Parameters<(typeof BindParam)['prototype']['getUniqueNameAndAdd']>[1]
       | Literal,
   ): string | Literal {
     if (valueOrLiteral instanceof Literal) {

@@ -168,7 +168,7 @@ export class Where {
     identifier: string;
     property: string;
     bindParamName: string | Literal;
-    operator: typeof operators[number];
+    operator: (typeof operators)[number];
   }> = [];
 
   constructor(
