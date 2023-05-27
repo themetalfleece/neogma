@@ -25,6 +25,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Setup Java environemt
+        run: sed -i 's/^JAVA_HOME.*/JAVA_HOME=$JAVA_HOME/' /etc/environment
+      - name: Get environment
+        run: cat /etc/environment
       - name: Install neo4j
         run: |
           sudo add-apt-repository -y ppa:openjdk-r/ppa
@@ -35,8 +39,6 @@ jobs:
           sudo apt-get install neo4j
       - name: Config neo4j
         run: sudo -E neo4j-admin dbms set-initial-password $NEO4J_PASSWORD
-      - name: Get environment
-        run: cat /etc/environment
       - name: Start neo4j
         run: sudo -E systemctl start neo4j.service
       - name: Get neo4j status
