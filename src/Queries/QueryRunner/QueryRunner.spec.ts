@@ -48,7 +48,7 @@ describe('create', () => {
       },
     );
 
-    const properties = getResultProperties<typeof data[0]>(queryRes, 'n');
+    const properties = getResultProperties<(typeof data)[0]>(queryRes, 'n');
 
     for (const dataEntry of data) {
       const propertiesEntry = properties.find(({ id }) => id === dataEntry.id);

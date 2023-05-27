@@ -85,12 +85,6 @@ interface ModelBMethodsI {}
 
 interface ModelBStaticsI {}
 
-type ModelBInstance = NeogmaInstance<
-  ModelBAttributesI,
-  ModelBRelatedNodesI,
-  ModelBMethodsI
->;
-
 const ModelB = ModelFactory<
   ModelBAttributesI,
   ModelBRelatedNodesI,
