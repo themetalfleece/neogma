@@ -25,10 +25,14 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Set ESCAPED_JAVA_HOME environment variable
+        run: |
+          ESCAPED_JAVA_HOME=$(echo "$JAVA_HOME" | sed 's/\//\\\//g')
+          echo "ESCAPED_JAVA_HOME=$ESCAPED_JAVA_HOME" >> $GITHUB_ENV
       - name: Setup Java environemt
         env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-        run: sudo sed -i 's/^JAVA_HOME=.*/"JAVA_HOME=${{ env.JAVA_HOME }}"/' /etc/environment
+          ESCAPED_JAVA_HOME: ${{ env.ESCAPED_JAVA_HOME }}
+        run: sudo sed -i 's/^JAVA_HOME=.*/JAVA_HOME=${{ env.ESCAPED_JAVA_HOME }}/' /etc/environment
       - name: Get environment
         run: cat /etc/environment
       - name: Install neo4j
