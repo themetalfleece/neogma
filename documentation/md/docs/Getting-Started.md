@@ -67,6 +67,15 @@ const neogma = new Neogma(
 
 This instance must be used when defining [Models](./Models/Overview).
 
+### Verify connectivity
+
+You can sun
+```js
+await neogma.verifyConnectivity();
+```
+
+If there is a connectivity error in either the neogma initialization, or with `verifyConnectivity`, a `NeogmaConnectivityError` error will be thrown.
+
 ## Utilities
 It also has the neo4j Driver and a [QueryRunner](./QueryRunner/Overview) instance. For more information about how to run your own queries and other non-model operations, refer to its documentation.
 

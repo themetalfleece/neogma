@@ -3,6 +3,7 @@ import { Config, Driver, Session, Transaction } from 'neo4j-driver';
 import { NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
+import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -37,9 +38,7 @@ export class Neogma {
         options,
       );
     } catch (err) {
-      console.error(`Error while connecting to the neo4j database`);
-      console.error(err);
-      process.exit(-1);
+      throw new NeogmaConnectivityError(err);
     }
 
     this.queryRunner = new QueryRunner({
@@ -47,6 +46,14 @@ export class Neogma {
       logger: options?.logger,
     });
   }
+
+  public verifyConnectivity = async (): Promise<void> => {
+    try {
+      await this.driver.verifyConnectivity();
+    } catch (err) {
+      throw new NeogmaConnectivityError(err);
+    }
+  };
 
   public getSession = <T>(
     runInSession: Session | null,

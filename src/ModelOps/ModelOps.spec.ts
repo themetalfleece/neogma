@@ -20,6 +20,9 @@ beforeAll(async () => {
     username: process.env.NEO4J_USERNAME ?? '',
     password: process.env.NEO4J_PASSWORD ?? '',
   });
+
+  await neogma.verifyConnectivity();
+
   QueryBuilder.queryRunner = neogma.queryRunner;
 });
 
