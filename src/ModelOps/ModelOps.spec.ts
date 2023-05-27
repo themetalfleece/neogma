@@ -6,7 +6,7 @@ import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 import * as dotenv from 'dotenv';
 import { QueryRunner } from '../Queries/QueryRunner';
 import { neo4jDriver, NeogmaModel } from '../index';
-import { QueryBuilder } from '../Queries';
+import { Op, QueryBuilder } from '../Queries';
 import * as uuid from 'uuid';
 
 const { getResultProperties } = QueryRunner;
@@ -603,6 +603,104 @@ describe('createMany', () => {
         assertRelationshipsOfWhere: 4,
       }),
     ).rejects.toBeTruthy();
+  });
+});
+
+describe('findOne', () => {
+  it('finds one', async () => {
+    const user = await Users.createOne({
+      id: uuid.v4(),
+      name: 'user1',
+    });
+
+    const foundUser = await Users.findOne({
+      where: {
+        id: user.id,
+      },
+    });
+
+    expect(foundUser).toBeTruthy();
+    expect(foundUser?.id).toEqual(user.id);
+    expect(foundUser?.dataValues.id).toEqual(user.dataValues.id);
+  });
+
+  it('finds many plain', async () => {
+    const userData = {
+      id: uuid.v4(),
+      name: 'user1',
+    };
+    const user = await Users.createOne(userData);
+
+    const foundUser = await Users.findOne({
+      where: {
+        id: user.id,
+      },
+      plain: true,
+    });
+
+    expect(foundUser).toEqual(userData);
+    // @ts-expect-error -- dataValues is not defined on plain
+    foundUser.dataValues?.id;
+  });
+});
+
+describe('findMany', () => {
+  it('finds many', async () => {
+    const user1 = await Users.createOne({
+      id: uuid.v4(),
+      name: 'user1',
+    });
+
+    const user2 = await Users.createOne({
+      id: uuid.v4(),
+      name: 'user2',
+    });
+
+    const users = await Users.findMany({
+      where: {
+        id: {
+          [Op.in]: [user1.id, user2.id],
+        },
+      },
+    });
+
+    expect(users).toHaveLength(2);
+    expect(users[0].id).toEqual(user1.id);
+    expect(users[1].id).toEqual(user2.id);
+    expect(users[0].dataValues.id).toEqual(user1.dataValues.id);
+    expect(users[1].dataValues.id).toEqual(user2.dataValues.id);
+  });
+
+  it('finds many plain', async () => {
+    const user1Data = {
+      id: uuid.v4(),
+      name: 'user1',
+    };
+    const user1 = await Users.createOne(user1Data);
+
+    const user2Data = {
+      id: uuid.v4(),
+      name: 'user2',
+    };
+    const user2 = await Users.createOne(user2Data);
+
+    const users = await Users.findMany({
+      where: {
+        id: {
+          [Op.in]: [user1.id, user2.id],
+        },
+      },
+      plain: true,
+    });
+
+    expect(users).toHaveLength(2);
+    expect(users[0]).toEqual(user1Data);
+    expect(users[1]).toEqual(user2Data);
+    expect(users).toEqual([user1Data, user2Data]);
+    // @ts-expect-error -- dataValues is not defined on plain
+    users[0].dataValues?.id;
+    // @ts-expect-error
+    users[1].dataValues?.id;
   });
 });
 

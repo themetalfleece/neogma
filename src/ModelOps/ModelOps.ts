@@ -226,26 +226,30 @@ interface NeogmaModelStaticsI<
       where: WhereParamsI;
     },
   ) => Promise<number>;
-  findMany: (
+  findMany: <Plain extends boolean = false>(
     params?: GenericConfiguration & {
       /** where params for the nodes of this Model */
       where?: WhereParamsI;
       limit?: number;
       skip?: number;
       order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
+      /** returns an array of the plain properties, instead of Instances */
+      plain?: Plain;
       /** throws an error if no nodes are found (results length 0) */
       throwIfNoneFound?: boolean;
     },
-  ) => Promise<Instance[]>;
-  findOne: (
+  ) => Promise<Plain extends true ? Properties[] : Instance[]>;
+  findOne: <Plain extends boolean = false>(
     params?: GenericConfiguration & {
       /** where params for the nodes of this Model */
       where?: WhereParamsI;
       order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
+      /** returns the plain properties, instead of Instance */
+      plain?: Plain;
       /** throws an error if the node is not found */
       throwIfNotFound?: boolean;
     },
-  ) => Promise<Instance | null>;
+  ) => Promise<(Plain extends true ? Properties : Instance) | null>;
   createRelationship: (
     params: CreateRelationshipParamsI & {
       /** throws an error if the number of created relationships don't equal to this number */
@@ -1356,19 +1360,27 @@ export const ModelFactory = <
 
       const res = await queryBuilder.run(queryRunner, params?.session);
 
-      const instances = res.records.map((record) => {
-        const instance = Model.buildFromRecord(record.get(rootIdentifier));
-        instance.__existsInDatabase = true;
-        return instance;
-      });
+      let returnData: Instance[] | Properties[] = [];
 
-      if (params?.throwIfNoneFound && !instances.length) {
+      if (params?.plain) {
+        returnData = res.records.map(
+          (record) => record.get(rootIdentifier).properties,
+        );
+      } else {
+        returnData = res.records.map((record) => {
+          const instance = Model.buildFromRecord(record.get(rootIdentifier));
+          instance.__existsInDatabase = true;
+          return instance;
+        });
+      }
+
+      if (params?.throwIfNoneFound && !returnData.length) {
         throw new NeogmaNotFoundError(`No node was found`, {
           label: Model.getLabel(),
         });
       }
 
-      return instances;
+      return returnData;
     }
 
     public static async findOne(

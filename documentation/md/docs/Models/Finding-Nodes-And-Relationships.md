@@ -20,6 +20,8 @@ const users = await Users.findMany({
     skip: 3,
     /* --> (optional) the order of this query, in this case by: age DESC, id ASC */
     order: [['age', 'DESC'], ['id', 'ASC']],
+    /* --> (optional, default false) returns an array of the plain properties, instead of Instances */
+    plain: false,
     /* --> (optional) throws NeogmaNotFoundError if no nodes are found (results length 0) */
     throwIfNoneFound: true,
     /* --> (optional) an existing session or transaction to use */
@@ -44,6 +46,8 @@ const user = await Users.findOne({
     },
     /* --> (optional) the order of this query, in this case by: id ASC */
     order: [['id', 'ASC']],
+    /* --> (optional, default false) returns the plain properties, instead of Instance */
+    plain: false,
     /* --> (optional) throws NeogmaNotFoundError if the node is not found */
     throwIfNotFound: true,
     /* --> (optional) an existing session or transaction to use */
