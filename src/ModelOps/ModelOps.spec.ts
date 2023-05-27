@@ -696,6 +696,7 @@ describe('findMany', () => {
     expect(users).toHaveLength(2);
     expect(users[0]).toEqual(user1Data);
     expect(users[1]).toEqual(user2Data);
+    expect(users).toEqual([user1Data, user2Data]);
     // @ts-expect-error -- dataValues is not defined on plain
     users[0].dataValues?.id;
     // @ts-expect-error
