@@ -141,7 +141,7 @@ type CreateDataI<
 > = Properties & Partial<RelatedNodesCreationParamI<RelatedNodesToAssociateI>>;
 
 /** the statics of a Neogma Model */
-interface NeogmaModelStaticsI<
+export interface NeogmaModelStaticsI<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject = Object,
   MethodsI extends AnyObject = Object,
