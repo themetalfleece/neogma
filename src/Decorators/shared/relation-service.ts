@@ -56,7 +56,7 @@ export function addRelation(
 
   relations[name] = {
     ...options,
-    model: options.model === 'self' ? 'self' : options.model['name'],
+    model: options.model === 'self' ? 'self' : options.model['prototype'],
   };
 
   setRelations(target, relations);

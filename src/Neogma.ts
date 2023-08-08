@@ -4,7 +4,12 @@ import { ModelFactory, NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
-import { getModelMetadata, parseModelMetadata } from 'Decorators';
+import {
+  NeogmaModelMetadata,
+  getModelMetadata,
+  getRelatedModelMetadata,
+  parseModelMetadata,
+} from './Decorators';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -79,15 +84,39 @@ export class Neogma {
     return getRunnable<T>(runInExisting, callback, this.driver);
   };
 
-  public addModel = (model: Object): void => {
-    const metadata = getModelMetadata(model);
+  public generateModelFromMetadata = (
+    metadata: NeogmaModelMetadata,
+  ): NeogmaModel<any, any, any, any> => {
     const parsedMetadata = parseModelMetadata(metadata);
-    ModelFactory(parsedMetadata, this) as unknown as NeogmaModel<
+    const relations = parsedMetadata.relationships;
+    if (relations) {
+      for (const relation in relations) {
+        const relatedModel = metadata.relations[relation].model;
+        if (relatedModel !== 'self') {
+          const relatedModelLabel = relatedModel['name'];
+          if (this.modelsByName[relatedModelLabel]) {
+            relations[relation].model = this.modelsByName[relatedModelLabel];
+          } else {
+            const relatedModelMetadata = getRelatedModelMetadata(relatedModel);
+            console.log(JSON.stringify(relatedModelMetadata, null, 2));
+            relations[relation].model =
+              this.generateModelFromMetadata(relatedModelMetadata);
+          }
+        }
+      }
+    }
+
+    return ModelFactory(parsedMetadata, this) as unknown as NeogmaModel<
       any,
       any,
       any,
       any
     >;
+  };
+
+  public addModel = (model: Object): NeogmaModel<any, any, any, any> => {
+    const metadata = getModelMetadata(model);
+    return this.generateModelFromMetadata(metadata);
   };
 
   public addModels = (models: Object[]): void => {

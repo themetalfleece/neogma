@@ -48,7 +48,9 @@ export type ModelInstance = NeogmaInstance<
 export interface NeogmaModelMetadata {
   name: string;
   options: ModelClassDecoratorOptions;
-  properties: ModelPropertyDecoratorOptions;
+  properties: {
+    [propertyName: string]: ModelPropertyDecoratorOptions;
+  };
   relations: {
     [relationAlias: string]: ModelRelationDecoratorOptions;
   };

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { Neo4jSupportedProperties } from 'Queries';
 import { NeogmaModelMetadata, PropertySchema } from './data-types';
 import { getModelName, getOptions } from './model-service';
@@ -56,12 +57,30 @@ export type NeogmaModelFactoryParams<
   relationships?: Partial<RelationshipsI<RelatedNodesToAssociateI>>;
 };
 
-export const getModelMetadata = (target: any) => {
+export const getModelMetadata = (target: Object | string) => {
+  if (typeof target === 'string') {
+    return {
+      name: getModelName(target),
+      options: getOptions(target),
+      properties: getProperties(target),
+      relations: getRelations(target),
+    } as NeogmaModelMetadata;
+  } else {
+    return {
+      name: getModelName(target['prototype']),
+      options: getOptions(target['prototype']),
+      properties: getProperties(target['prototype']),
+      relations: getRelations(target['prototype']),
+    } as NeogmaModelMetadata;
+  }
+};
+
+export const getRelatedModelMetadata = (target: Object | Function) => {
   return {
-    name: getModelName(target.prototype),
-    options: getOptions(target.prototype),
-    properties: getProperties(target.prototype),
-    relations: getRelations(target.prototype),
+    name: getModelName(target as Object),
+    options: getOptions(target as Object),
+    properties: getProperties(target as Object),
+    relations: getRelations(target as Object),
   } as NeogmaModelMetadata;
 };
 
@@ -91,17 +110,27 @@ export const parseModelMetadata = <
   });
   const parsedProperties = Object.assign({}, ...props);
 
-  const relationNames = Object.keys(relations);
-  const rels = relationNames.map((relationName) => {
-    const relation = relations[relationName];
-    return {
-      [relationName]: relation,
-    };
-  });
-  const parsedRelations = Object.assign({}, ...rels);
+  let parsedRelations = undefined;
+
+  if (relations) {
+    const relationNames = Object.keys(relations);
+    const rels = relationNames.map((relationName) => {
+      const relation = relations[relationName];
+      return {
+        [relationName]: relation,
+      };
+    });
+    parsedRelations = Object.assign({}, ...rels);
+  }
+
   return {
     label: name,
     schema: parsedProperties,
     relationships: parsedRelations,
-  };
+  } as NeogmaModelFactoryParams<
+    Properties,
+    RelatedNodesToAssociateI,
+    StaticsI,
+    MethodsI
+  >;
 };
