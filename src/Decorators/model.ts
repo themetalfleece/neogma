@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { setModelName, addOptions } from './shared/model-service';
-import { ModelClassDecoratorOptions } from '../../Decorators';
+import { ModelClassDecoratorOptions } from './shared/data-types';
 
 export function Model(options?: ModelClassDecoratorOptions): Function;
 export function Model(target: Function): void;
@@ -8,7 +8,12 @@ export function Model(arg: any): void | Function {
   if (typeof arg === 'function') {
     annotate(arg);
   } else {
-    const options: ModelClassDecoratorOptions = { ...arg };
+    const options: ModelClassDecoratorOptions = {
+      connection: (arg as ModelClassDecoratorOptions)?.connection
+        ? (arg as ModelClassDecoratorOptions).connection
+        : 'default',
+      ...arg,
+    };
     return (target: any) => annotate(target, options);
   }
 }

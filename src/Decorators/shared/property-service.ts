@@ -1,6 +1,6 @@
-import { ModelPropertyDecoratorOptions } from '../../../Decorators';
-import { deepAssign } from '../../../../utils/object';
-import { Neo4jSingleTypes, Neo4jSupportedTypes } from '../../../../Queries';
+import { ModelPropertyDecoratorOptions } from './data-types';
+import { deepAssign } from '../../utils/object';
+import { Neo4jSingleTypes, Neo4jSupportedTypes } from '../../Queries';
 import {
   DateTime as Neo4jDateTime,
   Date as Neo4jDate,

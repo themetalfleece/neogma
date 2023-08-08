@@ -1,4 +1,4 @@
-import { NeogmaModel } from '../../../../ModelOps';
+import { NeogmaModel } from '../ModelOps';
 
 export class ModelNotInitializedError extends Error {
   message: string;

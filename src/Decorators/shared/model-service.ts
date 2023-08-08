@@ -1,5 +1,4 @@
-import { NeogmaModel } from '../../../../ModelOps';
-import { ModelClassDecoratorOptions } from '../../..//Decorators';
+import { ModelClassDecoratorOptions } from './data-types';
 
 const MODEL_NAME_KEY = 'neogma:modelName';
 const OPTIONS_KEY = 'neogma:options';
@@ -71,11 +70,7 @@ export function addOptions(
 export function resolveModelGetter(options: any): any {
   const maybeModelGetter = (value) =>
     typeof value === 'function' && value.length === 0;
-  const isModel = (value) =>
-    value &&
-    value.prototype &&
-    (value.prototype as NeogmaModel<any, any, Object, Object>).getRawLabels()
-      .length > 0;
+  const isModel = (value) => value && value.prototype;
   const isOptionObjectOrArray = (value) => value && typeof value === 'object';
 
   return Object.keys(options).reduce(

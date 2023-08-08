@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { ModelPropertyDecoratorOptions } from '../../../Decorators/Decorators';
+import { ModelPropertyDecoratorOptions } from './shared/data-types';
 import { addProperty } from './shared/property-service';
 import { DataType } from './shared/data-types';
 

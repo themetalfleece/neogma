@@ -1,9 +1,10 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Config, Driver, Session, Transaction } from 'neo4j-driver';
-import { NeogmaModel } from './ModelOps';
+import { ModelFactory, NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
+import { NeogmaModelMetadata, parseModelMetadata } from 'Decorators';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -22,6 +23,8 @@ export class Neogma {
   public readonly queryRunner: QueryRunner;
   /** a map between each Model's modelName and the Model itself */
   public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
+
+  [modelName: keyof typeof this.modelsByName]: NeogmaModel<any, any, any, any>;
 
   /**
    *
@@ -74,5 +77,25 @@ export class Neogma {
     callback: (tx: Runnable) => Promise<T>,
   ): Promise<T> => {
     return getRunnable<T>(runInExisting, callback, this.driver);
+  };
+
+  public addModel = (model: NeogmaModel<any, any, any, any>): void => {
+    this.modelsByName[model.modelName] = model;
+    this[model.modelName] = model;
+  };
+
+  public addModels = (models: Array<NeogmaModel<any, any, any, any>>): void => {
+    for (const model of models) {
+      this.addModel(model);
+    }
+  };
+
+  public buildModelFromMetadata = (
+    metadata: NeogmaModelMetadata,
+  ): NeogmaModel<any, any, any, any> => {
+    return ModelFactory(
+      parseModelMetadata(metadata),
+      this,
+    ) as unknown as NeogmaModel<any, any, any, any>;
   };
 }
