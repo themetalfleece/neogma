@@ -1761,14 +1761,8 @@ export const ModelFactory = <
   }
 
   // add to modelsByName
-  neogma.addModel(
-    Model as unknown as NeogmaModel<
-      Properties,
-      RelatedNodesToAssociateI,
-      MethodsI,
-      StaticsI
-    >,
-  );
+  neogma.modelsByName[modelName] = Model;
+  neogma[modelName] = Model;
 
   return Model as unknown as NeogmaModel<
     Properties,

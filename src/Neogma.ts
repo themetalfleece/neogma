@@ -4,7 +4,7 @@ import { ModelFactory, NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
-import { NeogmaModelMetadata, parseModelMetadata } from 'Decorators';
+import { getModelMetadata, parseModelMetadata } from 'Decorators';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -79,23 +79,20 @@ export class Neogma {
     return getRunnable<T>(runInExisting, callback, this.driver);
   };
 
-  public addModel = (model: NeogmaModel<any, any, any, any>): void => {
-    this.modelsByName[model.modelName] = model;
-    this[model.modelName] = model;
+  public addModel = (model: Object): void => {
+    const metadata = getModelMetadata(model);
+    const parsedMetadata = parseModelMetadata(metadata);
+    ModelFactory(parsedMetadata, this) as unknown as NeogmaModel<
+      any,
+      any,
+      any,
+      any
+    >;
   };
 
-  public addModels = (models: Array<NeogmaModel<any, any, any, any>>): void => {
+  public addModels = (models: Object[]): void => {
     for (const model of models) {
       this.addModel(model);
     }
-  };
-
-  public buildModelFromMetadata = (
-    metadata: NeogmaModelMetadata,
-  ): NeogmaModel<any, any, any, any> => {
-    return ModelFactory(
-      parseModelMetadata(metadata),
-      this,
-    ) as unknown as NeogmaModel<any, any, any, any>;
   };
 }
