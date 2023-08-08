@@ -60,7 +60,6 @@ export interface NeogmaModelMetadata {
 
 export interface ModelClassDecoratorOptions {
   label?: string;
-  connection?: string;
 }
 
 export interface ModelPropertyDecoratorOptions {

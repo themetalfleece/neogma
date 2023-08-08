@@ -9,9 +9,6 @@ export function Model(arg: any): void | Function {
     annotate(arg);
   } else {
     const options: ModelClassDecoratorOptions = {
-      connection: (arg as ModelClassDecoratorOptions)?.connection
-        ? (arg as ModelClassDecoratorOptions).connection
-        : 'default',
       ...arg,
     };
     return (target: any) => annotate(target, options);
