@@ -76,7 +76,7 @@ export type MatchLiteralI = {
   /** literal string */
   literal: string;
   /** optional match */
-  optional?: string;
+  optional?: boolean;
 };
 export const isMatchLiteral = (
   param: MatchI['match'],

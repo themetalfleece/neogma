@@ -69,7 +69,7 @@ This instance must be used when defining [Models](./Models/Overview).
 
 ### Verify connectivity
 
-You can sun
+You can run
 ```js
 await neogma.verifyConnectivity();
 ```
