@@ -1,6 +1,6 @@
 import { Neogma } from '../Neogma';
 import * as dotenv from 'dotenv';
-import { Model } from './model';
+import { Model, Props } from './model';
 import { Property } from './property';
 import { QueryBuilder } from '../Queries';
 import {
@@ -10,7 +10,6 @@ import {
   parseModelMetadata,
 } from './shared';
 import { Relation } from './relation';
-import { NeogmaModel } from '../ModelOps';
 
 let neogma: Neogma;
 
@@ -258,13 +257,9 @@ describe('Decorators', () => {
       age: number;
     }
 
-    const Users: NeogmaModel<{ name: string; age: number }, any, any, any> =
-      neogma.addModel(User) as unknown as NeogmaModel<
-        { name: string; age: number },
-        any,
-        any,
-        any
-      >;
+    type UserProps = Props<User>;
+
+    const Users = neogma.addModel<UserProps>(User);
 
     const userData: User = {
       name: 'John',
@@ -323,7 +318,11 @@ describe('Decorators', () => {
       projects: Project[];
     }
 
-    const Workers = neogma.addModel(Worker);
+    type AllWorkerProps = Props<Worker>;
+
+    type WorkerProps = Omit<AllWorkerProps, 'projects'>;
+
+    const Workers = neogma.addModel<WorkerProps>(Worker);
 
     const workerData = {
       name: 'John',

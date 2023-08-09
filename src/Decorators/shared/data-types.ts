@@ -6,9 +6,7 @@ import {
 } from '../../ModelOps';
 import { Neo4jSupportedProperties, Neo4jSupportedTypes } from '../../Queries';
 
-export type PropertySchema =
-  | Revalidator.ISchema<Neo4jSupportedProperties>
-  | Revalidator.JSONSchema<Neo4jSupportedProperties>;
+export type PropertySchema = Revalidator.ISchema<Neo4jSupportedProperties>;
 
 export type DataType =
   | 'string'

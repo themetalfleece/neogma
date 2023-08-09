@@ -1,7 +1,11 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Config, Driver, Session, Transaction } from 'neo4j-driver';
 import { ModelFactory, NeogmaModel } from './ModelOps';
-import { QueryRunner, Runnable } from './Queries/QueryRunner';
+import {
+  Neo4jSupportedProperties,
+  QueryRunner,
+  Runnable,
+} from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import {
@@ -84,9 +88,9 @@ export class Neogma {
     return getRunnable<T>(runInExisting, callback, this.driver);
   };
 
-  public generateModelFromMetadata = (
+  public generateModelFromMetadata = <T extends Neo4jSupportedProperties>(
     metadata: NeogmaModelMetadata,
-  ): NeogmaModel<any, any, any, any> => {
+  ): NeogmaModel<T, any, object, object> => {
     const parsedMetadata = parseModelMetadata(metadata);
     const relations = parsedMetadata.relationships;
     if (relations) {
@@ -106,14 +110,16 @@ export class Neogma {
     }
 
     return ModelFactory(parsedMetadata, this) as unknown as NeogmaModel<
+      T,
       any,
-      any,
-      any,
-      any
+      object,
+      object
     >;
   };
 
-  public addModel = (model: Object): NeogmaModel<any, any, any, any> => {
+  public addModel = <T extends Neo4jSupportedProperties>(
+    model: Object,
+  ): NeogmaModel<T, object, object, object> => {
     const metadata = getModelMetadata(model);
     return this.generateModelFromMetadata(metadata);
   };
