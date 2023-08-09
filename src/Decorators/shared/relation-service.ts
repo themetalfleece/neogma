@@ -8,7 +8,9 @@ const RELATIONS_KEY = 'neogma:relations';
  * Returns model relations from class by restoring this
  * information from reflect metadata
  */
-export function getRelations(target: any): any | undefined {
+export function getRelations(
+  target: any,
+): Record<string, ModelRelationDecoratorOptions> | undefined {
   const relations = Reflect.getMetadata(RELATIONS_KEY, target);
 
   if (relations) {
@@ -23,7 +25,10 @@ export function getRelations(target: any): any | undefined {
 /**
  * Sets relations
  */
-export function setRelations(target: any, relations: any): void {
+export function setRelations(
+  target: any,
+  relations: Record<string, ModelRelationDecoratorOptions>,
+): void {
   Reflect.defineMetadata(RELATIONS_KEY, { ...relations }, target);
 }
 

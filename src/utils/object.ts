@@ -103,19 +103,3 @@ export function cloneRegExp(input: RegExp, injectFlags?: string): RegExp {
   // Return a clone with the additive flags.
   return new RegExp(pattern, flags);
 }
-
-export function getAllPropertyNames(obj: any): string[] {
-  const names: string[] = [];
-  const exists: { [name: string]: boolean | undefined } = {};
-  do {
-    // eslint-disable-next-line prefer-spread
-    names.push.apply(names, Object.getOwnPropertyNames(obj));
-    obj = Object.getPrototypeOf(obj);
-  } while (obj !== Object.prototype);
-
-  return names.filter((name) => {
-    const isValid = !exists[name] && name !== 'constructor';
-    exists[name] = true;
-    return isValid;
-  });
-}

@@ -92,20 +92,19 @@ export class Neogma {
     metadata: NeogmaModelMetadata,
   ): NeogmaModel<T, any, object, object> => {
     const parsedMetadata = parseModelMetadata(metadata);
-    const relations = parsedMetadata.relationships;
-    if (relations) {
-      for (const relation in relations) {
-        const relatedModel = metadata.relations[relation].model;
-        if (relatedModel !== 'self') {
-          const relatedModelLabel = relatedModel['name'];
-          if (this.modelsByName[relatedModelLabel]) {
-            relations[relation].model = this.modelsByName[relatedModelLabel];
-          } else {
-            const relatedModelMetadata = getRelatedModelMetadata(relatedModel);
-            relations[relation].model =
-              this.generateModelFromMetadata(relatedModelMetadata);
-          }
-        }
+    const relations = parsedMetadata.relationships ?? [];
+    for (const relation in relations) {
+      const relatedModel = metadata.relations[relation].model;
+      if (relatedModel === 'self') {
+        continue;
+      }
+      const relatedModelLabel = relatedModel['name'];
+      if (this.modelsByName[relatedModelLabel]) {
+        relations[relation].model = this.modelsByName[relatedModelLabel];
+      } else {
+        const relatedModelMetadata = getRelatedModelMetadata(relatedModel);
+        relations[relation].model =
+          this.generateModelFromMetadata(relatedModelMetadata);
       }
     }
 

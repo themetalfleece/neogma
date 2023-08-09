@@ -9,19 +9,19 @@ import { NeogmaModel } from '../../ModelOps';
 type AnyObject = Record<string, any>;
 
 type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
-  /** the alias of the relationship definitions is the key */
+  /** the alias of the relation definitions is the key */
   [alias in keyof RelatedNodesToAssociateI]: {
     /** the related model. It could be the object of the model, or "self" for this model */
     model: NeogmaModel<any, any, any, any> | 'self';
-    /** the name of the relationship */
+    /** the name of the relation */
     name: string;
-    /** the direction of the relationship */
+    /** the direction of the relation */
     direction: 'out' | 'in' | 'none';
-    /** relationship properties */
+    /** relation properties */
     properties?: {
-      /** the alias of the relationship property is the key */
-      [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]: {
-        /** the actual property to be used on the relationship */
+      /** the alias of the relation property is the key */
+      [relationPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]: {
+        /** the actual property to be used on the relation */
         property: keyof RelatedNodesToAssociateI[alias]['RelationshipProperties'];
         /** validation for the property */
         schema: Revalidator.ISchema<AnyObject>;
@@ -77,10 +77,10 @@ export const getModelMetadata = (target: Object | string) => {
 
 export const getRelatedModelMetadata = (target: Object | Function) => {
   return {
-    name: getModelName(target as Object),
-    options: getOptions(target as Object),
-    properties: getProperties(target as Object),
-    relations: getRelations(target as Object),
+    name: getModelName(target),
+    options: getOptions(target),
+    properties: getProperties(target),
+    relations: getRelations(target),
   } as NeogmaModelMetadata;
 };
 

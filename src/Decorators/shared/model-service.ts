@@ -34,7 +34,7 @@ export function getOptions(
 }
 
 /**
- * Sets seuqlize define options to class prototype
+ * Sets model definition options to class prototype
  */
 export function setOptions(
   target: any,
@@ -62,7 +62,7 @@ export function addOptions(
  * So that {model: () => Person} will be converted to
  * {model: Person}
  */
-export function resolveModelGetter(options: any): any {
+export function resolveModelGetter(options: ModelClassDecoratorOptions): any {
   const maybeModelGetter = (value) =>
     typeof value === 'function' && value.length === 0;
   const isModel = (value) => value && value.prototype;

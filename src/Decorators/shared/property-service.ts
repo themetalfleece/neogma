@@ -1,16 +1,5 @@
 import { ModelPropertyDecoratorOptions } from './data-types';
 import { deepAssign } from '../../utils/object';
-import { Neo4jSingleTypes, Neo4jSupportedTypes } from '../../Queries';
-import {
-  DateTime as Neo4jDateTime,
-  Date as Neo4jDate,
-  Point as Neo4jPoint,
-  Time as Neo4jTime,
-  Integer as Neo4jInteger,
-  LocalDateTime as Neo4jLocalDateTime,
-  LocalTime as Neo4jLocalTime,
-  Duration as Neo4jDuration,
-} from 'neo4j-driver';
 
 const PROPERTIES_KEY = 'neogma:properties';
 
@@ -18,7 +7,9 @@ const PROPERTIES_KEY = 'neogma:properties';
  * Returns model properties from class by restoring this
  * information from reflect metadata
  */
-export function getProperties(target: any): any | undefined {
+export function getProperties(
+  target: any,
+): Partial<ModelPropertyDecoratorOptions> | undefined {
   const properties = Reflect.getMetadata(PROPERTIES_KEY, target);
 
   if (properties) {
@@ -33,7 +24,7 @@ export function getProperties(target: any): any | undefined {
 /**
  * Sets properties
  */
-export function setProperties(target: any, properties: any): void {
+export function setProperties(target: any, properties: object): void {
   Reflect.defineMetadata(PROPERTIES_KEY, { ...properties }, target);
 }
 
@@ -42,7 +33,11 @@ export function setProperties(target: any, properties: any): void {
  * neogma property options and stores this information
  * through reflect metadata
  */
-export function addProperty(target: any, name: string, options: any): void {
+export function addProperty(
+  target: any,
+  name: string,
+  options: Partial<ModelPropertyDecoratorOptions>,
+): void {
   let properties = getProperties(target);
 
   if (!properties) {
@@ -73,29 +68,4 @@ export function addPropertyOptions(
   properties[propertyName] = deepAssign(properties[propertyName], options);
 
   setProperties(target, properties);
-}
-
-/** Type guard for Neo4jSingleTypes */
-export function isNeo4jSingleType(value: any): value is Neo4jSingleTypes {
-  return (
-    typeof value === 'number' ||
-    typeof value === 'string' ||
-    typeof value === 'boolean' ||
-    value instanceof Neo4jInteger ||
-    value instanceof Neo4jPoint ||
-    value instanceof Neo4jDate ||
-    value instanceof Neo4jTime ||
-    value instanceof Neo4jLocalTime ||
-    value instanceof Neo4jDateTime ||
-    value instanceof Neo4jLocalDateTime ||
-    value instanceof Neo4jDuration
-  );
-}
-
-/** Type guard for Neo4jSupportedTypes */
-export function isNeo4jSupportedType(value: any): value is Neo4jSupportedTypes {
-  return (
-    isNeo4jSingleType(value) ||
-    (Array.isArray(value) && value.every(isNeo4jSingleType))
-  );
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
 import { ModelPropertyDecoratorOptions } from './shared/data-types';
 import { addProperty } from './shared/property-service';
 import { DataType } from './shared/data-types';
@@ -23,15 +22,15 @@ function annotate(
   target: any,
   propertyName: string,
   propertyDescriptor?: PropertyDescriptor,
-  optionsOrType: Partial<ModelPropertyDecoratorOptions> | DataType = {},
+  options: Partial<ModelPropertyDecoratorOptions> = {},
 ): void {
-  const options: Partial<ModelPropertyDecoratorOptions> = {
-    ...(optionsOrType as ModelPropertyDecoratorOptions),
+  const parsedOptions: Partial<ModelPropertyDecoratorOptions> = {
+    ...(options as ModelPropertyDecoratorOptions),
   };
 
-  if (!options?.schema) {
-    options.schema = {
-      ...options.schema,
+  if (!parsedOptions?.schema) {
+    parsedOptions.schema = {
+      ...parsedOptions.schema,
       type: Reflect.getMetadata(
         'design:type',
         target,
@@ -41,11 +40,11 @@ function annotate(
   }
 
   if (propertyDescriptor?.get) {
-    options.get = propertyDescriptor.get;
+    parsedOptions.get = propertyDescriptor.get;
   }
   if (propertyDescriptor?.set) {
-    options.set = propertyDescriptor.set;
+    parsedOptions.set = propertyDescriptor.set;
   }
 
-  addProperty(target, propertyName, options);
+  addProperty(target, propertyName, parsedOptions);
 }
