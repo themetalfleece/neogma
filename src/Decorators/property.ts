@@ -40,13 +40,11 @@ function annotate(
     };
   }
 
-  if (propertyDescriptor) {
-    if (propertyDescriptor.get) {
-      options.get = propertyDescriptor.get;
-    }
-    if (propertyDescriptor.set) {
-      options.set = propertyDescriptor.set;
-    }
+  if (propertyDescriptor?.get) {
+    options.get = propertyDescriptor.get;
+  }
+  if (propertyDescriptor?.set) {
+    options.set = propertyDescriptor.set;
   }
 
   addProperty(target, propertyName, options);
