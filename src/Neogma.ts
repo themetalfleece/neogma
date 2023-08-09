@@ -98,7 +98,6 @@ export class Neogma {
             relations[relation].model = this.modelsByName[relatedModelLabel];
           } else {
             const relatedModelMetadata = getRelatedModelMetadata(relatedModel);
-            console.log(JSON.stringify(relatedModelMetadata, null, 2));
             relations[relation].model =
               this.generateModelFromMetadata(relatedModelMetadata);
           }
