@@ -50,13 +50,8 @@ export function addOptions(
   target: any,
   options: ModelClassDecoratorOptions,
 ): void {
-  let _options = getOptions(target);
-
-  if (!_options) {
-    _options = {};
-  }
   setOptions(target, {
-    ..._options,
+    ...getOptions(target),
     ...options,
   });
 }
