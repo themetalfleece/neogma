@@ -6,6 +6,8 @@ import {
 } from '../../ModelOps';
 import { Neo4jSupportedProperties, Neo4jSupportedTypes } from '../../Queries';
 
+export type AnyObject = Record<string, any>;
+
 export type PropertySchema = Revalidator.ISchema<Neo4jSupportedProperties>;
 
 export type DataType =
@@ -49,8 +51,8 @@ export interface NeogmaModelMetadata {
   properties: {
     [propertyName: string]: ModelPropertyDecoratorOptions;
   };
-  relations: {
-    [relationAlias: string]: ModelRelationDecoratorOptions;
+  relationships: {
+    [relationAlias: string]: ModelRelationshipDecoratorOptions;
   };
   methods: ModelMethodDecoratorOptions;
   statics: ModelStaticDecoratorOptions;
@@ -66,7 +68,7 @@ export interface ModelPropertyDecoratorOptions {
   schema: PropertySchema;
 }
 
-export type ModelRelationDecoratorOptions = {
+export type ModelRelationshipDecoratorOptions = {
   model: Object | 'self';
   name: string;
   direction: 'out' | 'in' | 'none';

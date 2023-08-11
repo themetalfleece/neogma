@@ -9,6 +9,7 @@ import {
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import {
+  AnyObject,
   NeogmaModelMetadata,
   getModelMetadata,
   getRelatedModelMetadata,
@@ -31,9 +32,7 @@ export class Neogma {
   public readonly driver: Driver;
   public readonly queryRunner: QueryRunner;
   /** a map between each Model's modelName and the Model itself */
-  public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
-
-  [modelName: keyof typeof this.modelsByName]: NeogmaModel<any, any, any, any>;
+  public models: Record<string, NeogmaModel<any, any, any, any>> = {};
 
   /**
    *
@@ -88,37 +87,47 @@ export class Neogma {
     return getRunnable<T>(runInExisting, callback, this.driver);
   };
 
-  public generateModelFromMetadata = <T extends Neo4jSupportedProperties>(
+  public generateModelFromMetadata = <
+    P extends Neo4jSupportedProperties,
+    R extends AnyObject = object,
+    M extends AnyObject = object,
+    S extends AnyObject = object,
+  >(
     metadata: NeogmaModelMetadata,
-  ): NeogmaModel<T, any, object, object> => {
+  ): NeogmaModel<P, R, M, S> => {
     const parsedMetadata = parseModelMetadata(metadata);
-    const relations = parsedMetadata.relationships ?? [];
-    for (const relation in relations) {
-      const relatedModel = metadata.relations[relation].model;
+    const relationships = parsedMetadata.relationships ?? [];
+    for (const relationship in relationships) {
+      const relatedModel = metadata.relationships[relationship].model;
       if (relatedModel === 'self') {
         continue;
       }
       const relatedModelLabel = relatedModel['name'];
-      if (this.modelsByName[relatedModelLabel]) {
-        relations[relation].model = this.modelsByName[relatedModelLabel];
+      if (this.models[relatedModelLabel]) {
+        relationships[relationship].model = this.models[relatedModelLabel];
       } else {
         const relatedModelMetadata = getRelatedModelMetadata(relatedModel);
-        relations[relation].model =
+        relationships[relationship].model =
           this.generateModelFromMetadata(relatedModelMetadata);
       }
     }
 
     return ModelFactory(parsedMetadata, this) as unknown as NeogmaModel<
-      T,
-      any,
-      object,
-      object
+      P,
+      R,
+      M,
+      S
     >;
   };
 
-  public addModel = <T extends Neo4jSupportedProperties>(
+  public addModel = <
+    P extends Neo4jSupportedProperties,
+    R extends AnyObject = object,
+    M extends AnyObject = object,
+    S extends AnyObject = object,
+  >(
     model: Object,
-  ): NeogmaModel<T, object, object, object> => {
+  ): NeogmaModel<P, R, M, S> => {
     const metadata = getModelMetadata(model);
     return this.generateModelFromMetadata(metadata);
   };

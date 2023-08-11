@@ -24,7 +24,6 @@ export function deepAssign(target: any, ...sources: any[]): any {
     Object.getOwnPropertyNames(source).forEach((key) =>
       assign(key, target, source),
     );
-    /* istanbul ignore next */
     if (Object.getOwnPropertySymbols) {
       Object.getOwnPropertySymbols(source).forEach((key) =>
         assign(key, target, source),

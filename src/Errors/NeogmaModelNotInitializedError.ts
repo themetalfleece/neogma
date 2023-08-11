@@ -1,6 +1,6 @@
 import { NeogmaModel } from '../ModelOps';
 
-export class ModelNotInitializedError extends Error {
+export class NeogmaModelNotInitializedError extends Error {
   message: string;
 
   constructor(

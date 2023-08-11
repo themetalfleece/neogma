@@ -3,25 +3,25 @@ import { Neo4jSupportedProperties } from 'Queries';
 import { NeogmaModelMetadata, PropertySchema } from './data-types';
 import { getModelName, getOptions } from './model-service';
 import { getProperties } from './property-service';
-import { getRelations } from './relation-service';
+import { getRelations } from './relationship-service';
 import { NeogmaModel } from '../../ModelOps';
 
 type AnyObject = Record<string, any>;
 
 type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
-  /** the alias of the relation definitions is the key */
+  /** the alias of the relationship definitions is the key */
   [alias in keyof RelatedNodesToAssociateI]: {
     /** the related model. It could be the object of the model, or "self" for this model */
     model: NeogmaModel<any, any, any, any> | 'self';
-    /** the name of the relation */
+    /** the name of the relationship */
     name: string;
-    /** the direction of the relation */
+    /** the direction of the relationship */
     direction: 'out' | 'in' | 'none';
-    /** relation properties */
+    /** relationship properties */
     properties?: {
-      /** the alias of the relation property is the key */
+      /** the alias of the relationship property is the key */
       [relationPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]: {
-        /** the actual property to be used on the relation */
+        /** the actual property to be used on the relationship */
         property: keyof RelatedNodesToAssociateI[alias]['RelationshipProperties'];
         /** validation for the property */
         schema: Revalidator.ISchema<AnyObject>;
@@ -63,14 +63,14 @@ export const getModelMetadata = (target: Object | string) => {
       name: getModelName(target),
       options: getOptions(target),
       properties: getProperties(target),
-      relations: getRelations(target),
+      relationships: getRelations(target),
     } as NeogmaModelMetadata;
   } else {
     return {
       name: getModelName(target['prototype']),
       options: getOptions(target['prototype']),
       properties: getProperties(target['prototype']),
-      relations: getRelations(target['prototype']),
+      relationships: getRelations(target['prototype']),
     } as NeogmaModelMetadata;
   }
 };
@@ -80,7 +80,7 @@ export const getRelatedModelMetadata = (target: Object | Function) => {
     name: getModelName(target),
     options: getOptions(target),
     properties: getProperties(target),
-    relations: getRelations(target),
+    relationships: getRelations(target),
   } as NeogmaModelMetadata;
 };
 
@@ -100,7 +100,7 @@ export const parseModelMetadata = <
   StaticsI,
   MethodsI
 > => {
-  const { name, properties, relations } = metadata;
+  const { name, properties, relationships } = metadata;
   const propertyNames = Object.keys(properties);
   const props = propertyNames.map((propertyName) => {
     const property = properties[propertyName];
@@ -112,12 +112,12 @@ export const parseModelMetadata = <
 
   let parsedRelations = undefined;
 
-  if (relations) {
-    const relationNames = Object.keys(relations);
+  if (relationships) {
+    const relationNames = Object.keys(relationships);
     const rels = relationNames.map((relationName) => {
-      const relation = relations[relationName];
+      const relationship = relationships[relationName];
       return {
-        [relationName]: relation,
+        [relationName]: relationship,
       };
     });
     parsedRelations = Object.assign({}, ...rels);

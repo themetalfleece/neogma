@@ -25,7 +25,7 @@ function annotate(
   options: Partial<ModelPropertyDecoratorOptions> = {},
 ): void {
   const parsedOptions: Partial<ModelPropertyDecoratorOptions> = {
-    ...(options as ModelPropertyDecoratorOptions),
+    ...options,
   };
 
   if (!parsedOptions?.schema) {

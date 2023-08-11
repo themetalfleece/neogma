@@ -5,11 +5,11 @@ import { Property } from './property';
 import { QueryBuilder } from '../Queries';
 import {
   ModelPropertyDecoratorOptions,
-  ModelRelationDecoratorOptions,
+  ModelRelationshipDecoratorOptions,
   getModelMetadata,
   parseModelMetadata,
 } from './shared';
-import { Relation } from './relation';
+import { Relationship } from './relationship';
 
 let neogma: Neogma;
 
@@ -113,7 +113,7 @@ describe('Decorators', () => {
     expect(metadata.properties.age).toMatchObject(userAgeOptions);
   });
 
-  it('should define model relations', () => {
+  it('should define model relationships', () => {
     @Model()
     class Order {
       @Property({
@@ -135,7 +135,7 @@ describe('Decorators', () => {
       model: Order,
       name: 'HAS_ORDER',
       direction: 'out',
-    } as ModelRelationDecoratorOptions;
+    } as ModelRelationshipDecoratorOptions;
 
     @Model()
     class User {
@@ -153,7 +153,7 @@ describe('Decorators', () => {
       })
       age: number;
 
-      @Relation(ordersRelationOptions)
+      @Relationship(ordersRelationOptions)
       orders: Order[];
     }
 
@@ -161,9 +161,9 @@ describe('Decorators', () => {
 
     expect(userMetadata).toBeTruthy();
 
-    expect(userMetadata.relations).toHaveProperty('orders');
+    expect(userMetadata.relationships).toHaveProperty('orders');
 
-    expect(userMetadata.relations.orders).toMatchObject({
+    expect(userMetadata.relationships.orders).toMatchObject({
       ...ordersRelationOptions,
       model: Order.prototype,
     });
@@ -230,13 +230,9 @@ describe('Decorators', () => {
 
     neogma.addModel(User);
 
-    expect(neogma).toHaveProperty(User.name);
+    expect(neogma.models).toHaveProperty(User.name);
 
-    expect(neogma[User.name]).toBeTruthy();
-
-    expect(neogma.modelsByName).toHaveProperty(User.name);
-
-    expect(neogma.modelsByName[User.name]).toBeTruthy();
+    expect(neogma.models[User.name]).toBeTruthy();
   });
 
   it('should populate the db with a record when createOne is called on the created model', async () => {
@@ -266,14 +262,17 @@ describe('Decorators', () => {
       age: 30,
     };
 
-    const user = await Users.createOne(userData);
+    const user = await Users.createOne({
+      name: 10,
+      age: '',
+    });
 
     expect(user).toBeTruthy();
     expect(user.name).toEqual(userData.name);
     expect(user.age).toEqual(userData.age);
   });
 
-  it('should populate the db with a record when createOne is called on the created model and its relation', async () => {
+  it('should populate the db with a record when createOne is called on the created model and its relationship', async () => {
     const projectLabel = 'TeamProject';
     @Model({ label: projectLabel })
     class Project {
@@ -296,7 +295,7 @@ describe('Decorators', () => {
       model: Project,
       name: 'HAS_PROJECT',
       direction: 'out',
-    } as ModelRelationDecoratorOptions;
+    } as ModelRelationshipDecoratorOptions;
 
     @Model()
     class Worker {
@@ -314,7 +313,7 @@ describe('Decorators', () => {
       })
       age: number;
 
-      @Relation(projectsRelationOptions)
+      @Relationship(projectsRelationOptions)
       projects: Project[];
     }
 
@@ -337,7 +336,7 @@ describe('Decorators', () => {
       },
     };
 
-    expect(neogma[projectLabel]).toBeTruthy();
+    expect(neogma.models[projectLabel]).toBeTruthy();
 
     const worker = await Workers.createOne(workerData);
 

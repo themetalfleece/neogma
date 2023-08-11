@@ -1761,8 +1761,7 @@ export const ModelFactory = <
   }
 
   // add to modelsByName
-  neogma.modelsByName[modelName] = Model;
-  neogma[modelName] = Model;
+  neogma.models[modelName] = Model;
 
   return Model as unknown as NeogmaModel<
     Properties,

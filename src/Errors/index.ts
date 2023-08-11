@@ -3,4 +3,4 @@ export * from './NeogmaError';
 export * from './NeogmaInstanceValidationError';
 export * from './NeogmaDecoratorError';
 export * from './NeogmaNotFoundError';
-export * from './ModelNotInitializedError';
+export * from './NeogmaModelNotInitializedError';
