@@ -262,10 +262,7 @@ describe('Decorators', () => {
       age: 30,
     };
 
-    const user = await Users.createOne({
-      name: 10,
-      age: '',
-    });
+    const user = await Users.createOne(userData);
 
     expect(user).toBeTruthy();
     expect(user.name).toEqual(userData.name);
