@@ -10,10 +10,10 @@ import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import {
   AnyObject,
-  NeogmaModelMetadata,
-  getModelMetadata,
-  getRelatedModelMetadata,
-  parseModelMetadata,
+  NeogmaNodeMetadata,
+  getNodeMetadata,
+  getRelatedNodeMetadata,
+  parseNodeMetadata,
 } from './Decorators';
 const neo4j = neo4j_driver;
 
@@ -31,7 +31,7 @@ interface ConnectOptionsI extends Config {
 export class Neogma {
   public readonly driver: Driver;
   public readonly queryRunner: QueryRunner;
-  /** a map between each Model's modelName and the Model itself */
+  /** a map between each Node's modelName and the Node itself */
   public models: Record<string, NeogmaModel<any, any, any, any>> = {};
 
   /**
@@ -87,28 +87,28 @@ export class Neogma {
     return getRunnable<T>(runInExisting, callback, this.driver);
   };
 
-  public generateModelFromMetadata = <
+  public generateNodeFromMetadata = <
     P extends Neo4jSupportedProperties,
     R extends AnyObject = object,
     M extends AnyObject = object,
     S extends AnyObject = object,
   >(
-    metadata: NeogmaModelMetadata,
+    metadata: NeogmaNodeMetadata,
   ): NeogmaModel<P, R, M, S> => {
-    const parsedMetadata = parseModelMetadata(metadata);
+    const parsedMetadata = parseNodeMetadata(metadata);
     const relationships = parsedMetadata.relationships ?? [];
     for (const relationship in relationships) {
-      const relatedModel = metadata.relationships[relationship].model;
-      if (relatedModel === 'self') {
+      const relatedNode = metadata.relationships[relationship].model;
+      if (relatedNode === 'self') {
         continue;
       }
-      const relatedModelLabel = relatedModel['name'];
-      if (this.models[relatedModelLabel]) {
-        relationships[relationship].model = this.models[relatedModelLabel];
+      const relatedNodeLabel = relatedNode['name'];
+      if (this.models[relatedNodeLabel]) {
+        relationships[relationship].model = this.models[relatedNodeLabel];
       } else {
-        const relatedModelMetadata = getRelatedModelMetadata(relatedModel);
+        const relatedNodeMetadata = getRelatedNodeMetadata(relatedNode);
         relationships[relationship].model =
-          this.generateModelFromMetadata(relatedModelMetadata);
+          this.generateNodeFromMetadata(relatedNodeMetadata);
       }
     }
 
@@ -120,7 +120,7 @@ export class Neogma {
     >;
   };
 
-  public addModel = <
+  public addNode = <
     P extends Neo4jSupportedProperties,
     R extends AnyObject = object,
     M extends AnyObject = object,
@@ -128,13 +128,13 @@ export class Neogma {
   >(
     model: Object,
   ): NeogmaModel<P, R, M, S> => {
-    const metadata = getModelMetadata(model);
-    return this.generateModelFromMetadata(metadata);
+    const metadata = getNodeMetadata(model);
+    return this.generateNodeFromMetadata(metadata);
   };
 
-  public addModels = (models: Object[]): void => {
+  public addNodes = (models: Object[]): void => {
     for (const model of models) {
-      this.addModel(model);
+      this.addNode(model);
     }
   };
 }

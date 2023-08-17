@@ -20,55 +20,55 @@ export type DataType =
   | 'null'
   | 'any';
 
-export interface ModelProperties {
+export interface NodeProperties {
   [propertyName: string]: Neo4jSupportedTypes;
 }
 
-export interface ModelRelations {
+export interface NodeRelations {
   [propertyName: string]: ModelRelatedNodesI<
     object & { createOne: NeogmaModelStaticsI<any>['createOne'] },
-    ModelInstance
+    NodeInstance
   >;
 }
 
-export interface ModelMethods {
-  [propertyName: string]: <T>(this: ModelInstance) => T;
+export interface NodeMethods {
+  [propertyName: string]: <T>(this: NodeInstance) => T;
 }
 
-export interface ModelStatics {
+export interface NodeStatics {
   [propertyName: string]: Function;
 }
 
-export type ModelInstance = NeogmaInstance<
-  ModelProperties,
-  ModelRelations,
-  ModelMethods
+export type NodeInstance = NeogmaInstance<
+  NodeProperties,
+  NodeRelations,
+  NodeMethods
 >;
 
-export interface NeogmaModelMetadata {
+export interface NeogmaNodeMetadata {
   name: string;
-  options: ModelClassDecoratorOptions;
+  options: NodeClassDecoratorOptions;
   properties: {
-    [propertyName: string]: ModelPropertyDecoratorOptions;
+    [propertyName: string]: NodePropertyDecoratorOptions;
   };
   relationships: {
-    [relationAlias: string]: ModelRelationshipDecoratorOptions;
+    [relationAlias: string]: NodeRelationshipDecoratorOptions;
   };
-  methods: ModelMethodDecoratorOptions;
-  statics: ModelStaticDecoratorOptions;
+  methods: NodeMethodDecoratorOptions;
+  statics: NodeStaticDecoratorOptions;
 }
 
-export interface ModelClassDecoratorOptions {
+export interface NodeClassDecoratorOptions {
   label?: string;
 }
 
-export interface ModelPropertyDecoratorOptions {
+export interface NodePropertyDecoratorOptions {
   get?<M>(this: M): unknown;
   set?<M>(this: M, val: unknown): void;
   schema: PropertySchema;
 }
 
-export type ModelRelationshipDecoratorOptions = {
+export type NodeRelationshipDecoratorOptions = {
   model: Object | 'self';
   name: string;
   direction: 'out' | 'in' | 'none';
@@ -79,5 +79,5 @@ export type ModelRelationshipDecoratorOptions = {
     };
   };
 };
-export type ModelMethodDecoratorOptions = {};
-export type ModelStaticDecoratorOptions = {};
+export type NodeMethodDecoratorOptions = {};
+export type NodeStaticDecoratorOptions = {};

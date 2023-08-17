@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { Neo4jSupportedProperties } from 'Queries';
-import { NeogmaModelMetadata, PropertySchema } from './data-types';
-import { getModelName, getOptions } from './model-service';
+import { NeogmaNodeMetadata, PropertySchema } from './data-types';
+import { getNodeName, getOptions } from './node-service';
 import { getProperties } from './property-service';
 import { getRelations } from './relationship-service';
 import { NeogmaModel } from '../../ModelOps';
@@ -30,9 +30,9 @@ type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
   };
 };
 
-export type NeogmaModelFactoryParams<
+export type NeogmaNodeFactoryParams<
   Properties extends Neo4jSupportedProperties,
-  /** related nodes to associate. Label-ModelRelatedNodesI pairs */
+  /** related nodes to associate. Label-NodeRelatedNodesI pairs */
   RelatedNodesToAssociateI extends AnyObject = Object,
   /** interface for the statics of the model */
   StaticsI extends AnyObject = Object,
@@ -47,54 +47,54 @@ export type NeogmaModelFactoryParams<
   };
   /** the label of the nodes */
   label: string | string[];
-  /** statics of the Model */
+  /** statics of the Node */
   statics?: Partial<StaticsI>;
   /** method of the Instance */
   methods?: Partial<MethodsI>;
   /** the id key of this model. Is required in order to perform specific instance methods */
   primaryKeyField?: Extract<keyof Properties, string>;
-  /** relationships with other models or itself. Alternatively, relationships can be added using Model.addRelationships */
+  /** relationships with other models or itself. Alternatively, relationships can be added using Node.addRelationships */
   relationships?: Partial<RelationshipsI<RelatedNodesToAssociateI>>;
 };
 
-export const getModelMetadata = (target: Object | string) => {
+export const getNodeMetadata = (target: Object | string) => {
   if (typeof target === 'string') {
     return {
-      name: getModelName(target),
+      name: getNodeName(target),
       options: getOptions(target),
       properties: getProperties(target),
       relationships: getRelations(target),
-    } as NeogmaModelMetadata;
+    } as NeogmaNodeMetadata;
   } else {
     return {
-      name: getModelName(target['prototype']),
+      name: getNodeName(target['prototype']),
       options: getOptions(target['prototype']),
       properties: getProperties(target['prototype']),
       relationships: getRelations(target['prototype']),
-    } as NeogmaModelMetadata;
+    } as NeogmaNodeMetadata;
   }
 };
 
-export const getRelatedModelMetadata = (target: Object | Function) => {
+export const getRelatedNodeMetadata = (target: Object | Function) => {
   return {
-    name: getModelName(target),
+    name: getNodeName(target),
     options: getOptions(target),
     properties: getProperties(target),
     relationships: getRelations(target),
-  } as NeogmaModelMetadata;
+  } as NeogmaNodeMetadata;
 };
 
-export const parseModelMetadata = <
+export const parseNodeMetadata = <
   Properties extends Neo4jSupportedProperties,
-  /** related nodes to associate. Label-ModelRelatedNodesI pairs */
+  /** related nodes to associate. Label-NodeRelatedNodesI pairs */
   RelatedNodesToAssociateI extends AnyObject = Object,
   /** interface for the statics of the model */
   StaticsI extends AnyObject = Object,
   /** interface for the methods of the instance */
   MethodsI extends AnyObject = Object,
 >(
-  metadata: NeogmaModelMetadata,
-): NeogmaModelFactoryParams<
+  metadata: NeogmaNodeMetadata,
+): NeogmaNodeFactoryParams<
   Properties,
   RelatedNodesToAssociateI,
   StaticsI,
@@ -127,7 +127,7 @@ export const parseModelMetadata = <
     label: name,
     schema: parsedProperties,
     relationships: parsedRelations,
-  } as NeogmaModelFactoryParams<
+  } as NeogmaNodeFactoryParams<
     Properties,
     RelatedNodesToAssociateI,
     StaticsI,

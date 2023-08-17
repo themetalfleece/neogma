@@ -1,4 +1,4 @@
-import { ModelPropertyDecoratorOptions } from './data-types';
+import { NodePropertyDecoratorOptions } from './data-types';
 import { deepAssign } from '../../utils/object';
 
 const PROPERTIES_KEY = 'neogma:properties';
@@ -9,7 +9,7 @@ const PROPERTIES_KEY = 'neogma:properties';
  */
 export function getProperties(
   target: any,
-): Partial<ModelPropertyDecoratorOptions> | undefined {
+): Partial<NodePropertyDecoratorOptions> | undefined {
   const properties = Reflect.getMetadata(PROPERTIES_KEY, target);
 
   if (properties) {
@@ -36,7 +36,7 @@ export function setProperties(target: any, properties: object): void {
 export function addProperty(
   target: any,
   name: string,
-  options: Partial<ModelPropertyDecoratorOptions>,
+  options: Partial<NodePropertyDecoratorOptions>,
 ): void {
   let properties = getProperties(target);
 
@@ -54,7 +54,7 @@ export function addProperty(
 export function addPropertyOptions(
   target: any,
   propertyName: string,
-  options: Partial<ModelPropertyDecoratorOptions>,
+  options: Partial<NodePropertyDecoratorOptions>,
 ): void {
   const properties = getProperties(target);
 

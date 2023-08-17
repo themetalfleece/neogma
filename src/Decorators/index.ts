@@ -1,4 +1,4 @@
-export * from './model';
+export * from './node';
 export * from './property';
 export * from './relationship';
 export * from './shared';

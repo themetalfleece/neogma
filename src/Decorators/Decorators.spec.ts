@@ -1,13 +1,13 @@
 import { Neogma } from '../Neogma';
 import * as dotenv from 'dotenv';
-import { Model, Props } from './model';
+import { Node, Props } from './node';
 import { Property } from './property';
 import { QueryBuilder } from '../Queries';
 import {
-  ModelPropertyDecoratorOptions,
-  ModelRelationshipDecoratorOptions,
-  getModelMetadata,
-  parseModelMetadata,
+  NodePropertyDecoratorOptions,
+  NodeRelationshipDecoratorOptions,
+  getNodeMetadata,
+  parseNodeMetadata,
 } from './shared';
 import { Relationship } from './relationship';
 
@@ -31,10 +31,10 @@ afterAll(async () => {
 
 describe('Decorators', () => {
   it('should define model name', () => {
-    @Model()
+    @Node()
     class User {}
 
-    const metadata = getModelMetadata(User);
+    const metadata = getNodeMetadata(User);
 
     expect(metadata).toBeTruthy();
 
@@ -43,10 +43,10 @@ describe('Decorators', () => {
 
   it('should define model name, but allow label overrides', () => {
     const labelOverride = 'Admin';
-    @Model({ label: labelOverride })
+    @Node({ label: labelOverride })
     class User {}
 
-    const metadata = getModelMetadata(User);
+    const metadata = getNodeMetadata(User);
 
     expect(metadata).toBeTruthy();
 
@@ -54,7 +54,7 @@ describe('Decorators', () => {
   });
 
   it('should define model properties', () => {
-    @Model()
+    @Node()
     class User {
       @Property({
         schema: {
@@ -71,7 +71,7 @@ describe('Decorators', () => {
       age: number;
     }
 
-    const metadata = getModelMetadata(User);
+    const metadata = getNodeMetadata(User);
 
     expect(metadata).toBeTruthy();
 
@@ -86,16 +86,16 @@ describe('Decorators', () => {
         type: 'string',
         required: true,
       },
-    } as ModelPropertyDecoratorOptions;
+    } as NodePropertyDecoratorOptions;
 
     const userAgeOptions = {
       schema: {
         type: 'number',
         required: true,
       },
-    } as ModelPropertyDecoratorOptions;
+    } as NodePropertyDecoratorOptions;
 
-    @Model()
+    @Node()
     class User {
       @Property(userNameOptions)
       name: string;
@@ -104,7 +104,7 @@ describe('Decorators', () => {
       age: number;
     }
 
-    const metadata = getModelMetadata(User);
+    const metadata = getNodeMetadata(User);
 
     expect(metadata).toBeTruthy();
 
@@ -114,7 +114,7 @@ describe('Decorators', () => {
   });
 
   it('should define model relationships', () => {
-    @Model()
+    @Node()
     class Order {
       @Property({
         schema: {
@@ -135,9 +135,9 @@ describe('Decorators', () => {
       model: Order,
       name: 'HAS_ORDER',
       direction: 'out',
-    } as ModelRelationshipDecoratorOptions;
+    } as NodeRelationshipDecoratorOptions;
 
-    @Model()
+    @Node()
     class User {
       @Property({
         schema: {
@@ -157,7 +157,7 @@ describe('Decorators', () => {
       orders: Order[];
     }
 
-    const userMetadata = getModelMetadata(User);
+    const userMetadata = getNodeMetadata(User);
 
     expect(userMetadata).toBeTruthy();
 
@@ -168,7 +168,7 @@ describe('Decorators', () => {
       model: Order.prototype,
     });
 
-    const orderMetadata = getModelMetadata(Order);
+    const orderMetadata = getNodeMetadata(Order);
 
     expect(orderMetadata).toBeTruthy();
 
@@ -178,7 +178,7 @@ describe('Decorators', () => {
   });
 
   it('should parse model metadata to model factory creation params', () => {
-    @Model()
+    @Node()
     class User {
       @Property({
         schema: {
@@ -195,9 +195,9 @@ describe('Decorators', () => {
       age: number;
     }
 
-    const userMetadata = getModelMetadata(User);
+    const userMetadata = getNodeMetadata(User);
 
-    const parsedMetadata = parseModelMetadata(userMetadata);
+    const parsedMetadata = parseNodeMetadata(userMetadata);
 
     expect(parsedMetadata).toBeTruthy();
 
@@ -211,7 +211,7 @@ describe('Decorators', () => {
   });
 
   it('should create a model from class definition', () => {
-    @Model()
+    @Node()
     class User {
       @Property({
         schema: {
@@ -228,7 +228,7 @@ describe('Decorators', () => {
       age: number;
     }
 
-    neogma.addModel(User);
+    neogma.addNode(User);
 
     expect(neogma.models).toHaveProperty(User.name);
 
@@ -236,7 +236,7 @@ describe('Decorators', () => {
   });
 
   it('should populate the db with a record when createOne is called on the created model', async () => {
-    @Model()
+    @Node()
     class User {
       @Property({
         schema: {
@@ -255,7 +255,7 @@ describe('Decorators', () => {
 
     type UserProps = Props<User>;
 
-    const Users = neogma.addModel<UserProps>(User);
+    const Users = neogma.addNode<UserProps>(User);
 
     const userData: User = {
       name: 'John',
@@ -271,7 +271,7 @@ describe('Decorators', () => {
 
   it('should populate the db with a record when createOne is called on the created model and its relationship', async () => {
     const projectLabel = 'TeamProject';
-    @Model({ label: projectLabel })
+    @Node({ label: projectLabel })
     class Project {
       @Property({
         schema: {
@@ -292,9 +292,9 @@ describe('Decorators', () => {
       model: Project,
       name: 'HAS_PROJECT',
       direction: 'out',
-    } as ModelRelationshipDecoratorOptions;
+    } as NodeRelationshipDecoratorOptions;
 
-    @Model()
+    @Node()
     class Worker {
       @Property({
         schema: {
@@ -318,7 +318,7 @@ describe('Decorators', () => {
 
     type WorkerProps = Omit<AllWorkerProps, 'projects'>;
 
-    const Workers = neogma.addModel<WorkerProps>(Worker);
+    const Workers = neogma.addNode<WorkerProps>(Worker);
 
     const workerData = {
       name: 'John',

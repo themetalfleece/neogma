@@ -1,6 +1,6 @@
-import { ModelRelationshipDecoratorOptions } from './data-types';
+import { NodeRelationshipDecoratorOptions } from './data-types';
 import { deepAssign } from '../../utils/object';
-import { getModelName } from './model-service';
+import { getNodeName } from './node-service';
 
 const RELATIONS_KEY = 'neogma:relationships';
 
@@ -10,7 +10,7 @@ const RELATIONS_KEY = 'neogma:relationships';
  */
 export function getRelations(
   target: any,
-): Record<string, ModelRelationshipDecoratorOptions> | undefined {
+): Record<string, NodeRelationshipDecoratorOptions> | undefined {
   const relationships = Reflect.getMetadata(RELATIONS_KEY, target);
 
   if (relationships) {
@@ -27,7 +27,7 @@ export function getRelations(
  */
 export function setRelations(
   target: any,
-  relationships: Record<string, ModelRelationshipDecoratorOptions>,
+  relationships: Record<string, NodeRelationshipDecoratorOptions>,
 ): void {
   Reflect.defineMetadata(RELATIONS_KEY, { ...relationships }, target);
 }
@@ -40,7 +40,7 @@ export function setRelations(
 export function addRelation(
   target: any,
   name: string,
-  options: ModelRelationshipDecoratorOptions,
+  options: NodeRelationshipDecoratorOptions,
 ): void {
   let relationships = getRelations(target);
 
@@ -48,7 +48,7 @@ export function addRelation(
     relationships = {};
   }
   if (options.model !== 'self') {
-    const relatedModelMetadata = getModelName(options.model['prototype']);
+    const relatedModelMetadata = getNodeName(options.model['prototype']);
 
     if (!relatedModelMetadata) {
       throw new Error(
@@ -73,7 +73,7 @@ export function addRelation(
 export function addRelationOptions(
   target: any,
   relationName: string,
-  options: ModelRelationshipDecoratorOptions,
+  options: NodeRelationshipDecoratorOptions,
 ): void {
   const relationships = getRelations(target);
 

@@ -1,8 +1,8 @@
-import { ModelPropertyDecoratorOptions } from './shared/data-types';
+import { NodePropertyDecoratorOptions } from './shared/data-types';
 import { addProperty } from './shared/property-service';
 import { DataType } from './shared/data-types';
 
-export function Property(arg: ModelPropertyDecoratorOptions): Function {
+export function Property(arg: NodePropertyDecoratorOptions): Function {
   return (
     target: any,
     propertyName: string,
@@ -22,9 +22,9 @@ function annotate(
   target: any,
   propertyName: string,
   propertyDescriptor?: PropertyDescriptor,
-  options: Partial<ModelPropertyDecoratorOptions> = {},
+  options: Partial<NodePropertyDecoratorOptions> = {},
 ): void {
-  const parsedOptions: Partial<ModelPropertyDecoratorOptions> = {
+  const parsedOptions: Partial<NodePropertyDecoratorOptions> = {
     ...options,
   };
 
