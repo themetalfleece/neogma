@@ -541,6 +541,7 @@ describe.only('QueryBuilder', () => {
             model: ModelA,
           },
           {
+            // only min hops
             direction: 'out',
             minHops: 2,
           },
@@ -548,6 +549,7 @@ describe.only('QueryBuilder', () => {
             model: ModelB,
           },
           {
+            // infinity hops
             direction: 'in',
             maxHops: Infinity,
           },
@@ -555,6 +557,7 @@ describe.only('QueryBuilder', () => {
             model: ModelA,
           },
           {
+            // both min and max hops
             direction: 'none',
             minHops: 2,
             maxHops: 5,
@@ -562,12 +565,20 @@ describe.only('QueryBuilder', () => {
           {
             model: ModelB,
           },
+          {
+            // only max hops
+            direction: 'none',
+            maxHops: 5,
+          },
+          {
+            model: ModelA,
+          },
         ],
       });
 
       expectStatementEquals(
         queryBuilder,
-        'MATCH (a1)<-[]-(:MyLabelA1)-[:RelationshipName1]->(a2:MyLabelA2)-[r1]-(:`ModelA`)<-[{ relProp1: $relProp1, someLiteral: "exact literal" }]-()-[r2:RelationshipName2]->({ id: $id })<-[:RelationshipName3 { relProp2: $relProp2 }]-(a3 { age: $age })-[r3 { relProp3: $relProp3 }]-(a3:`ModelB` { name: $name })-[r4:RelationshipName4 { relProp4: $relProp4 }]->(a4)-[:RELNAME]->(:`ModelA`)-[*2]->(:`ModelB`)<-[*]-(:`ModelA`)-[*2..5]-(:`ModelB`)',
+        'MATCH (a1)<-[]-(:MyLabelA1)-[:RelationshipName1]->(a2:MyLabelA2)-[r1]-(:`ModelA`)<-[{ relProp1: $relProp1, someLiteral: "exact literal" }]-()-[r2:RelationshipName2]->({ id: $id })<-[:RelationshipName3 { relProp2: $relProp2 }]-(a3 { age: $age })-[r3 { relProp3: $relProp3 }]-(a3:`ModelB` { name: $name })-[r4:RelationshipName4 { relProp4: $relProp4 }]->(a4)-[:RELNAME]->(:`ModelA`)-[*2..]->(:`ModelB`)<-[*]-(:`ModelA`)-[*2..5]-(:`ModelB`)-[*..5]-(:`ModelA`)',
       );
       expectBindParamEquals(queryBuilder, {
         relProp1: 1,
