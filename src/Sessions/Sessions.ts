@@ -1,4 +1,4 @@
-import { Driver, Session, Transaction } from 'neo4j-driver';
+import { Driver, Session, SessionConfig, Transaction } from 'neo4j-driver';
 import { Runnable } from '../Queries/QueryRunner';
 
 const isTransaction = (tx: any): tx is Transaction =>
@@ -10,12 +10,13 @@ export const getSession = async <T>(
   runInSession: Session | null,
   callback: (s: Session) => Promise<T>,
   driver: Driver,
+  sessionParams?: SessionConfig,
 ): Promise<T> => {
   if (runInSession) {
     return callback(runInSession);
   }
 
-  const session = driver.session();
+  const session = driver.session(sessionParams);
   try {
     const result = await callback(session);
     await session.close();
@@ -32,6 +33,7 @@ export const getTransaction = async <T>(
   runInExisting: Runnable | null,
   callback: (tx: Transaction) => Promise<T>,
   driver: Driver,
+  sessionParams?: SessionConfig,
 ): Promise<T> => {
   // if it's a transaction, return it with the callback
   if (isTransaction(runInExisting)) {
@@ -53,6 +55,7 @@ export const getTransaction = async <T>(
       }
     },
     driver,
+    sessionParams,
   );
 };
 
@@ -61,9 +64,10 @@ export const getRunnable = async <T>(
   runInExisting: Runnable | null | undefined,
   callback: (tx: Runnable) => Promise<T>,
   driver: Driver,
+  sessionParams?: SessionConfig,
 ): Promise<T> => {
   if (runInExisting) {
     return callback(runInExisting);
   }
-  return getSession(null, callback, driver);
+  return getSession(null, callback, driver, sessionParams);
 };

@@ -53,6 +53,8 @@ const neogma = new Neogma(
         url: 'bolt://localhost:7687',
         username: 'neo4j',
         password: 'password',
+        /* --> (optional) the database to be used by default for sessions */
+        database: 'myDb',
     },
     {
         /* --> (optional) logs every query that Neogma runs, using the given function */

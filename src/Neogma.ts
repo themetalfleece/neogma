@@ -10,6 +10,7 @@ interface ConnectParamsI {
   url: string;
   username: string;
   password: string;
+  database?: string;
 }
 
 interface ConnectOptionsI extends Config {
@@ -22,6 +23,7 @@ export class Neogma {
   public readonly queryRunner: QueryRunner;
   /** a map between each Model's modelName and the Model itself */
   public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
+  public database?: string;
 
   /**
    *
@@ -37,6 +39,8 @@ export class Neogma {
         neo4j.auth.basic(username, password),
         options,
       );
+
+      this.database = params.database;
     } catch (err) {
       throw new NeogmaConnectivityError(err);
     }
@@ -58,21 +62,45 @@ export class Neogma {
   public getSession = <T>(
     runInSession: Session | null,
     callback: (s: Session) => Promise<T>,
+    /**
+     * Override the configuration of the session.
+     * By default, the "database" param used in the constructor is always passed.
+     */
+    sessionConfig?: neo4j_driver.SessionConfig,
   ): Promise<T> => {
-    return getSession<T>(runInSession, callback, this.driver);
+    return getSession<T>(runInSession, callback, this.driver, {
+      database: this.database,
+      ...sessionConfig,
+    });
   };
 
   public getTransaction = <T>(
     runInTransaction: Runnable | null,
     callback: (tx: Transaction) => Promise<T>,
+    /**
+     * Override the configuration of the session.
+     * By default, the "database" param used in the constructor is always passed.
+     */
+    sessionConfig?: neo4j_driver.SessionConfig,
   ): Promise<T> => {
-    return getTransaction<T>(runInTransaction, callback, this.driver);
+    return getTransaction<T>(runInTransaction, callback, this.driver, {
+      database: this.database,
+      ...sessionConfig,
+    });
   };
 
   public getRunnable = <T>(
     runInExisting: Runnable | null,
     callback: (tx: Runnable) => Promise<T>,
+    /**
+     * Override the configuration of the session.
+     * By default, the "database" param used in the constructor is always passed.
+     */
+    sessionConfig?: neo4j_driver.SessionConfig,
   ): Promise<T> => {
-    return getRunnable<T>(runInExisting, callback, this.driver);
+    return getRunnable<T>(runInExisting, callback, this.driver, {
+      database: this.database,
+      ...sessionConfig,
+    });
   };
 }
