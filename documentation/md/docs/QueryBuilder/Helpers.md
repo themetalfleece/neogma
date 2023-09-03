@@ -3,9 +3,9 @@
 The `QueryBuilder` class also provides some helpers for generating strings which could be used in a statement.
 
 ## Getting normalized labels
-`QueryRunner.getNormalizedLabels` returns a single string to be used in a query.
+`QueryBuilder.getNormalizedLabels` returns a single string to be used in a query.
 ```js
-const { getNormalizedLabels } = QueryRunner;
+const { getNormalizedLabels } = QueryBuilder;
 
 console.log(getNormalizedLabels('Users')); // `Users`
 
@@ -19,11 +19,11 @@ console.log(getNormalizedLabels(['Users', 'Active', 'Old'])); // "`Users:Active:
 ```
 
 ## Getting a node statement
-`QueryRunner.getNodeStatement` returns a string for a node's identifier, label, and inner info (like a where), to be used in a query.
+`QueryBuilder.getNodeStatement` returns a string for a node's identifier, label, and inner info (like a where), to be used in a query.
 
 Every parameter is optional.
 ```js
-const { getNodeStatement } = QueryRunner;
+const { getNodeStatement } = QueryBuilder;
 
 console.log(getNodeStatement({
     identifier: 'n',
@@ -72,9 +72,9 @@ console.log(bindParam().get()); // { id: 1 }
 ```
 
 ## Getting a relationship statement
-`QueryRunner.getRelationshipStatement` returns a string for a relationship's direction, name, and inner info (like a where), to be used in a query.
+`QueryBuilder.getRelationshipStatement` returns a string for a relationship's direction, name, and inner info (like a where), to be used in a query.
 ```js
-const { getRelationshipStatement } = QueryRunner;
+const { getRelationshipStatement } = QueryBuilder;
 
 console.log(getRelationshipStatement({
     direction: 'out',
@@ -135,9 +135,9 @@ console.log(bindParam.get()); // { id: 1 }
 ```
 
 ## Getting an identifier with a label
-`QueryRunner.getIdentifierWithLabel` returns a string to be used in a query, regardless if any of the identifier or label are null
+`QueryBuilder.getIdentifierWithLabel` returns a string to be used in a query, regardless if any of the identifier or label are null
 ```js
-const { getIdentifierWithLabel } = QueryRunner;
+const { getIdentifierWithLabel } = QueryBuilder;
 
 console.log(getIdentifierWithLabel('MyIdentifier', 'MyLabel')); // "MyIdentifier:MyLabel"
 
@@ -147,9 +147,9 @@ console.log(getIdentifierWithLabel('MyIdentifier', 'MyLabel')); // ":MyLabel"
 ```
 
 ## Getting parts for a SET operation
-`QueryRunner.getSetParts` returns the parts and the statement for a SET operation.
+`QueryBuilder.getSetParts` returns the parts and the statement for a SET operation.
 ```js
-const { getSetParts } = QueryRunner;
+const { getSetParts } = QueryBuilder;
 
 const existingBindParam = new BindParam({});
 const result = getSetParts({
@@ -184,14 +184,14 @@ console.log(bindParam.get()); // { x: 'irrelevant', x_aaaa: 5, y: 'foo' }
 ```
 
 ## Getting properties with query param values
-`QueryRunner` exposes a `getPropertiesWithParams` function which returns an object in a string format to be used in queries, while replacing its values with bind params.
+`QueryBuilder` exposes a `getPropertiesWithParams` function which returns an object in a string format to be used in queries, while replacing its values with bind params.
 
 ```js
 /* --> an existing BindParam instance, could have existing values */
 const bindParam = new BindParam({
     x: 4,
 });
-const result = QueryRunner.getPropertiesWithParams(
+const result = QueryBuilder.getPropertiesWithParams(
     /* --> the object to use */
     {
         x: 5,
@@ -205,3 +205,34 @@ const result = QueryRunner.getPropertiesWithParams(
 console.log(result); // "{ x: $x__aaaa, y: $y }"
 console.log(bindParam.get()); // { x: 4, x__aaaa: 5, y: 'foo' }
 ```
+
+## Getting the inner string of a variable length relationship
+```js
+const onlyMinHops = QueryBuilder.getVariableLengthRelationshipString({
+    minHops: 3,
+});
+console.log(onlyMinHops); // "*3.."
+
+const onlyMaxHops = QueryBuilder.getVariableLengthRelationshipString({
+    maxHops: 5,
+});
+console.log(onlyMaxHops); // "*5.."
+
+const bothHops = QueryBuilder.getVariableLengthRelationshipString({
+    minHops: 3,
+    maxHops: 5,
+});
+console.log(bothHops); // "*3..5"
+
+const equalHops = QueryBuilder.getVariableLengthRelationshipString({
+    minHops: 5,
+    maxHops: 5,
+});
+console.log(equalHops); // "*5*"
+
+const ifiniteHops = QueryBuilder.getVariableLengthRelationshipString({
+    maxHops: Infinity,
+});
+console.log(ifiniteHops); // "*"
+```
+
