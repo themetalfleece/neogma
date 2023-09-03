@@ -74,7 +74,11 @@ await getSession(
         await myFindUser(session);
     },
     /* --> a neo4j driver is needed */
-    driver
+    driver,
+    {
+        /* --> pass any other params, as you would for the driver's `session` method */
+        database: "myDb"
+    }
 );
 /* --> at this stage, the session will close */
 ```
@@ -146,7 +150,11 @@ await getTransaction(
         );
     },
     /* --> a neo4j driver is needed */
-    driver
+    driver,
+    {
+        /* --> pass any other params, as you would for the driver's `session` method */
+        database: "myDb"
+    }
 );
 /* --> at this stage, the transaction will be committed */
 ```
@@ -165,7 +173,11 @@ await getRunnable(
         await queryRunner.run('RETURN 1 = 1', {}, session);
     },
     /* --> a neo4j driver is needed */
-    driver
+    driver,
+    {
+        /* --> pass any other params, as you would for the driver's `session` method */
+        database: "myDb"
+    }
 );
 ```
 
@@ -187,7 +199,7 @@ await getRunnable(
             driver
         );
     },
-    driver
+    driver,
 );
 ```
 
