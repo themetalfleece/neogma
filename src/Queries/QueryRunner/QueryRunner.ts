@@ -11,6 +11,7 @@ import {
   LocalDateTime as Neo4jLocalDateTime,
   LocalTime as Neo4jLocalTime,
   Duration as Neo4jDuration,
+  SessionConfig,
 } from 'neo4j-driver';
 import * as uuid from 'uuid';
 import { getRunnable } from '../../Sessions';
@@ -68,6 +69,7 @@ export interface CreateRelationshipParamsI {
 
 export class QueryRunner {
   private driver: Driver;
+  private sessionParams?: SessionConfig;
   /** whether to log the statements and parameters with the given function */
   private logger:
     | null
@@ -76,9 +78,12 @@ export class QueryRunner {
   constructor(params: {
     driver: QueryRunner['driver'];
     logger?: QueryRunner['logger'];
+    /** these params will be used when creating a new session to run any query */
+    sessionParams?: SessionConfig;
   }) {
     this.driver = params.driver;
     this.logger = params?.logger || null;
+    this.sessionParams = params.sessionParams;
   }
 
   public getDriver(): Driver {
@@ -162,7 +167,7 @@ export class QueryRunner {
       queryBuilder.return(identifier);
     }
 
-    return queryBuilder.run(this, params.session);
+    return this.runQueryBuilder(queryBuilder, params.session);
   };
 
   public delete = async (params: {
@@ -195,7 +200,7 @@ export class QueryRunner {
       detach,
     });
 
-    return queryBuilder.run(this, params.session);
+    return this.runQueryBuilder(queryBuilder, params.session);
   };
 
   public createRelationship = async (
@@ -260,11 +265,19 @@ export class QueryRunner {
       });
     }
 
-    return queryBuilder.run(this, params.session);
+    return this.runQueryBuilder(queryBuilder, params.session);
   };
 
   /** maps a session object to a uuid, for logging purposes */
   private sessionIdentifiers = new WeakMap<Runnable, string>([]);
+
+  /** wrapper of running a querybuilder, will passing the correct parameters */
+  private runQueryBuilder = (
+    queryBuilder: QueryBuilder,
+    session: Runnable | null | undefined,
+  ) => {
+    return queryBuilder.run(this, session, this.sessionParams);
+  };
 
   /** runs a statement */
   public run(
@@ -272,7 +285,7 @@ export class QueryRunner {
     statement: string,
     /** parameters for the query */
     parameters?: Record<string, any>,
-    /** the session or transaction for running this query */
+    /** the session or transaction for running this query. Passing it will ignore the `sessionParams` passed to the constructor */
     existingSession?: Runnable | null,
   ): Promise<QueryResult> {
     return getRunnable(
@@ -299,6 +312,7 @@ export class QueryRunner {
         return session.run(trimmedStatement, parameters);
       },
       this.driver,
+      this.sessionParams,
     );
   }
 
