@@ -1,6 +1,6 @@
 import { getRunnable } from '../../Sessions';
 import { NeogmaConstraintError, NeogmaError } from '../../Errors';
-import { SessionConfig, int } from 'neo4j-driver';
+import { int } from 'neo4j-driver';
 import { QueryResult } from 'neo4j-driver';
 import { trimWhitespace } from '../../utils/string';
 import { BindParam } from '../BindParam';
@@ -797,8 +797,6 @@ export class QueryBuilder {
     queryRunnerOrRunnable?: QueryRunner | Runnable | null,
     /** an existing session to use. Set it only if the first param is a QueryRunner instance */
     existingSession?: Runnable | null,
-    /** these params will be used for the session if existingSession is null/undefined */
-    sessionParams?: SessionConfig,
   ): Promise<QueryResult> {
     const queryRunner =
       queryRunnerOrRunnable instanceof QueryRunner
@@ -825,7 +823,7 @@ export class QueryBuilder {
         );
       },
       queryRunner.getDriver(),
-      sessionParams,
+      queryRunner.sessionParams,
     );
   }
 

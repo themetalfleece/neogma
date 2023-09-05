@@ -69,7 +69,7 @@ export interface CreateRelationshipParamsI {
 
 export class QueryRunner {
   private driver: Driver;
-  private sessionParams?: SessionConfig;
+  public sessionParams?: SessionConfig;
   /** whether to log the statements and parameters with the given function */
   private logger:
     | null
@@ -167,7 +167,7 @@ export class QueryRunner {
       queryBuilder.return(identifier);
     }
 
-    return this.runQueryBuilder(queryBuilder, params.session);
+    return queryBuilder.run(this, params.session);
   };
 
   public delete = async (params: {
@@ -200,7 +200,7 @@ export class QueryRunner {
       detach,
     });
 
-    return this.runQueryBuilder(queryBuilder, params.session);
+    return queryBuilder.run(this, params.session);
   };
 
   public createRelationship = async (
@@ -265,19 +265,11 @@ export class QueryRunner {
       });
     }
 
-    return this.runQueryBuilder(queryBuilder, params.session);
+    return queryBuilder.run(this, params.session);
   };
 
   /** maps a session object to a uuid, for logging purposes */
   private sessionIdentifiers = new WeakMap<Runnable, string>([]);
-
-  /** wrapper of running a querybuilder, will passing the correct parameters */
-  private runQueryBuilder = (
-    queryBuilder: QueryBuilder,
-    session: Runnable | null | undefined,
-  ) => {
-    return queryBuilder.run(this, session, this.sessionParams);
-  };
 
   /** runs a statement */
   public run(
