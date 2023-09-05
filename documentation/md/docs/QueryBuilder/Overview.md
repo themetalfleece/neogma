@@ -115,7 +115,7 @@ An existing session can be given
     await new QueryBuilder()
         .raw('match n return n')
         .run(queryRunner, session);
-``` 
+```
 
 In order to avoid having to provide the QueryRunner instance on every call, the static `queryRunner` can be set.
 This can be done as soon as the `Neogma` instance is created, and should be set only once.

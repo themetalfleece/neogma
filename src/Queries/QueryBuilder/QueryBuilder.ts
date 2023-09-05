@@ -823,6 +823,7 @@ export class QueryBuilder {
         );
       },
       queryRunner.getDriver(),
+      queryRunner.sessionParams,
     );
   }
 

@@ -48,6 +48,9 @@ export class Neogma {
     this.queryRunner = new QueryRunner({
       driver: this.driver,
       logger: options?.logger,
+      sessionParams: {
+        database: this.database,
+      },
     });
   }
 
