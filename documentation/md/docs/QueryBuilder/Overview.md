@@ -97,7 +97,25 @@ console.log(bindParam.get()); // { id: false, id__aaaa: '1' }
 
 ## Running a QueryBuilder instance
 
-A QueryBuilder instance can be run straight away, by providing a [QueryRunner](../QueryRunner/Overview) instance.
+If a `Neogma` instance is defined, a `QueryBuilder` instance can be ran straight away.
+
+
+```js
+    await new QueryBuilder()
+        .raw('match n return n')
+        .run();
+```
+
+An existing session can be given
+```js
+    await new QueryBuilder()
+        .raw('match n return n')
+        .run(session);
+```
+
+Defining a `Neogma` instance also sets the `QueryBuilder.queryRunner` object to the one it uses, so no `QueryRunner` object needs to be passed.
+
+In case a different `QueryRunner` instance needs to be passed, it can either happen on an instance level:
 
 ```js
 /** let 'queryRunner' be a QueryRunner instance */
@@ -117,25 +135,12 @@ An existing session can be given
         .run(queryRunner, session);
 ```
 
-In order to avoid having to provide the QueryRunner instance on every call, the static `queryRunner` can be set.
-This can be done as soon as the `Neogma` instance is created, and should be set only once.
-```js
-    /** let 'neogma' be a Neogma instance */
-    QueryBuilder.queryRunner = neogma.queryRunner;
+Or on a global level:
 
-    await new QueryBuilder()
-        .raw('match n return n')
-        .run();
+```js
+    QueryBuilder.queryRunner = new QueryRunner(...);
 ```
 
-An existing session can be given
-```js
-    /** assuming QueryBuilder.queryRunner is already set
-    /** let 'session' be a Session/Transaction */
-    await new QueryBuilder()
-        .raw('match n return n')
-        .run(session);
-```
 
 ## Using a literal string
 
