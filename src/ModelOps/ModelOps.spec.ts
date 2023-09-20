@@ -22,8 +22,6 @@ beforeAll(async () => {
   });
 
   await neogma.verifyConnectivity();
-
-  QueryBuilder.queryRunner = neogma.queryRunner;
 });
 
 afterAll(async () => {

@@ -4,6 +4,7 @@ import { NeogmaModel } from './ModelOps';
 import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
+import { QueryBuilder } from './Queries';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -52,6 +53,8 @@ export class Neogma {
         database: this.database,
       },
     });
+
+    QueryBuilder.queryRunner = this.queryRunner;
   }
 
   public verifyConnectivity = async (): Promise<void> => {
