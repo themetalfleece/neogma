@@ -5,7 +5,7 @@
 Using the `deleteRelationships` static of a Model and providing a Where parameter, relationships of the Model can be deleted
 
 ```js
-await Users.delete({
+await Users.deleteRelationships({
     /* --> the Relationshhips to be deleted will be matched using this param */
     where: {
         /* --> (optional) the relationship(s) to be deleted need to be from a User with the name 'John' AND the id '1' */
