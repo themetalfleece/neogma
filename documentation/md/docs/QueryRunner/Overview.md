@@ -12,6 +12,10 @@ const queryRunner = new QueryRunner({
     driver: neogma.driver,
     /* --> (optional) logs every query that this QueryRunner instance runs, using the given function */
     logger: console.log
+    /* --> (optional) Session config to be used when creating a session to run any query. If a custom session is passed to any method, this param will be ignored. */
+    sessionParams: {
+        database: 'myDb'
+    },
 });
 ```
 

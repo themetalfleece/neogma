@@ -11,6 +11,7 @@ import {
   LocalDateTime as Neo4jLocalDateTime,
   LocalTime as Neo4jLocalTime,
   Duration as Neo4jDuration,
+  SessionConfig,
 } from 'neo4j-driver';
 import * as uuid from 'uuid';
 import { getRunnable } from '../../Sessions';
@@ -68,6 +69,7 @@ export interface CreateRelationshipParamsI {
 
 export class QueryRunner {
   private driver: Driver;
+  public sessionParams?: SessionConfig;
   /** whether to log the statements and parameters with the given function */
   private logger:
     | null
@@ -76,9 +78,12 @@ export class QueryRunner {
   constructor(params: {
     driver: QueryRunner['driver'];
     logger?: QueryRunner['logger'];
+    /** these params will be used when creating a new session to run any query */
+    sessionParams?: SessionConfig;
   }) {
     this.driver = params.driver;
     this.logger = params?.logger || null;
+    this.sessionParams = params.sessionParams;
   }
 
   public getDriver(): Driver {
@@ -272,7 +277,7 @@ export class QueryRunner {
     statement: string,
     /** parameters for the query */
     parameters?: Record<string, any>,
-    /** the session or transaction for running this query */
+    /** the session or transaction for running this query. Passing it will ignore the `sessionParams` passed to the constructor */
     existingSession?: Runnable | null,
   ): Promise<QueryResult> {
     return getRunnable(
@@ -299,6 +304,7 @@ export class QueryRunner {
         return session.run(trimmedStatement, parameters);
       },
       this.driver,
+      this.sessionParams,
     );
   }
 

@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-import { QueryBuilder, QueryRunner } from '..';
+import { QueryRunner } from '..';
 import { Neogma } from '../..';
 import * as uuid from 'uuid';
 
@@ -14,7 +14,6 @@ beforeAll(async () => {
     username: process.env.NEO4J_USERNAME ?? '',
     password: process.env.NEO4J_PASSWORD ?? '',
   });
-  QueryBuilder.queryRunner = neogma.queryRunner;
 });
 
 afterAll(async () => {
