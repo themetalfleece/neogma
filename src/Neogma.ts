@@ -5,6 +5,12 @@ import { QueryRunner, Runnable } from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import { QueryBuilder } from './Queries';
+import {
+  clearAllTempDatabases,
+  clearTempDatabase,
+  clearTempDatabasesOlderThan,
+  createTempDatabase,
+} from './utils/temp';
 const neo4j = neo4j_driver;
 
 interface ConnectParamsI {
@@ -56,6 +62,35 @@ export class Neogma {
 
     QueryBuilder.queryRunner = this.queryRunner;
   }
+
+  /**
+   *
+   * @param {ConnectParamsI} params - the connection params
+   * @param {ConnectOptionsI} options - additional options for the QueryRunner
+   */
+  public static fromTempDatabase = async (
+    params: ConnectParamsI,
+    options?: ConnectOptionsI,
+  ): Promise<Neogma> => {
+    const { url, username, password } = params;
+
+    const driver = neo4j.driver(
+      url,
+      neo4j.auth.basic(username, password),
+      options,
+    );
+    const database = await createTempDatabase(driver);
+    await driver.close();
+    return new Neogma({ ...params, database });
+  };
+
+  public clearTempDatabase = async (database: string) =>
+    clearTempDatabase(this.driver, database);
+
+  public clearAllTempDatabases = async () => clearAllTempDatabases(this.driver);
+
+  public clearTempDatabasesOlderThan = async (seconds: number) =>
+    clearTempDatabasesOlderThan(this.driver, seconds);
 
   public verifyConnectivity = async (): Promise<void> => {
     try {
