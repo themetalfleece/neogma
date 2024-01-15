@@ -92,8 +92,8 @@ const getSession = neogma.getSession; // @see [Sessions](./Sessions)
 const modelsByName = neogma.modelsByName; // @see [Defining a Model](./Models/Defining-a-Model)
 ```
 
-## Temp DB's
-You can work with temporary dbs which can be cleared all at once by using the static `fromTempDatabase` to initialize your Neogma instance. You pass in all the same props as in the constructor except the name of the database, this will be created for you and managed internally by Neogma.
+## Temp DBs
+You can work with temporary dbs (which can be cleared all at once) by using the static `fromTempDatabase` to initialize your Neogma instance. You pass in all the same props as in the constructor except the name of the database, as it will be created for you and managed internally by Neogma.
 
 ```js
 /* --> create a neogma instance that is latched onto an internally managed temp database */
