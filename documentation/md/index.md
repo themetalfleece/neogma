@@ -32,20 +32,6 @@ const neogma = new Neogma(
     }
 );
 
-/* -->             OR                  */
-
-const neogma = Neogma.fromTempDatabase(
-    {
-        /* --> use your connection details */
-        url: 'bolt://localhost',
-        username: 'neo4j',
-        password: 'password',
-    },
-    {
-        logger: console.log,
-    }
-);
-
 /* --> create a Users model */
 const Users = ModelFactory({
     label: 'User',
