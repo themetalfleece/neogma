@@ -79,8 +79,11 @@ export class Neogma {
       neo4j.auth.basic(username, password),
       options,
     );
+  
     const database = await createTempDatabase(driver);
+  
     await driver.close();
+  
     return new Neogma({ ...params, database });
   };
 
