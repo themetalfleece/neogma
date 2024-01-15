@@ -62,6 +62,7 @@ A sample Model definition with all configuration options is the following. Note 
 > >                     /* --> schema validation for it */
 > >                     schema: {
 > >                         type: 'number',
+> >                         required: true,
 > >                     },
 > >                 },
 > >             }
@@ -186,6 +187,7 @@ A sample Model definition with all configuration options is the following. Note 
 > >                     /* --> schema validation for it */
 > >                     schema: {
 > >                         type: 'number',
+> >                         required: true,
 > >                     },
 > >                 },
 > >             }

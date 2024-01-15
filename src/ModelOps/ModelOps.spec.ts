@@ -139,6 +139,7 @@ describe('ModelFactory', () => {
           age: {
             type: 'number',
             minimum: 0,
+            required: false,
           },
           id: {
             type: 'string',
@@ -157,6 +158,7 @@ describe('ModelFactory', () => {
                   type: 'number',
                   minimum: 1,
                   maximum: 5,
+                  required: true,
                 },
               },
             },
@@ -424,6 +426,7 @@ describe('createOne', () => {
                 property: 'rating',
                 schema: {
                   type: 'number',
+                  required: true,
                 },
               },
             },
@@ -818,6 +821,7 @@ describe('addRelationships', () => {
                   type: 'number',
                   minimum: 0,
                   maximum: 5,
+                  required: true,
                 },
               },
             },
@@ -840,6 +844,7 @@ describe('addRelationships', () => {
             property: 'more',
             schema: {
               type: 'boolean',
+              required: true,
             },
           },
         },
@@ -1260,6 +1265,7 @@ describe('beforeCreate', () => {
                   type: 'number',
                   minimum: 0,
                   maximum: 5,
+                  required: true,
                 },
               },
             },
@@ -1571,7 +1577,13 @@ describe('relateTo', () => {
     interface UsersRelatedNodesI {
       Parent: ModelRelatedNodesI<
         { createOne: (typeof Users)['createOne'] },
-        UsersInstance
+        UsersInstance,
+        {
+          Rating?: number;
+        },
+        {
+          rating?: number;
+        }
       >;
     }
 
@@ -1614,6 +1626,15 @@ describe('relateTo', () => {
             model: 'self',
             direction: 'out',
             name: 'PARENT',
+            properties: {
+              Rating: {
+                property: 'rating',
+                schema: {
+                  type: 'number',
+                  required: false,
+                },
+              },
+            },
           },
         },
         primaryKeyField: 'id',
@@ -1704,6 +1725,7 @@ describe('relateTo', () => {
                   type: 'number',
                   minimum: 0,
                   maximum: 5,
+                  required: true,
                 },
               },
             },
