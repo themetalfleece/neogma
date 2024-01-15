@@ -1,5 +1,6 @@
 import { Neogma } from './Neogma';
 import * as dotenv from 'dotenv';
+import { TEMPORARY_DB_PREFIX } from './utils/temp';
 
 describe('Neogma', () => {
   let neogma: Neogma;
@@ -27,6 +28,6 @@ describe('Neogma', () => {
   });
 
   it('should have created a temp db', async () => {
-    expect(neogma.database?.indexOf('temp--')).toBe(0);
+    expect(neogma.database?.indexOf(TEMPORARY_DB_PREFIX)).toBe(0);
   });
 });

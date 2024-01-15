@@ -1,13 +1,15 @@
 import * as uuid from 'uuid';
 import neo4j, { Driver, QueryResult, Session } from 'neo4j-driver';
 
+export const TEMPORARY_DB_PREFIX = 'tempneogmadb';
+
 const getCurrentTimestamp = () => {
   return Math.floor(new Date().getTime() / 1000);
 };
 
 const filterConsoleDatabasesFromResult = (result: QueryResult<any>) => {
   return result.records.filter(
-    (record) => record.get('name').indexOf('temp--') === 0,
+    (record) => record.get('name').indexOf(TEMPORARY_DB_PREFIX) === 0,
   );
 };
 
@@ -40,7 +42,7 @@ const deleteDatabaseUserAndRole = async (
 export const createTempDatabase = async (driver: Driver) => {
   const sessionId = uuid.v4().replace(/-/g, '');
   const currentTimestamp = getCurrentTimestamp();
-  const database = `temp--${sessionId}${currentTimestamp}`;
+  const database = `${TEMPORARY_DB_PREFIX}${sessionId}${currentTimestamp}`;
 
   const session = driver.session({
     database: 'system',
@@ -90,8 +92,8 @@ export const clearTempDatabasesOlderThan = async (
     const records = filterConsoleDatabasesFromResult(result);
     console.log('Databases found: ' + records.length);
     for (const record of records) {
-      const database = record.get('name');
-      const dbTimestamp = parseInt(database.slice(39), 10);
+      const database = record.get('name'); //tempneogmadb56e7794ad165454282ee0a7c32a5e3eb1705341040
+      const dbTimestamp = parseInt(database.slice(44), 10);
       const isExpired = dbTimestamp <= shouldExpireAt;
       if (isExpired) {
         await deleteDatabaseUserAndRole(session, database);
