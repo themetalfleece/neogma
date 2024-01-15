@@ -7,7 +7,7 @@ const getCurrentTimestamp = () => {
 
 const filterConsoleDatabasesFromResult = (result: QueryResult<any>) => {
   return result.records.filter(
-    (record) => record.get('name').indexOf('console') === 0,
+    (record) => record.get('name').indexOf('temp--') === 0,
   );
 };
 
@@ -40,7 +40,7 @@ const deleteDatabaseUserAndRole = async (
 export const createTempDatabase = async (driver: Driver) => {
   const sessionId = uuid.v4().replace(/-/g, '');
   const currentTimestamp = getCurrentTimestamp();
-  const database = `console${sessionId}${currentTimestamp}`;
+  const database = `temp--${sessionId}${currentTimestamp}`;
 
   const session = driver.session({
     database: 'system',

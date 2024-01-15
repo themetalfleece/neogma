@@ -27,6 +27,6 @@ describe('Neogma', () => {
   });
 
   it('should have created a temp db', async () => {
-    expect(neogma.database?.indexOf('console')).toBe(0);
+    expect(neogma.database?.indexOf('temp--')).toBe(0);
   });
 });
