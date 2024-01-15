@@ -101,6 +101,10 @@ type RelationshipTypePropertyForCreateI<
     | Array<RelationshipTypePropertyForCreateWhereI<RelationshipProperties>>;
 };
 
+type IValidationSchema<T = AnyObject> = Revalidator.ISchema<T> & {
+  required: boolean;
+};
+
 /** the type for the Relationship configuration of a Model */
 export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
   /** the alias of the relationship definitions is the key */
@@ -118,7 +122,7 @@ export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
         /** the actual property to be used on the relationship */
         property: keyof RelatedNodesToAssociateI[alias]['RelationshipProperties'];
         /** validation for the property */
-        schema: Revalidator.ISchema<AnyObject>;
+        schema: IValidationSchema;
       };
     };
   };
@@ -416,7 +420,7 @@ export const ModelFactory = <
     /** the schema for the validation */
     schema: {
       [index in keyof Properties]:
-        | Revalidator.ISchema<Properties>
+        | IValidationSchema<Properties>
         | Revalidator.JSONSchema<Properties>;
     };
     /** the label of the nodes */
@@ -1689,10 +1693,7 @@ export const ModelFactory = <
       /** properties to be used in the relationship */
       const relationshipProperties = {};
       /** total validation for the properties */
-      const validationSchema: Record<
-        string,
-        Revalidator.ISchema<AnyObject>
-      > = {};
+      const validationSchema: Record<string, IValidationSchema<AnyObject>> = {};
 
       for (const key of keysToUse) {
         const property = relationship.properties?.[key]?.property as string;
@@ -1700,13 +1701,16 @@ export const ModelFactory = <
         if (!property) {
           continue;
         }
-        relationshipProperties[property] = dataToUse[key];
 
         const schema = relationship.properties?.[key]?.schema;
-        if (!schema) {
-          continue;
+
+        if (schema) {
+          validationSchema[property] = schema;
         }
-        validationSchema[property] = schema;
+
+        if (key in dataToUse) {
+          relationshipProperties[property] = dataToUse[key];
+        }
       }
 
       const validationResult = revalidator.validate(relationshipProperties, {
