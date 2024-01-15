@@ -126,7 +126,7 @@ await neogma.clearAllTempDatabases();
 You could also specify the time frame (of creation) in seconds to delete the dbs that are older than it.
 
 ```js
-const seconds = 1000
+const seconds = 1000;
 await neogma.clearTempDatabasesOlderThan(seconds);
 ```
 
