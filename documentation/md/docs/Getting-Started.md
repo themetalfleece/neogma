@@ -123,7 +123,7 @@ As shown above this method requires you to pass the exact name of the database t
 await neogma.clearAllTempDatabases();
 ```
 
-You could also specify the time frame (of creation) in seconds to delete dbs for
+You could also specify the time frame (of creation) in seconds to delete the dbs that are older than it.
 
 ```js
 const seconds = 1000
