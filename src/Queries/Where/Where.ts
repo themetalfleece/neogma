@@ -231,13 +231,11 @@ export class Where {
             value,
             operator: 'eq',
           });
-        } else if (value !== null && value !== undefined) {
-          if (typeof value !== 'object') continue;
+        } else if (value !== null && typeof value === 'object') {
           const symbols = Object.getOwnPropertySymbols(value);
           for (const symbol of symbols) {
-            const operator = symbol.description;
-            if (!operator || !operators.includes(operator)) continue;
-            if (isOperator[operator](value)) {
+            const operator = symbol.description ?? '';
+            if (operators.includes(operator) && isOperator[operator](value)) {
               this.addBindParamDataEntry({
                 identifier: nodeIdentifier,
                 property,
