@@ -59,7 +59,7 @@ type WhereTypes = {
   };
 };
 
-const operators: string[] = [
+const operators = [
   'eq',
   'in',
   '_in',
@@ -233,9 +233,9 @@ export class Where {
           });
         } else if (value !== null && typeof value === 'object') {
           const symbols = Object.getOwnPropertySymbols(value);
-          for (const symbol of symbols) {
-            const operator = symbol.description ?? '';
-            if (operators.includes(operator) && isOperator[operator](value)) {
+          for (const { description } of symbols) {
+            const operator = description as (typeof operators)[number];
+            if (operator && isOperator[operator]?.(value)) {
               this.addBindParamDataEntry({
                 identifier: nodeIdentifier,
                 property,
