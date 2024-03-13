@@ -232,7 +232,7 @@ export class Where {
             operator: 'eq',
           });
         } else if (value !== null && value !== undefined) {
-          if (typeof value !== 'object') return this;
+          if (typeof value !== 'object') continue;
           const symbols = Object.getOwnPropertySymbols(value);
           for (const symbol of symbols) {
             const operator = symbol.description;
