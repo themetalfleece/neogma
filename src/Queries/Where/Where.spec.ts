@@ -88,6 +88,38 @@ describe('Where', () => {
 
       expect(where.getBindParam().get()).toEqual(expectedValues);
     });
+
+    it('Support more than one operator per property', () => {
+      const where = new Where({
+        identifier: {
+          property: {
+            [Op.gte]: '2021-01-01',
+            [Op.lte]: '2023-01-01',
+          },
+          primaryProperty: {
+            [Op.eq]: 'someId',
+          },
+        },
+      });
+      const whereString = where.getStatement('text');
+      expect(
+        whereString.includes(
+          'identifier.property >= $property AND identifier.property <= $property__aaaa',
+        ),
+      ).toBeTruthy();
+
+      expect(
+        whereString.includes('identifier.primaryProperty = $primaryProperty'),
+      ).toBeTruthy();
+
+      try {
+        where.getStatement('object');
+      } catch (error) {
+        expect(error.message).toEqual(
+          'The only operator which is supported for object mode is "eq"',
+        );
+      }
+    });
   });
 
   describe('addParams', () => {

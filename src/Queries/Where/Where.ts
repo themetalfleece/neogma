@@ -231,16 +231,17 @@ export class Where {
             value,
             operator: 'eq',
           });
-        } else if (value !== null && value !== undefined) {
-          for (const operator of operators) {
-            if (isOperator[operator](value)) {
+        } else if (value !== null && typeof value === 'object') {
+          const symbols = Object.getOwnPropertySymbols(value);
+          for (const { description } of symbols) {
+            const operator = description as (typeof operators)[number];
+            if (operator && isOperator[operator]?.(value)) {
               this.addBindParamDataEntry({
                 identifier: nodeIdentifier,
                 property,
                 value: value[Op[operator]],
                 operator,
               });
-              break;
             }
           }
         }
