@@ -194,7 +194,9 @@ export class QueryRunner {
         for (const { description } of symbols) {
           const operator = description as (typeof updateOperators)[number];
           if (operator && isUpdateOperator[operator]?.(value)) {
-            queryBuilder.remove({ identifier, properties: [property] });
+            if (operator === 'remove' && value[UpdateOp[operator]] === true) {
+              queryBuilder.remove({ identifier, properties: [property] });
+            }
             delete data[property];
           }
         }
