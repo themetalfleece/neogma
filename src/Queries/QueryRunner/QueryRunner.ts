@@ -57,14 +57,9 @@ export type UpdateTypes = {
 const updateOperators = ['remove'] as const;
 
 /** the type for the accepted values for an attribute */
-export type UpdateValuesI =
-  | Neo4jSupportedTypes
-  | UpdateTypes['Remove']
-  | undefined;
+type UpdateValuesI = Neo4jSupportedTypes | UpdateTypes['Remove'] | undefined;
 
 export type UpdateSupportedProperties = Partial<Record<string, UpdateValuesI>>;
-
-// const operators = ['remove'] as const;
 
 const isUpdateOperator = {
   remove: (value: UpdateValuesI): value is UpdateTypes['Remove'] =>
