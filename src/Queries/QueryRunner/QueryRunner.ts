@@ -41,6 +41,31 @@ export type Neo4jSupportedProperties = Record<
   Neo4jSupportedTypes | undefined
 >;
 
+/** symbols for update operations */
+const OpRm: unique symbol = Symbol('remove');
+
+export const UpdateOp = {
+  remove: OpRm,
+} as const;
+
+export type UpdateTypes = {
+  Remove: {
+    [UpdateOp.remove]: boolean;
+  };
+};
+
+const updateOperators = ['remove'] as const;
+
+/** the type for the accepted values for an attribute */
+type UpdateValuesI = Neo4jSupportedTypes | UpdateTypes['Remove'] | undefined;
+
+export type UpdateSupportedProperties = Partial<Record<string, UpdateValuesI>>;
+
+const isUpdateOperator = {
+  remove: (value: UpdateValuesI): value is UpdateTypes['Remove'] =>
+    typeof value === 'object' && value && UpdateOp.remove in value,
+} as const;
+
 /** can run queries, is either a Session or a Transaction */
 export type Runnable = Session | Transaction;
 
@@ -122,11 +147,11 @@ export class QueryRunner {
     return this.run(queryBuilder.getStatement(), parameters, params.session);
   };
 
-  public update = async <T extends Neo4jSupportedProperties>(params: {
+  public update = async <T extends UpdateSupportedProperties>(params: {
     /** the label of the nodes to update */
     label?: string;
     /** the where object for matching the nodes to be edited */
-    data: Partial<T>;
+    data: T;
     /** the new data data, to be edited */
     where?: AnyWhereI;
     /** identifier for the nodes */
@@ -138,7 +163,7 @@ export class QueryRunner {
   }): Promise<QueryResult> => {
     const { label } = params;
 
-    const data = params.data as Record<string, Neo4jSupportedTypes | undefined>;
+    const data = params.data;
 
     const identifier = params.identifier || QueryRunner.identifiers.default;
 
@@ -158,9 +183,24 @@ export class QueryRunner {
       queryBuilder.where(where);
     }
 
+    for (const [property, value] of Object.entries(data)) {
+      if (typeof value === 'object') {
+        const symbols = Object.getOwnPropertySymbols(value);
+        for (const { description } of symbols) {
+          const operator = description as (typeof updateOperators)[number];
+          if (operator && isUpdateOperator[operator]?.(value)) {
+            if (operator === 'remove' && value[UpdateOp[operator]] === true) {
+              queryBuilder.remove({ identifier, properties: [property] });
+            }
+            delete data[property];
+          }
+        }
+      }
+    }
+
     queryBuilder.set({
       identifier,
-      properties: data,
+      properties: data as Record<string, Neo4jSupportedTypes | undefined>,
     });
 
     if (params.return) {

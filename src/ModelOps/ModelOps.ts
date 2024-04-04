@@ -22,6 +22,7 @@ import {
   Neo4jSupportedProperties,
   QueryBuilder,
   QueryBuilderParameters,
+  UpdateTypes,
 } from '../Queries';
 
 type AnyObject = Record<string, any>;
@@ -144,12 +145,19 @@ type CreateDataI<
   RelatedNodesToAssociateI extends AnyObject,
 > = Properties & Partial<RelatedNodesCreationParamI<RelatedNodesToAssociateI>>;
 
+type UpdateDataI<Properties> = {
+  [K in keyof Properties]?: undefined extends Properties[K]
+    ? Properties[K] | UpdateTypes['Remove'] // Allow property removal only if property is optional
+    : Properties[K];
+};
+
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject = Object,
   MethodsI extends AnyObject = Object,
   CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
+  UpdateData = UpdateDataI<Properties>,
   Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
 > {
   prototype: MethodsI;
@@ -200,7 +208,7 @@ interface NeogmaModelStaticsI<
     alias: Alias,
   ) => RelationshipsI<RelatedNodesToAssociateI>[Alias];
   update: (
-    data: Partial<Properties>,
+    data: UpdateData,
     params?: GenericConfiguration & {
       where?: WhereParamsI;
       /** defaults to false. Whether to return the properties of the nodes after the update. If it's false, the first entry of the return value of this function will be an empty array */

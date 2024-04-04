@@ -4,7 +4,7 @@
 import { Neogma } from '../Neogma';
 import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 import * as dotenv from 'dotenv';
-import { QueryRunner } from '../Queries/QueryRunner';
+import { QueryRunner, UpdateOp } from '../Queries/QueryRunner';
 import { neo4jDriver, NeogmaModel } from '../index';
 import { Op, QueryBuilder } from '../Queries';
 import * as uuid from 'uuid';
@@ -1073,6 +1073,40 @@ describe('save', () => {
     });
 
     await userInstance.save();
+  });
+});
+
+describe('updateOpRemove', () => {
+  it('removes a property from an existing node', async () => {
+    const id = uuid.v4();
+
+    const user = await Users.createOne({
+      id: id,
+      name: 'User',
+      age: 10,
+    });
+
+    expect(user.age).toBe(10);
+
+    await Users.update(
+      {
+        age: { [UpdateOp.remove]: true },
+      },
+      {
+        where: {
+          id: id,
+        },
+      },
+    );
+
+    const updatedUser = await Users.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    expect(updatedUser).toBeTruthy();
+    expect(updatedUser?.age).toBeUndefined();
   });
 });
 

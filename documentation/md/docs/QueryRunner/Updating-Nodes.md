@@ -9,6 +9,8 @@ const result = await queryRunner.update({
     data: {
         name: 'Alex',
         age: 30,
+        /* --> using the "remove" Symbol from "UpdateOp" */
+        disabled: { [UpdateOp.remove]: true },
     },
     /* --> (optional) label(s) of the nodes to be matched. Multiple labels like 'User:Person' can also be used */
     label: 'User',
@@ -32,6 +34,28 @@ const result = await queryRunner.update({
 
 /* --> the result is the QueryResult from the neo4j driver. In case the nodes were returned, their properties can be retrieved */
 console.log(result.records.map((v) => v.get('u').properties));
+```
+
+## Update Operators
+
+Node properties can be updated just by setting a new value of the respective type. However, some update operations can only be performed using the exported `UpdateOp` variable.
+
+### Remove a Property
+
+When this operation is set to `true`, the respective property will be completely removed from the node (similar to the JS `delete` operator).
+
+```js
+// ...
+  data: {
+      name: 'Alex',
+      /* --> using the "remove" Symbol from "UpdateOp" */
+      age: { [UpdateOp.remove]: true },
+  },
+  // ...
+  identifier: 'u',
+// ...
+
+console.log(result.records.map((v) => v.get('u').properties.age)); // undefined
 ```
 
 > :ToCPrevNext
