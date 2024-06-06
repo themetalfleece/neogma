@@ -644,12 +644,13 @@ describe.only('QueryBuilder', () => {
         properties: {
           name: 'K',
           available: 5,
+          someLiteral: new Literal('"exact literal"'),
         },
       });
 
       expectStatementEquals(
         queryBuilder,
-        'SET a.name = $name, a.available = $available',
+        'SET a.name = $name, a.available = $available, a.someLiteral = "exact literal"',
       );
       expectBindParamEquals(queryBuilder, {
         name: 'K',

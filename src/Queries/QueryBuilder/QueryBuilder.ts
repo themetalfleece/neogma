@@ -64,6 +64,7 @@ import {
   isOrderByParameter,
   isWhereParameter,
 } from './QueryBuilder.types';
+import { Literal } from '../Literal';
 
 type AnyObject = Record<string, any>;
 
@@ -738,8 +739,8 @@ export class QueryBuilder {
 
   /** returns the parts and the statement for a SET operation with the given params */
   public static getSetParts = (params: {
-    /** data to set */
-    data: AnyObject;
+    /** properties to set */
+    data: Neo4jSupportedProperties;
     /** bind param to use */
     bindParam: BindParam;
     /** identifier to use */
@@ -755,8 +756,14 @@ export class QueryBuilder {
       if (!data.hasOwnProperty(key)) {
         continue;
       }
-      const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
-      setParts.push(`${identifier}.${key} = $${paramKey}`);
+      if (data[key] instanceof Literal) {
+        setParts.push(
+          `${identifier}.${key} = ${(data[key] as Literal).getValue()}`,
+        );
+      } else {
+        const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
+        setParts.push(`${identifier}.${key} = $${paramKey}`);
+      }
     }
 
     if (!setParts.length) {
@@ -773,19 +780,28 @@ export class QueryBuilder {
   };
 
   /**
-   * returns an object with replacing its values with a bind param value
-   * example return value: ( a.p1 = $v1, b.p2 = $v2 )
+   * returns an object with replacing its values with a bind param value.
+   * if value is a literal, returns literal name as value
+   * example return value: { a.p1 = $v1, b.p2 = $v2, c.p3 = literalP3 }
    */
   public static getPropertiesWithParams = (
     /** data to set */
-    data: AnyObject,
+    data: Neo4jSupportedProperties,
     /** bind param to use and mutate */
     bindParam: BindParam,
   ): string => {
     const parts: string[] = [];
 
     for (const key of Object.keys(data)) {
-      parts.push(`${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`);
+      if (!data.hasOwnProperty(key)) {
+        continue;
+      }
+
+      if (data[key] instanceof Literal) {
+        parts.push(`${key}: ${(data[key] as Literal).getValue()}`);
+      } else {
+        parts.push(`${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`);
+      }
     }
 
     return `{ ${parts.join(', ')} }`;
