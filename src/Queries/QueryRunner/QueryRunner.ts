@@ -18,6 +18,7 @@ import { getRunnable } from '../../Sessions';
 import { AnyWhereI, Where } from '../Where/Where';
 import { trimWhitespace } from '../../utils/string';
 import { QueryBuilder } from '../QueryBuilder';
+import { Literal } from '../Literal';
 
 type AnyObject = Record<string, any>;
 
@@ -38,7 +39,7 @@ export type Neo4jSingleTypes =
 export type Neo4jSupportedTypes = Neo4jSingleTypes | Neo4jSingleTypes[];
 export type Neo4jSupportedProperties = Record<
   string,
-  Neo4jSupportedTypes | undefined
+  Neo4jSupportedTypes | Literal | undefined
 >;
 
 /** symbols for update operations */
@@ -57,7 +58,11 @@ export type UpdateTypes = {
 const updateOperators = ['remove'] as const;
 
 /** the type for the accepted values for an attribute */
-type UpdateValuesI = Neo4jSupportedTypes | UpdateTypes['Remove'] | undefined;
+type UpdateValuesI =
+  | Neo4jSupportedTypes
+  | UpdateTypes['Remove']
+  | Literal
+  | undefined;
 
 export type UpdateSupportedProperties = Partial<Record<string, UpdateValuesI>>;
 
@@ -200,7 +205,10 @@ export class QueryRunner {
 
     queryBuilder.set({
       identifier,
-      properties: data as Record<string, Neo4jSupportedTypes | undefined>,
+      properties: data as Record<
+        string,
+        Neo4jSupportedTypes | Literal | undefined
+      >,
     });
 
     if (params.return) {
