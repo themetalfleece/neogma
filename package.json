@@ -1,6 +1,6 @@
 {
   "name": "neogma",
-  "version": "1.14.0",
+  "version": "1.15.0-alpha",
   "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -56,5 +56,8 @@
   "bugs": {
     "url": "https://github.com/themetalfleece/neogma/issues"
   },
-  "homepage": "https://github.com/themetalfleece/neogma#readme"
+  "homepage": "https://github.com/themetalfleece/neogma#readme",
+  "publishConfig": {
+    "registry": "http://localhost:8081/nexus/content/repositories/hosted-npm/"
+  }
 }

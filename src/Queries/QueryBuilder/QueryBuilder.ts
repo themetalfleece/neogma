@@ -793,10 +793,6 @@ export class QueryBuilder {
     const parts: string[] = [];
 
     for (const key of Object.keys(data)) {
-      if (!data.hasOwnProperty(key)) {
-        continue;
-      }
-
       if (data[key] instanceof Literal) {
         parts.push(`${key}: ${(data[key] as Literal).getValue()}`);
       } else {
