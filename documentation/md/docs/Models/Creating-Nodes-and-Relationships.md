@@ -131,7 +131,8 @@ await Users.relateTo(
         },
         /* --> properties of the relationship to be created */
         properties: {
-            rating: 4,
+            /* --> use the key defined in the model and assign a value */
+            Rating: 4,
         },
         /* --> (optional) throws an error if the created relationships are not equal to this number */
         assertCreatedRelationships: 2,
@@ -158,7 +159,8 @@ await user.relateTo(
         },
         /* --> properties of the relationship to be created */
         properties: {
-            rating: 4,
+            /* --> use the key defined in the model and assign a value */
+            Rating: 4,
         },
         /* --> (optional) throws an error if the created relationships are not equal to this number */
         assertCreatedRelationships: 2,
