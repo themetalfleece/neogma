@@ -152,7 +152,7 @@ type UpdateDataI<Properties> = {
 };
 
 /** the statics of a Neogma Model */
-interface NeogmaModelStaticsI<
+export interface NeogmaModelStaticsI<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject = Object,
   MethodsI extends AnyObject = Object,
@@ -1773,7 +1773,7 @@ export const ModelFactory = <
   }
 
   // add to modelsByName
-  neogma.modelsByName[modelName] = Model;
+  neogma.models[modelName] = Model;
 
   return Model as unknown as NeogmaModel<
     Properties,

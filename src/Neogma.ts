@@ -1,9 +1,20 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Config, Driver, Session, Transaction } from 'neo4j-driver';
-import { NeogmaModel } from './ModelOps';
-import { QueryRunner, Runnable } from './Queries/QueryRunner';
+import { ModelFactory, NeogmaModel } from './ModelOps';
+import {
+  Neo4jSupportedProperties,
+  QueryRunner,
+  Runnable,
+} from './Queries/QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
+import {
+  AnyObject,
+  NeogmaNodeMetadata,
+  getNodeMetadata,
+  getRelatedNodeMetadata,
+  parseNodeMetadata,
+} from './Decorators';
 import { QueryBuilder } from './Queries';
 import {
   clearAllTempDatabases,
@@ -146,5 +157,56 @@ export class Neogma {
       database: this.database,
       ...sessionConfig,
     });
+  };
+
+  public generateNodeFromMetadata = <
+    P extends Neo4jSupportedProperties,
+    R extends AnyObject = object,
+    M extends AnyObject = object,
+    S extends AnyObject = object,
+  >(
+    metadata: NeogmaNodeMetadata,
+  ): NeogmaModel<P, R, M, S> => {
+    const parsedMetadata = parseNodeMetadata(metadata);
+    const relationships = parsedMetadata.relationships ?? [];
+    for (const relationship in relationships) {
+      const relatedNode = metadata.relationships[relationship].model;
+      if (relatedNode === 'self') {
+        continue;
+      }
+      const relatedNodeLabel = relatedNode['name'];
+      if (this.models[relatedNodeLabel]) {
+        relationships[relationship].model = this.models[relatedNodeLabel];
+      } else {
+        const relatedNodeMetadata = getRelatedNodeMetadata(relatedNode);
+        relationships[relationship].model =
+          this.generateNodeFromMetadata(relatedNodeMetadata);
+      }
+    }
+
+    return ModelFactory(parsedMetadata, this) as unknown as NeogmaModel<
+      P,
+      R,
+      M,
+      S
+    >;
+  };
+
+  public addNode = <
+    P extends Neo4jSupportedProperties,
+    R extends AnyObject = object,
+    M extends AnyObject = object,
+    S extends AnyObject = object,
+  >(
+    model: Object,
+  ): NeogmaModel<P, R, M, S> => {
+    const metadata = getNodeMetadata(model);
+    return this.generateNodeFromMetadata(metadata);
+  };
+
+  public addNodes = (models: Object[]): void => {
+    for (const model of models) {
+      this.addNode(model);
+    }
   };
 }

@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/revalidator": "^0.3.12",
     "clone": "^2.1.2",
+    "reflect-metadata": "^0.1.13",
     "dotenv": "^16.3.1",
     "neo4j-driver": "^5.16.0",
     "revalidator": "^0.3.1",

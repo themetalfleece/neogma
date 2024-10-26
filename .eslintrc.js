@@ -28,6 +28,7 @@ module.exports = {
       {
         types: {
           Object: false,
+          Function: false,
         },
       },
     ],
