@@ -12,16 +12,16 @@
 > > ```bash
 > > yarn add neogma
 > > ```
+>
+> > :Tab title=pnpm
+> > ```bash
+> > pnpm i neogma
+> > ```
 ## Importing
 
 The used classes and functions can be imported as follows:
 
 > :Tabs
-> > :Tab title=require
-> > ```js
-> > const { BindParam, ModelFactory, Neogma, QueryBuilder, QueryRunner, Where, Literal, getSession, Op, neo4jDriver } = require('neogma');
-> > ```
->
 > > :Tab title=import
 > > ```ts
 > > import { BindParam, ModelFactory, Neogma, QueryBuilder, QueryRunner, Where, Literal, getSession, Op, neo4jDriver } from 'neogma';
@@ -33,6 +33,11 @@ The used classes and functions can be imported as follows:
 > >     /* --> all possible neo4j types which can be used in Models */
 > >     Neo4jSupportedTypes 
 > > } from 'neogma';
+> > ```
+>
+> > :Tab title=require
+> > ```js
+> > const { BindParam, ModelFactory, Neogma, QueryBuilder, QueryRunner, Where, Literal, getSession, Op, neo4jDriver } = require('neogma');
 > > ```
 
 The `neo4jDriver` exports everything from the `neo4j-driver` package, including types, validators, etc:
