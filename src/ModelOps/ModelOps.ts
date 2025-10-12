@@ -48,8 +48,8 @@ export interface ModelRelatedNodesI<
   /** properties for the relationship */
   CreateRelationshipProperties extends
     | RelationshipPropertiesI
-    | Object = Object,
-  RelationshipProperties extends RelationshipPropertiesI | Object = Object,
+    | object = object,
+  RelationshipProperties extends RelationshipPropertiesI | object = object,
 > {
   /** interface of the data to create */
   CreateData: Parameters<RelatedModel['createOne']>[0] &
@@ -154,8 +154,8 @@ type UpdateDataI<Properties> = {
 /** the statics of a Neogma Model */
 interface NeogmaModelStaticsI<
   Properties extends Neo4jSupportedProperties,
-  RelatedNodesToAssociateI extends AnyObject = Object,
-  MethodsI extends AnyObject = Object,
+  RelatedNodesToAssociateI extends AnyObject = object,
+  MethodsI extends AnyObject = object,
   CreateData = CreateDataI<Properties, RelatedNodesToAssociateI>,
   UpdateData = UpdateDataI<Properties>,
   Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
@@ -269,11 +269,11 @@ interface NeogmaModelStaticsI<
     },
   ) => Promise<number>;
   getLabelFromRelationshipModel: (
-    relationshipModel: NeogmaModel<any, any, Object, Object> | 'self',
+    relationshipModel: NeogmaModel<any, any, object, object> | 'self',
   ) => string;
   getRelationshipModel: (
-    relationshipModel: NeogmaModel<any, any, Object, Object> | 'self',
-  ) => NeogmaModel<any, any, Object, Object>;
+    relationshipModel: NeogmaModel<any, any, object, object> | 'self',
+  ) => NeogmaModel<any, any, object, object>;
   /** asserts that the given primaryKeyField exists. Also returns it for typescript purposes */
   assertPrimaryKeyField: (
     primaryKeyField: string | undefined,
@@ -387,7 +387,7 @@ export type NeogmaInstance<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   /** the Methods used in the Model */
-  MethodsI extends AnyObject = Object,
+  MethodsI extends AnyObject = object,
 > = Properties &
   NeogmaInstanceMethodsI<Properties, RelatedNodesToAssociateI, MethodsI> &
   MethodsI;
@@ -396,8 +396,8 @@ export type NeogmaInstance<
 export type NeogmaModel<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
-  MethodsI extends AnyObject = Object,
-  StaticsI extends AnyObject = Object,
+  MethodsI extends AnyObject = object,
+  StaticsI extends AnyObject = object,
 > = NeogmaModelStaticsI<Properties, RelatedNodesToAssociateI, MethodsI> &
   StaticsI;
 
@@ -418,11 +418,11 @@ export const ModelFactory = <
   /** the base Properties of the node */
   Properties extends Neo4jSupportedProperties,
   /** related nodes to associate. Label-ModelRelatedNodesI pairs */
-  RelatedNodesToAssociateI extends AnyObject = Object,
+  RelatedNodesToAssociateI extends AnyObject = object,
   /** interface for the statics of the model */
-  StaticsI extends AnyObject = Object,
+  StaticsI extends AnyObject = object,
   /** interface for the methods of the instance */
-  MethodsI extends AnyObject = Object,
+  MethodsI extends AnyObject = object,
 >(
   parameters: {
     /** the schema for the validation */
@@ -763,7 +763,7 @@ export const ModelFactory = <
       let relationshipsCreatedByProperties = 0;
 
       const addCreateToStatement = async (
-        _model: NeogmaModel<any, any, Object, Object>,
+        _model: NeogmaModel<any, any, object, object>,
         dataToUse: Array<CreateData | Instance>,
         /** whether to merge instead of creating the properties */
         mergeProperties?: boolean,
