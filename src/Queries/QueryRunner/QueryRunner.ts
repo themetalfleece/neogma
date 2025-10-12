@@ -1,24 +1,24 @@
+import { randomUUID } from 'crypto';
 import {
   Driver,
-  QueryResult,
-  Session,
-  Transaction,
-  DateTime as Neo4jDateTime,
   Date as Neo4jDate,
-  Point as Neo4jPoint,
-  Time as Neo4jTime,
+  DateTime as Neo4jDateTime,
+  Duration as Neo4jDuration,
   Integer as Neo4jInteger,
   LocalDateTime as Neo4jLocalDateTime,
   LocalTime as Neo4jLocalTime,
-  Duration as Neo4jDuration,
+  Point as Neo4jPoint,
+  Time as Neo4jTime,
+  QueryResult,
+  Session,
   SessionConfig,
+  Transaction,
 } from 'neo4j-driver';
-import * as uuid from 'uuid';
 import { getRunnable } from '../../Sessions';
-import { AnyWhereI, Where } from '../Where/Where';
 import { trimWhitespace } from '../../utils/string';
-import { QueryBuilder } from '../QueryBuilder';
 import { Literal } from '../Literal';
+import { QueryBuilder } from '../QueryBuilder';
+import { AnyWhereI, Where } from '../Where/Where';
 
 type AnyObject = Record<string, any>;
 
@@ -338,7 +338,7 @@ export class QueryRunner {
         if (existingSessionIdentifier) {
           sessionIdentifier = existingSessionIdentifier;
         } else {
-          sessionIdentifier = uuid.v4();
+          sessionIdentifier = randomUUID();
           this.sessionIdentifiers.set(session, sessionIdentifier);
         }
 

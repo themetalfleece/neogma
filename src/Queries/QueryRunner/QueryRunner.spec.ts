@@ -1,7 +1,7 @@
+import { randomUUID as uuid } from 'crypto';
 import * as dotenv from 'dotenv';
 import { QueryRunner } from '..';
 import { Neogma } from '../..';
-import * as uuid from 'uuid';
 
 const { getResultProperties } = QueryRunner;
 
@@ -25,12 +25,12 @@ describe('create', () => {
     const label = 'LabelOfQueryRunnerCreate';
     const data = [
       {
-        id: uuid.v4(),
-        name: uuid.v4(),
+        id: uuid(),
+        name: uuid(),
       },
       {
-        id: uuid.v4(),
-        name: uuid.v4(),
+        id: uuid(),
+        name: uuid(),
       },
     ];
     await neogma.queryRunner.create({

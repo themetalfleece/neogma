@@ -1,5 +1,5 @@
-import { Neogma } from './Neogma';
 import * as dotenv from 'dotenv';
+import { Neogma } from './Neogma';
 import { TEMPORARY_DB_PREFIX } from './utils/temp';
 
 describe('Neogma', () => {
@@ -14,12 +14,12 @@ describe('Neogma', () => {
     });
 
     await neogma.verifyConnectivity();
-  });
+  }, 30000);
 
   afterAll(async () => {
     await neogma.clearAllTempDatabases();
     await neogma.driver.close();
-  });
+  }, 30000);
 
   it('should be defined', () => {
     expect(neogma).toBeDefined();

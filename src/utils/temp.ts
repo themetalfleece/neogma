@@ -1,4 +1,4 @@
-import * as uuid from 'uuid';
+import { randomUUID } from 'crypto';
 import neo4j, { Driver, QueryResult, Session } from 'neo4j-driver';
 
 export const TEMPORARY_DB_PREFIX = 'tempneogmadb';
@@ -40,7 +40,7 @@ const deleteDatabaseUserAndRole = async (
 };
 
 export const createTempDatabase = async (driver: Driver) => {
-  const sessionId = uuid.v4().replace(/-/g, '');
+  const sessionId = randomUUID().replace(/-/g, '');
   const currentTimestamp = getCurrentTimestamp();
   const database = `${TEMPORARY_DB_PREFIX}${sessionId}${currentTimestamp}`;
 
