@@ -1,14 +1,12 @@
-import * as dotenv from 'dotenv';
+import { randomUUID as uuid } from 'crypto';
 import { QueryRunner } from '..';
 import { Neogma } from '../..';
-import * as uuid from 'uuid';
 
 const { getResultProperties } = QueryRunner;
 
 let neogma: Neogma;
 
 beforeAll(async () => {
-  dotenv.config();
   neogma = new Neogma({
     url: process.env.NEO4J_URL ?? '',
     username: process.env.NEO4J_USERNAME ?? '',
@@ -25,12 +23,12 @@ describe('create', () => {
     const label = 'LabelOfQueryRunnerCreate';
     const data = [
       {
-        id: uuid.v4(),
-        name: uuid.v4(),
+        id: uuid(),
+        name: uuid(),
       },
       {
-        id: uuid.v4(),
-        name: uuid.v4(),
+        id: uuid(),
+        name: uuid(),
       },
     ];
     await neogma.queryRunner.create({

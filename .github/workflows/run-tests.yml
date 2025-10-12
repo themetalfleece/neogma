@@ -12,23 +12,36 @@ jobs:
   runTests:
     runs-on: ubuntu-latest
 
-    env:
-      NEO4J_PASSWORD: cicicici
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Run neo4j
-        run: docker run -d --restart always --publish=7474:7474 --publish=7687:7687 --env NEO4J_AUTH=neo4j/$NEO4J_PASSWORD neo4j:5.8.0
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'yarn'
+
+      - name: Start Neo4j with Docker Compose
+        run: docker compose up -d
+
       - name: Install dependencies
-        run: yarn
-      - name: Wait for neo4j
+        run: yarn install --frozen-lockfile
+
+      - name: Wait for Neo4j
         uses: ifaxity/wait-on-action@v1.1.0
         with:
           resource: http://localhost:7474
+          timeout: 60000
+
       - name: Run tests
-        run: |
-          export NEO4J_URL="bolt://localhost:7687"
-          export NEO4J_USERNAME="neo4j"
-          export NEO4J_PASSWORD="$NEO4J_PASSWORD"
-          yarn test
+        env:
+          CI: true
+          NEO4J_URL: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: password
+        run: yarn test
+
+      - name: Stop Neo4j
+        if: always()
+        run: docker compose down -v

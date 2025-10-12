@@ -1,12 +1,10 @@
 import { Neogma } from './Neogma';
-import * as dotenv from 'dotenv';
 import { TEMPORARY_DB_PREFIX } from './utils/temp';
 
 describe('Neogma', () => {
   let neogma: Neogma;
 
   beforeAll(async () => {
-    dotenv.config();
     neogma = await Neogma.fromTempDatabase({
       url: process.env.NEO4J_URL ?? '',
       username: process.env.NEO4J_USERNAME ?? '',
@@ -14,12 +12,12 @@ describe('Neogma', () => {
     });
 
     await neogma.verifyConnectivity();
-  });
+  }, 30000);
 
   afterAll(async () => {
     await neogma.clearAllTempDatabases();
     await neogma.driver.close();
-  });
+  }, 30000);
 
   it('should be defined', () => {
     expect(neogma).toBeDefined();

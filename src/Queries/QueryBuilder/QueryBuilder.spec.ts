@@ -1,13 +1,9 @@
-/* eslint-disable @typescript-eslint/no-empty-interface */
-import { QueryBuilder } from './QueryBuilder';
-import { Neogma } from '../../Neogma';
-import * as dotenv from 'dotenv';
 import { ModelFactory, neo4jDriver, NeogmaInstance } from '../..';
 import { ModelRelatedNodesI } from '../../ModelOps';
+import { Neogma } from '../../Neogma';
 import { Literal } from '../Literal';
 import { Op } from '../Where';
-
-dotenv.config();
+import { QueryBuilder } from './QueryBuilder';
 
 const neogma = new Neogma({
   url: process.env.NEO4J_URL ?? '',

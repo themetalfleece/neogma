@@ -1,20 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-empty-interface */
-import { Neogma } from '../Neogma';
-import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
-import * as dotenv from 'dotenv';
-import { QueryRunner, UpdateOp } from '../Queries/QueryRunner';
+
+import { randomUUID as uuid } from 'crypto';
 import { neo4jDriver, NeogmaModel } from '../index';
+import { Neogma } from '../Neogma';
 import { Op, QueryBuilder } from '../Queries';
-import * as uuid from 'uuid';
+import { QueryRunner, UpdateOp } from '../Queries/QueryRunner';
+import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from './ModelOps';
 
 const { getResultProperties } = QueryRunner;
 
 let neogma: Neogma;
 
 beforeAll(async () => {
-  dotenv.config();
   neogma = new Neogma({
     url: process.env.NEO4J_URL ?? '',
     username: process.env.NEO4J_USERNAME ?? '',
@@ -195,8 +192,8 @@ describe('ModelFactory', () => {
 
     const Orders = ModelFactory<
       OrderAttributesI,
-      Object,
-      Object,
+      object,
+      object,
       OrdersMethodsI
     >(
       {
@@ -222,8 +219,8 @@ describe('ModelFactory', () => {
     Orders.prototype.foo = () => 'bar';
 
     const order = Orders.build({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     expect(order.foo()).toBe('bar');
@@ -277,7 +274,7 @@ describe('createOne', () => {
     );
 
     const orderData: OrderAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'My Order',
       optionalWillBeSet: 'set',
     };
@@ -305,18 +302,18 @@ describe('createOne', () => {
 
   it('creates nodes of a Model and associated nodes and associates by a where condition', async () => {
     const existingOrderData: OrderAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'My Order 1',
     };
     const existingOrder = await Orders.createOne(existingOrderData);
 
     const userData: UserAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'My User',
       age: 10,
     };
     const orderToAssociateData: OrderAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'My Order 2',
     };
 
@@ -442,12 +439,12 @@ describe('createOne', () => {
     expect(Orders).toBeTruthy();
 
     const childOrderData: OrderAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'Child Order',
     };
 
     const parentOrderData: OrderAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'Parent Order',
     };
 
@@ -543,10 +540,10 @@ describe('createMany', () => {
 
     const existingOrders = await Orders.createMany([
       {
-        id: uuid.v4(),
+        id: uuid(),
       },
       {
-        id: uuid.v4(),
+        id: uuid(),
       },
     ]);
 
@@ -554,11 +551,11 @@ describe('createMany', () => {
       typeof Orders.createMany
     >[0] = [
       {
-        id: uuid.v4(),
+        id: uuid(),
         Parent: {
           properties: [
             {
-              id: uuid.v4(),
+              id: uuid(),
               Parent: {
                 where: {
                   params: {
@@ -568,11 +565,11 @@ describe('createMany', () => {
               },
             },
             {
-              id: uuid.v4(),
+              id: uuid(),
               Parent: {
                 properties: [
                   {
-                    id: uuid.v4(),
+                    id: uuid(),
                   },
                 ],
                 where: {
@@ -583,7 +580,7 @@ describe('createMany', () => {
               },
             },
             {
-              id: uuid.v4(),
+              id: uuid(),
             },
           ],
           where: {
@@ -610,7 +607,7 @@ describe('createMany', () => {
 describe('findOne', () => {
   it('finds one', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
+      id: uuid(),
       name: 'user1',
     });
 
@@ -627,7 +624,7 @@ describe('findOne', () => {
 
   it('finds many plain', async () => {
     const userData = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'user1',
     };
     const user = await Users.createOne(userData);
@@ -648,12 +645,12 @@ describe('findOne', () => {
 describe('findMany', () => {
   it('finds many', async () => {
     const user1 = await Users.createOne({
-      id: uuid.v4(),
+      id: uuid(),
       name: 'user1',
     });
 
     const user2 = await Users.createOne({
-      id: uuid.v4(),
+      id: uuid(),
       name: 'user2',
     });
 
@@ -674,13 +671,13 @@ describe('findMany', () => {
 
   it('finds many plain', async () => {
     const user1Data = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'user1',
     };
     const user1 = await Users.createOne(user1Data);
 
     const user2Data = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'user2',
     };
     const user2 = await Users.createOne(user2Data);
@@ -713,9 +710,9 @@ describe('addRelationships', () => {
       id: string;
     };
 
-    type OrdersRelatedNodesI = Object;
-    type OrdersMethodsI = Object;
-    type OrdersStaticsI = Object;
+    type OrdersRelatedNodesI = object;
+    type OrdersMethodsI = object;
+    type OrdersStaticsI = object;
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -853,12 +850,12 @@ describe('addRelationships', () => {
 
     // create a user node and associate it with both associations
     const userWithOrdersData: Parameters<(typeof Users)['createOne']>[0] = {
-      id: uuid.v4(),
+      id: uuid(),
       name: 'User',
       MoreOrders: {
         properties: [
           {
-            id: uuid.v4(),
+            id: uuid(),
             name: 'More Order',
             More: true,
           },
@@ -867,7 +864,7 @@ describe('addRelationships', () => {
       Orders: {
         properties: [
           {
-            id: uuid.v4(),
+            id: uuid(),
             name: 'Order',
             Rating: 4,
           },
@@ -944,7 +941,7 @@ describe('addRelationships', () => {
 
 describe('build', () => {
   it('builds an instance from an existing node', async () => {
-    const userId = uuid.v4();
+    const userId = uuid();
 
     await Users.createOne({
       id: userId,
@@ -971,7 +968,7 @@ describe('build', () => {
       status: 'existing',
     });
 
-    const userName = uuid.v4();
+    const userName = uuid();
     userInstance.name = userName;
 
     await userInstance.save();
@@ -1003,8 +1000,8 @@ describe('build', () => {
 describe('buildFromRecord', () => {
   it('builds an instance from a query result record', async () => {
     const orderData: OrderAttributesI = {
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     };
 
     await Orders.createOne(orderData);
@@ -1032,20 +1029,20 @@ describe('buildFromRecord', () => {
 describe('save', () => {
   it('throws an error if update fails', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
+      id: uuid(),
       name: 'User',
     });
 
     await user.save();
 
     // change the id of the user, so saving should fail
-    user.id = uuid.v4();
+    user.id = uuid();
 
-    await expect(user.save()).rejects.toThrowError();
+    await expect(user.save()).rejects.toThrow();
   });
 
   it('does not save if there are no changes', async () => {
-    const userId = uuid.v4();
+    const userId = uuid();
 
     await Users.createOne({
       id: userId,
@@ -1078,7 +1075,7 @@ describe('save', () => {
 
 describe('updateOpRemove', () => {
   it('removes a property from an existing node', async () => {
-    const id = uuid.v4();
+    const id = uuid();
 
     const user = await Users.createOne({
       id: id,
@@ -1168,7 +1165,7 @@ describe('beforeCreate', () => {
       }
     };
 
-    const userId = uuid.v4();
+    const userId = uuid();
 
     const user = Users.build({
       id: userId,
@@ -1197,9 +1194,9 @@ describe('beforeCreate', () => {
       id: string;
     };
 
-    type OrdersRelatedNodesI = Object;
-    type OrdersMethodsI = Object;
-    type OrdersStaticsI = Object;
+    type OrdersRelatedNodesI = object;
+    type OrdersMethodsI = object;
+    type OrdersStaticsI = object;
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -1312,8 +1309,8 @@ describe('beforeCreate', () => {
       neogma,
     );
 
-    const orderId = uuid.v4();
-    const userId = uuid.v4();
+    const orderId = uuid();
+    const userId = uuid();
     const orderName = 'Order' + Math.random();
 
     Users.beforeCreate = (user) => {
@@ -1438,7 +1435,7 @@ describe('beforeDelete', () => {
       beforeDeleteUserId = user.id;
     };
 
-    const userId = uuid.v4();
+    const userId = uuid();
 
     const user = Users.build({
       id: userId,
@@ -1461,9 +1458,9 @@ describe('relateTo', () => {
       id: string;
     };
 
-    type OrdersRelatedNodesI = Object;
-    type OrdersMethodsI = Object;
-    type OrdersStaticsI = Object;
+    type OrdersRelatedNodesI = object;
+    type OrdersMethodsI = object;
+    type OrdersStaticsI = object;
 
     type OrdersInstance = NeogmaInstance<
       OrderAttributesI,
@@ -1557,13 +1554,13 @@ describe('relateTo', () => {
     );
 
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     await user.relateTo({
@@ -1679,13 +1676,13 @@ describe('relateTo', () => {
     );
 
     const parent = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const child = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     await child.relateTo({
@@ -1773,13 +1770,13 @@ describe('relateTo', () => {
     );
 
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     await user.relateTo({
@@ -1821,13 +1818,13 @@ describe('relateTo', () => {
 
   it('throws if property validation fails', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     await expect(
@@ -1840,7 +1837,7 @@ describe('relateTo', () => {
           Rating: -1,
         },
       }),
-    ).rejects.toThrowError();
+    ).rejects.toThrow();
 
     await expect(
       user.relateTo({
@@ -1853,20 +1850,20 @@ describe('relateTo', () => {
           rating: 5,
         },
       }),
-    ).rejects.toThrowError();
+    ).rejects.toThrow();
   });
 });
 
 describe('findRelationships', () => {
   it('method: gets all the relationships of an instance', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order1 = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const relationship1Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
@@ -1874,8 +1871,8 @@ describe('findRelationships', () => {
         rating: 3,
       };
     const order2 = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
     const relationship2Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
       {
@@ -1930,13 +1927,13 @@ describe('findRelationships', () => {
 
   it('method: the relationships of an instance with a limit', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order1 = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const relationship1Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
@@ -1944,8 +1941,8 @@ describe('findRelationships', () => {
         rating: 3,
       };
     const order2 = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
     const relationship2Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
       {
@@ -1985,13 +1982,13 @@ describe('findRelationships', () => {
 
   it('static: gets all the relationships via where params', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order1 = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const relationship1Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
@@ -1999,8 +1996,8 @@ describe('findRelationships', () => {
         rating: 3,
       };
     const order2 = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
     const relationship2Properties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
       {
@@ -2062,13 +2059,13 @@ describe('findRelationships', () => {
 describe('deleteRelationships', () => {
   it('method: gets all the relationships of an instance', async () => {
     const user = await Users.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const order = await Orders.createOne({
-      id: uuid.v4(),
-      name: uuid.v4(),
+      id: uuid(),
+      name: uuid(),
     });
 
     const relationshipProperties: UsersRelatedNodesI['Orders']['RelationshipProperties'] =
@@ -2380,7 +2377,7 @@ describe('Neo4jSupportedTypes', () => {
     );
 
     const userData: UserAttributesI = {
-      id: uuid.v4(),
+      id: uuid(),
       number: 25,
       integer: new neo4jDriver.types.Integer(10, 10),
       string: 'John',
