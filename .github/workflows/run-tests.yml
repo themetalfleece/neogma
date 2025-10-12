@@ -39,6 +39,7 @@ jobs:
           NEO4J_URL: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: password
+          DOTENV_CONFIG_SILENT: true
         run: yarn test
 
       - name: Stop Neo4j
