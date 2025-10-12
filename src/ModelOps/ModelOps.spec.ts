@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { randomUUID as uuid } from 'crypto';
-import * as dotenv from 'dotenv';
 import { neo4jDriver, NeogmaModel } from '../index';
 import { Neogma } from '../Neogma';
 import { Op, QueryBuilder } from '../Queries';
@@ -13,7 +12,6 @@ const { getResultProperties } = QueryRunner;
 let neogma: Neogma;
 
 beforeAll(async () => {
-  dotenv.config();
   neogma = new Neogma({
     url: process.env.NEO4J_URL ?? '',
     username: process.env.NEO4J_USERNAME ?? '',

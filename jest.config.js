@@ -1,6 +1,8 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node', // For a detailed explanation regarding each configuration property, visit:
+  testEnvironment: 'node',
+  setupFiles: ['<rootDir>/src/test/setupTests.ts'],
+  // For a detailed explanation regarding each configuration property, visit:
 
   // https://jestjs.io/docs/en/configuration.html
 

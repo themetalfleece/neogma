@@ -1,4 +1,3 @@
-import * as dotenv from 'dotenv';
 import { Neogma } from './Neogma';
 import { TEMPORARY_DB_PREFIX } from './utils/temp';
 
@@ -6,7 +5,6 @@ describe('Neogma', () => {
   let neogma: Neogma;
 
   beforeAll(async () => {
-    dotenv.config();
     neogma = await Neogma.fromTempDatabase({
       url: process.env.NEO4J_URL ?? '',
       username: process.env.NEO4J_USERNAME ?? '',
