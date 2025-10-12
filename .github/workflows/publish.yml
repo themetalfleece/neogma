@@ -18,9 +18,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'yarn'
+
       - name: Install dependencies
-        run: yarn
+        run: yarn install --frozen-lockfile
+
       - name: Build
         run: yarn build
       - name: Bump version
@@ -42,10 +50,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
       - name: Install codedoc
-        run: |
-          npm i -g @codedoc/cli
+        run: npm i -g @codedoc/cli
+
       - name: Install dependencies
         run: |
           cd documentation/.codedoc
@@ -61,7 +75,7 @@ jobs:
           cp documentation/index.html /tmp/neogma/index.html
           cp documentation/favicon.ico /tmp/neogma/favicon.ico
       - name: Checkout docs
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: docs
       - name: Push built files
