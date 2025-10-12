@@ -18,7 +18,7 @@ Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and 
   - [Basic Usage](#basic-usage)
 - [Development](#development)
   - [Prerequisites](#prerequisites)
-  - [Setting up Yarn](#setting-up-yarn)
+  - [Setting up Node.js and Yarn](#setting-up-nodejs-and-yarn)
   - [Setting up Neo4j](#setting-up-neo4j)
     - [Using Docker Compose (Recommended)](#using-docker-compose-recommended)
     - [Manual Neo4j Installation](#manual-neo4j-installation)
@@ -183,10 +183,20 @@ All the user-specified values are automatically used in the query with bind para
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (managed via [nvm](https://github.com/nvm-sh/nvm) recommended).
-- [Docker](https://www.docker.com/) and Docker Compose.
+- [nvm](https://github.com/nvm-sh/nvm), which will install node.js
+- [Docker](https://www.docker.com/) and Docker Compose
 
-### Setting up Yarn
+### Setting up Node.js and Yarn
+
+**Activate the project's Node.js version:**
+
+```bash
+nvm use
+```
+
+This will automatically use the Node.js version specified in `.nvmrc`.
+
+**Enable Yarn via Corepack:**
 
 ```bash
 corepack enable yarn
