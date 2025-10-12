@@ -1,38 +1,32 @@
 ![neogma logo](https://themetalfleece.github.io/neogma/assets/logo-text-horizontal.svg)
 
-Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and flexible node and relationship operations
+<h3 align="center">A powerful Neo4j OGM for Node.js & TypeScript</h3>
 
-[![npm version](https://badgen.net/npm/v/neogma)](https://www.npmjs.com/package/neogma)
-[![npm monthly downloads](https://badgen.net/npm/dm/neogma)](https://www.npmjs.com/package/neogma)
-[![types includes](https://badgen.net/npm/types/tslib)](https://www.typescriptlang.org/)
-![license MIT](https://badgen.net/github/license/themetalfleece/neogma)
-[![Tests](https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml/badge.svg?branch=master)](https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml)
+<p align="center">
+  Build graph applications with ease using type-safe models, flexible query builders, and automatic relationship management
+</p>
 
-## Table of Contents
+<p align="center">
+  <a href="https://www.npmjs.com/package/neogma"><img src="https://badgen.net/npm/v/neogma" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/neogma"><img src="https://badgen.net/npm/dm/neogma" alt="npm downloads"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://badgen.net/npm/types/tslib" alt="TypeScript"></a>
+  <a href="https://github.com/themetalfleece/neogma/blob/master/LICENSE"><img src="https://badgen.net/github/license/themetalfleece/neogma" alt="License"></a>
+  <a href="https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml"><img src="https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml/badge.svg?branch=master" alt="Tests"></a>
+</p>
 
-- [Table of Contents](#table-of-contents)
-- [Overview](#overview)
-- [Installation](#installation)
-- [Documentation](#documentation)
-- [Examples](#examples)
-  - [Basic Usage](#basic-usage)
-- [Development](#development)
-  - [Prerequisites](#prerequisites)
-  - [Setting up Node.js and Yarn](#setting-up-nodejs-and-yarn)
-  - [Setting up Neo4j](#setting-up-neo4j)
-    - [Using Docker Compose (Recommended)](#using-docker-compose-recommended)
-    - [Manual Neo4j Installation](#manual-neo4j-installation)
-  - [Running Tests](#running-tests)
-  - [Development Workflow](#development-workflow)
-- [Acknowledgements](#acknowledgements)
+---
 
-## Overview
+## Why Neogma?
 
-Neogma uses Model definitions to simplify and automate lots of operations. Alternatively, a flexible and fully-fletched query builder and a query runner is also provided for running operations directly with Javascript objects, without a Model definition.
+- 🔷 **Fully Type-Safe** - Built-in TypeScript support with complete type inference
+- ⚡ **Flexible** - Use Models, Query Builders, or raw Cypher queries
+- 🔗 **Automatic Relationships** - Create and manage complex graph structures effortlessly  
+- ✅ **Validation** - Built-in schema validation for your data models
+- 🚀 **Production Ready** - Battle-tested with comprehensive test coverage
 
-By using Typescript, a user can also benefit from Neogma's type safety in all its parts. The types are built-in and used in neogma's core, so no external typings are needed.
+## Quick Start
 
-## Installation
+### Installation
 
 ```bash
 npm i neogma
@@ -42,13 +36,60 @@ yarn add neogma
 pnpm i neogma
 ```
 
+### Basic Example
+
+```js
+const { Neogma, ModelFactory } = require('neogma');
+
+// Connect to Neo4j
+const neogma = new Neogma({
+  url: 'bolt://localhost:7687',
+  username: 'neo4j',
+  password: 'password',
+});
+
+// Define a model
+const User = ModelFactory({
+  label: 'User',
+  schema: {
+    name: { type: 'string', required: true },
+    email: { type: 'string', required: true },
+  },
+}, neogma);
+
+// Create and query
+const user = await User.createOne({
+  name: 'Alice',
+  email: 'alice@example.com',
+});
+
+const found = await User.findOne({ where: { email: 'alice@example.com' } });
+```
+
+**[View full documentation →](https://themetalfleece.github.io/neogma)**
+
+---
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Examples](#examples)
+- [Documentation](#documentation)
+- [Development](#development)
+- [Acknowledgements](#acknowledgements)
+
+---
+
 ## Documentation
 
-Full documentation is available at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma)
+Full documentation is available at **[themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma)**
+
+---
 
 ## Examples
 
-### Basic Usage
+### Creating and Updating Nodes
 
 ```js
 const { Neogma, ModelFactory } = require('neogma');
