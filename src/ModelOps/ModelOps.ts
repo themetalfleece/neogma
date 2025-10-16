@@ -299,6 +299,8 @@ interface NeogmaModelStaticsI<
     };
     /** a limit to apply to the fetched relationships */
     limit?: number;
+    /** skip the first n relationships */
+    skip?: number;
     /** variable length relationship: minimum hops */
     minHops?: number;
     /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
@@ -371,6 +373,8 @@ interface NeogmaInstanceMethodsI<
     };
     /** a limit to apply to the fetched relationships */
     limit?: number;
+    /** skip the first n relationships */
+    skip?: number;
     session?: GenericConfiguration['session'];
   }) => Promise<
     Array<{
@@ -1492,7 +1496,7 @@ export const ModelFactory = <
     >(
       params: Parameters<ModelStaticsI['findRelationships']>[0],
     ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
-      const { alias, where, limit, session, minHops, maxHops } = params;
+      const { alias, where, limit, skip, session, minHops, maxHops } = params;
 
       const identifiers = {
         source: 'source',
@@ -1530,6 +1534,10 @@ export const ModelFactory = <
         .return(Object.values(identifiers));
       if (limit) {
         queryBuilder.limit(limit);
+      }
+
+      if (skip) {
+        queryBuilder.skip(skip);
       }
 
       const res = await queryBuilder.run(queryRunner, session);
@@ -1609,7 +1617,7 @@ export const ModelFactory = <
         relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
       }>
     > {
-      const { where, alias, limit, session } = params;
+      const { where, alias, limit, skip, session } = params;
       const primaryKeyField = Model.assertPrimaryKeyField(
         modelPrimaryKeyField,
         'relateTo',
@@ -1618,6 +1626,7 @@ export const ModelFactory = <
       const res = await Model.findRelationships<Alias>({
         alias,
         limit,
+        skip,
         session,
         where: {
           relationship: where?.relationship,
