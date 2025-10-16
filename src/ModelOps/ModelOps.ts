@@ -1532,12 +1532,11 @@ export const ModelFactory = <
           ],
         })
         .return(Object.values(identifiers));
-      if (limit) {
-        queryBuilder.limit(limit);
-      }
-
       if (skip) {
         queryBuilder.skip(skip);
+      }
+      if (limit) {
+        queryBuilder.limit(limit);
       }
 
       const res = await queryBuilder.run(queryRunner, session);
