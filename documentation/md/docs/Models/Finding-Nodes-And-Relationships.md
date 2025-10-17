@@ -82,6 +82,8 @@ const relationships = await Users.findRelationships({
     },
     /* --> (optional) limits the query. It's useful when the purpose is to find whether a relationship exists */
     limit: 1,
+    /* --> (optional) skips the specified number of records. Useful in combination with 'limit' for pagination */
+    skip: 10,
     /* --> (optional) minimum hops for a variable length relationship */
     minHops: 1,
     /* --> (optional) maximum hops for a variable length relationship. The value Infinity can be used for no limit on the max hops */
@@ -116,6 +118,8 @@ const relationships = await user.findRelationships({
     },
     /* --> (optional) limits the query. It's useful when the purpose is to find whether a relationship exists */
     limit: 1,
+    /* --> (optional) skips the specified number of records. Useful in combination with 'limit' for pagination */
+    skip: 10,
     /* --> (optional) minimum hops for a variable length relationship */
     minHops: 1,
     /* --> (optional) maximum hops for a variable length relationship. The value Infinity can be used for no limit on the max hops */
