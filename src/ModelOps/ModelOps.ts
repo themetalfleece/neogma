@@ -1543,7 +1543,8 @@ export const ModelFactory = <
     >(
       params: Parameters<ModelStaticsI['findRelationships']>[0],
     ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
-      const { alias, where, limit, skip, session, minHops, maxHops, order } = params;
+      const { alias, where, limit, skip, session, minHops, maxHops, order } =
+        params;
 
       const identifiers = {
         source: 'source',
@@ -1556,28 +1557,27 @@ export const ModelFactory = <
       );
       const relationshipModel = Model.getRelationshipModel(relationship.model);
 
-      const queryBuilder = new QueryBuilder()
-        .match({
-          related: [
-            {
-              model: Model,
-              where: where?.source,
-              identifier: identifiers.source,
-            },
-            {
-              ...relationship,
-              where: where?.relationship,
-              identifier: identifiers.relationship,
-              minHops,
-              maxHops,
-            },
-            {
-              label: relationshipModel.getLabel(),
-              where: where?.target,
-              identifier: identifiers.target,
-            },
-          ],
-        });
+      const queryBuilder = new QueryBuilder().match({
+        related: [
+          {
+            model: Model,
+            where: where?.source,
+            identifier: identifiers.source,
+          },
+          {
+            ...relationship,
+            where: where?.relationship,
+            identifier: identifiers.relationship,
+            minHops,
+            maxHops,
+          },
+          {
+            label: relationshipModel.getLabel(),
+            where: where?.target,
+            identifier: identifiers.target,
+          },
+        ],
+      });
 
       if (order) {
         queryBuilder.orderBy(

@@ -2325,10 +2325,10 @@ describe('findRelationships', () => {
     });
 
     expect(relationships.length).toBe(2);
-    
+
     expect(relationships[0].relationship.rating).toBe(5);
     expect(relationships[0].target.id).toBe(orders[4].id);
-    
+
     expect(relationships[1].relationship.rating).toBe(4);
     expect(relationships[1].target.id).toBe(orders[3].id);
   });
@@ -2366,7 +2366,7 @@ describe('findRelationships', () => {
     expect(relationships.length).toBe(2);
     expect(relationships[0].relationship.rating).toBe(3);
     expect(relationships[0].target.id).toBe(orders[2].id);
-    
+
     expect(relationships[1].relationship.rating).toBe(2);
     expect(relationships[1].target.id).toBe(orders[1].id);
   });
