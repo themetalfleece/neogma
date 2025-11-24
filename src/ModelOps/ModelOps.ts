@@ -306,6 +306,30 @@ interface NeogmaModelStaticsI<
     /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
     maxHops?: number;
     session?: GenericConfiguration['session'];
+    /** order the results */
+    order?: Array<
+      | {
+          identifier: 'source';
+          property: Extract<keyof Properties, string>;
+          direction: 'ASC' | 'DESC';
+        }
+      | {
+          identifier: 'target';
+          property: Extract<
+            keyof RelatedNodesToAssociateI[Alias]['Instance'],
+            string
+          >;
+          direction: 'ASC' | 'DESC';
+        }
+      | {
+          identifier: 'relationship';
+          property: Extract<
+            keyof RelatedNodesToAssociateI[Alias]['RelationshipProperties'],
+            string
+          >;
+          direction: 'ASC' | 'DESC';
+        }
+    >;
   }) => Promise<
     Array<{
       source: Instance;
@@ -376,6 +400,29 @@ interface NeogmaInstanceMethodsI<
     /** skip the first n relationships */
     skip?: number;
     session?: GenericConfiguration['session'];
+    order?: Array<
+      | {
+          identifier: 'source';
+          property: Extract<keyof Properties, string>;
+          direction: 'ASC' | 'DESC';
+        }
+      | {
+          identifier: 'target';
+          property: Extract<
+            keyof RelatedNodesToAssociateI[Alias]['Instance'],
+            string
+          >;
+          direction: 'ASC' | 'DESC';
+        }
+      | {
+          identifier: 'relationship';
+          property: Extract<
+            keyof RelatedNodesToAssociateI[Alias]['RelationshipProperties'],
+            string
+          >;
+          direction: 'ASC' | 'DESC';
+        }
+    >;
   }) => Promise<
     Array<{
       source: Instance;
@@ -1496,7 +1543,7 @@ export const ModelFactory = <
     >(
       params: Parameters<ModelStaticsI['findRelationships']>[0],
     ): Promise<ReturnType<ModelStaticsI['findRelationships']>> {
-      const { alias, where, limit, skip, session, minHops, maxHops } = params;
+      const { alias, where, limit, skip, session, minHops, maxHops, order } = params;
 
       const identifiers = {
         source: 'source',
@@ -1530,8 +1577,20 @@ export const ModelFactory = <
               identifier: identifiers.target,
             },
           ],
-        })
-        .return(Object.values(identifiers));
+        });
+
+      if (order) {
+        queryBuilder.orderBy(
+          order.map((o) => ({
+            identifier: identifiers[o.identifier],
+            direction: o.direction,
+            property: o.property,
+          })),
+        );
+      }
+
+      queryBuilder.return(Object.values(identifiers));
+
       if (skip) {
         queryBuilder.skip(skip);
       }
@@ -1616,7 +1675,7 @@ export const ModelFactory = <
         relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
       }>
     > {
-      const { where, alias, limit, skip, session } = params;
+      const { where, alias, limit, skip, session, order } = params;
       const primaryKeyField = Model.assertPrimaryKeyField(
         modelPrimaryKeyField,
         'relateTo',
@@ -1627,6 +1686,7 @@ export const ModelFactory = <
         limit,
         skip,
         session,
+        order,
         where: {
           relationship: where?.relationship,
           target: where?.target,
