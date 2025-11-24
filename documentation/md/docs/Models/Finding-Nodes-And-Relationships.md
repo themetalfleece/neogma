@@ -80,6 +80,19 @@ const relationships = await Users.findRelationships({
             rating: 4
         },
     },
+    /* --> (optional) the order of the results. Identifiers can be 'source', 'target', or 'relationship' */
+    order: [
+        {
+            identifier: 'relationship',
+            property: 'rating',
+            direction: 'DESC',
+        },
+        {
+            identifier: 'target',
+            property: 'date',
+            direction: 'ASC',
+        }
+    ],
     /* --> (optional) limits the query. It's useful when the purpose is to find whether a relationship exists */
     limit: 1,
     /* --> (optional) skips the specified number of records. Useful in combination with 'limit' for pagination */
@@ -116,6 +129,19 @@ const relationships = await user.findRelationships({
             rating: 4
         },
     },
+    /* --> (optional) the order of the results. Identifiers can be 'source', 'target', or 'relationship' */
+    order: [
+        {
+            identifier: 'relationship',
+            property: 'rating',
+            direction: 'DESC',
+        },
+        {
+            identifier: 'target',
+            property: 'date',
+            direction: 'ASC',
+        }
+    ],
     /* --> (optional) limits the query. It's useful when the purpose is to find whether a relationship exists */
     limit: 1,
     /* --> (optional) skips the specified number of records. Useful in combination with 'limit' for pagination */
