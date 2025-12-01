@@ -16,6 +16,9 @@ on:
 jobs:
   publishPackage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,6 +28,9 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'yarn'
+
+      - name: Ensure npm 11.5.1 or later is installed
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -36,14 +42,12 @@ jobs:
           git config --global user.name 'Neogma publisher'
           git config --global user.email 'themetalfleece@users.noreply.github.com'
           npm version ${{ inputs.version }}
+      - name: Publish to npm
+        run: npm publish
       - name: Push
         run: git push
       - name: Push tags
         run: git push --tags
-      - name: Publish to npm
-        uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
 
   publishDocs:
     needs: publishPackage
