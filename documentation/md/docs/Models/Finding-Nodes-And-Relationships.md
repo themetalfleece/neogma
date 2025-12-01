@@ -80,6 +80,19 @@ const relationships = await Users.findRelationships({
             rating: 4
         },
     },
+    /* --> (optional) the order of the results. The 'on' property specifies the entity context: 'source', 'target', or 'relationship' */
+    order: [
+        {
+            on: 'relationship',
+            property: 'rating',
+            direction: 'DESC',
+        },
+        {
+            on: 'target',
+            property: 'date',
+            direction: 'ASC',
+        }
+    ],
     /* --> (optional) limits the query. It's useful when the purpose is to find whether a relationship exists */
     limit: 1,
     /* --> (optional) skips the specified number of records. Useful in combination with 'limit' for pagination */
@@ -116,6 +129,19 @@ const relationships = await user.findRelationships({
             rating: 4
         },
     },
+    /* --> (optional) the order of the results. Use 'on' to apply sorting to the 'source', 'target', or 'relationship' */
+    order: [
+        {
+            on: 'relationship',
+            property: 'rating',
+            direction: 'DESC',
+        },
+        {
+            on: 'target',
+            property: 'date',
+            direction: 'ASC',
+        }
+    ],
     /* --> (optional) limits the query. It's useful when the purpose is to find whether a relationship exists */
     limit: 1,
     /* --> (optional) skips the specified number of records. Useful in combination with 'limit' for pagination */

@@ -2129,6 +2129,281 @@ describe('findRelationships', () => {
     }
   });
 
+  it('method: the relationships of an instance ordered by target property', async () => {
+    const user = await Users.createOne({
+      id: uuid(),
+      name: uuid(),
+    });
+
+    const orderA = await Orders.createOne({
+      id: uuid(),
+      name: 'A_Order',
+    });
+    const orderB = await Orders.createOne({
+      id: uuid(),
+      name: 'B_Order',
+    });
+    const orderC = await Orders.createOne({
+      id: uuid(),
+      name: 'C_Order',
+    });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: orderB.id },
+      properties: { Rating: 1 },
+    });
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: orderA.id },
+      properties: { Rating: 1 },
+    });
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: orderC.id },
+      properties: { Rating: 1 },
+    });
+
+    // Test DESC ordering
+    const relationshipsDesc = await user.findRelationships<'Orders'>({
+      alias: 'Orders',
+      order: [
+        {
+          on: 'target',
+          property: 'name',
+          direction: 'DESC',
+        },
+      ],
+    });
+
+    expect(relationshipsDesc.length).toBe(3);
+    expect(relationshipsDesc[0].target.name).toBe('C_Order');
+    expect(relationshipsDesc[1].target.name).toBe('B_Order');
+    expect(relationshipsDesc[2].target.name).toBe('A_Order');
+
+    // Test ASC ordering
+    const relationshipsAsc = await user.findRelationships<'Orders'>({
+      alias: 'Orders',
+      order: [
+        {
+          on: 'target',
+          property: 'name',
+          direction: 'ASC',
+        },
+      ],
+    });
+
+    expect(relationshipsAsc.length).toBe(3);
+    expect(relationshipsAsc[0].target.name).toBe('A_Order');
+    expect(relationshipsAsc[1].target.name).toBe('B_Order');
+    expect(relationshipsAsc[2].target.name).toBe('C_Order');
+  });
+
+  it('method: the relationships of an instance ordered by relationship property', async () => {
+    const user = await Users.createOne({
+      id: uuid(),
+      name: uuid(),
+    });
+
+    const order1 = await Orders.createOne({ id: uuid(), name: uuid() });
+    const order2 = await Orders.createOne({ id: uuid(), name: uuid() });
+    const order3 = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order1.id },
+      properties: { Rating: 2 },
+    });
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order2.id },
+      properties: { Rating: 5 },
+    });
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order3.id },
+      properties: { Rating: 1 },
+    });
+
+    const relationships = await user.findRelationships<'Orders'>({
+      alias: 'Orders',
+      order: [
+        {
+          on: 'relationship',
+          property: 'rating',
+          direction: 'ASC',
+        },
+      ],
+    });
+
+    expect(relationships.length).toBe(3);
+    expect(relationships[0].relationship.rating).toBe(1);
+    expect(relationships[0].target.id).toBe(order3.id);
+
+    expect(relationships[1].relationship.rating).toBe(2);
+    expect(relationships[1].target.id).toBe(order1.id);
+
+    expect(relationships[2].relationship.rating).toBe(5);
+    expect(relationships[2].target.id).toBe(order2.id);
+  });
+
+  it('static method: relationships ordered by source property', async () => {
+    const user1 = await Users.createOne({
+      id: uuid(),
+      name: 'User_A',
+    });
+    const user2 = await Users.createOne({
+      id: uuid(),
+      name: 'User_B',
+    });
+
+    const commonOrder = await Orders.createOne({
+      id: uuid(),
+      name: 'Common_Order',
+    });
+
+    await user1.relateTo({
+      alias: 'Orders',
+      where: { id: commonOrder.id },
+      properties: { Rating: 5 },
+    });
+    await user2.relateTo({
+      alias: 'Orders',
+      where: { id: commonOrder.id },
+      properties: { Rating: 5 },
+    });
+
+    const relationships = await Users.findRelationships<'Orders'>({
+      alias: 'Orders',
+      where: {
+        target: {
+          id: commonOrder.id,
+        },
+      },
+      order: [
+        {
+          on: 'source',
+          property: 'name',
+          direction: 'DESC',
+        },
+      ],
+    });
+
+    expect(relationships.length).toBe(2);
+    expect(relationships[0].source.name).toBe('User_B');
+    expect(relationships[1].source.name).toBe('User_A');
+  });
+
+  it('method: relationships ordered by property with limit', async () => {
+    const user = await Users.createOne({
+      id: uuid(),
+      name: uuid(),
+    });
+
+    const orders: OrdersInstance[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const order = await Orders.createOne({ id: uuid(), name: `Order_${i}` });
+      orders.push(order);
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: order.id },
+        properties: { Rating: i },
+      });
+    }
+
+    // Fetch top 2 highest rated orders
+    const relationships = await user.findRelationships<'Orders'>({
+      alias: 'Orders',
+      order: [
+        {
+          on: 'relationship',
+          property: 'rating',
+          direction: 'DESC',
+        },
+      ],
+      limit: 2,
+    });
+
+    expect(relationships.length).toBe(2);
+
+    expect(relationships[0].relationship.rating).toBe(5);
+    expect(relationships[0].target.id).toBe(orders[4].id);
+
+    expect(relationships[1].relationship.rating).toBe(4);
+    expect(relationships[1].target.id).toBe(orders[3].id);
+  });
+
+  it('method: relationships ordered by property with skip and limit combined', async () => {
+    const user = await Users.createOne({
+      id: uuid(),
+      name: uuid(),
+    });
+
+    const orders: OrdersInstance[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const order = await Orders.createOne({ id: uuid(), name: `Order_${i}` });
+      orders.push(order);
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: order.id },
+        properties: { Rating: i },
+      });
+    }
+
+    const relationships = await user.findRelationships<'Orders'>({
+      alias: 'Orders',
+      order: [
+        {
+          on: 'relationship',
+          property: 'rating',
+          direction: 'DESC',
+        },
+      ],
+      skip: 2,
+      limit: 2,
+    });
+
+    expect(relationships.length).toBe(2);
+    expect(relationships[0].relationship.rating).toBe(3);
+    expect(relationships[0].target.id).toBe(orders[2].id);
+
+    expect(relationships[1].relationship.rating).toBe(2);
+    expect(relationships[1].target.id).toBe(orders[1].id);
+  });
+
+  it('method: relationships ordered by target property with skip', async () => {
+    const user = await Users.createOne({
+      id: uuid(),
+      name: uuid(),
+    });
+
+    const names = ['A_Order', 'B_Order', 'C_Order', 'D_Order', 'E_Order'];
+    for (const name of names) {
+      const order = await Orders.createOne({ id: uuid(), name });
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: order.id },
+        properties: { Rating: 1 },
+      });
+    }
+
+    const relationships = await user.findRelationships<'Orders'>({
+      alias: 'Orders',
+      order: [
+        {
+          on: 'target',
+          property: 'name',
+          direction: 'ASC',
+        },
+      ],
+      skip: 3,
+    });
+
+    expect(relationships.length).toBe(2);
+    expect(relationships[0].target.name).toBe('D_Order');
+    expect(relationships[1].target.name).toBe('E_Order');
+  });
+
   it('static: gets all the relationships via where params', async () => {
     const user = await Users.createOne({
       id: uuid(),
