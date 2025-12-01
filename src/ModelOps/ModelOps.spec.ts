@@ -2169,7 +2169,7 @@ describe('findRelationships', () => {
       alias: 'Orders',
       order: [
         {
-          identifier: 'target',
+          on: 'target',
           property: 'name',
           direction: 'DESC',
         },
@@ -2186,7 +2186,7 @@ describe('findRelationships', () => {
       alias: 'Orders',
       order: [
         {
-          identifier: 'target',
+          on: 'target',
           property: 'name',
           direction: 'ASC',
         },
@@ -2229,7 +2229,7 @@ describe('findRelationships', () => {
       alias: 'Orders',
       order: [
         {
-          identifier: 'relationship',
+          on: 'relationship',
           property: 'rating',
           direction: 'ASC',
         },
@@ -2282,7 +2282,7 @@ describe('findRelationships', () => {
       },
       order: [
         {
-          identifier: 'source',
+          on: 'source',
           property: 'name',
           direction: 'DESC',
         },
@@ -2316,7 +2316,7 @@ describe('findRelationships', () => {
       alias: 'Orders',
       order: [
         {
-          identifier: 'relationship',
+          on: 'relationship',
           property: 'rating',
           direction: 'DESC',
         },
@@ -2354,7 +2354,7 @@ describe('findRelationships', () => {
       alias: 'Orders',
       order: [
         {
-          identifier: 'relationship',
+          on: 'relationship',
           property: 'rating',
           direction: 'DESC',
         },
@@ -2391,7 +2391,7 @@ describe('findRelationships', () => {
       alias: 'Orders',
       order: [
         {
-          identifier: 'target',
+          on: 'target',
           property: 'name',
           direction: 'ASC',
         },

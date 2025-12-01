@@ -309,12 +309,12 @@ interface NeogmaModelStaticsI<
     /** order the results */
     order?: Array<
       | {
-          identifier: 'source';
+          on: 'source';
           property: Extract<keyof Properties, string>;
           direction: 'ASC' | 'DESC';
         }
       | {
-          identifier: 'target';
+          on: 'target';
           property: Extract<
             keyof RelatedNodesToAssociateI[Alias]['Instance'],
             string
@@ -322,7 +322,7 @@ interface NeogmaModelStaticsI<
           direction: 'ASC' | 'DESC';
         }
       | {
-          identifier: 'relationship';
+          on: 'relationship';
           property: Extract<
             keyof RelatedNodesToAssociateI[Alias]['RelationshipProperties'],
             string
@@ -402,12 +402,12 @@ interface NeogmaInstanceMethodsI<
     session?: GenericConfiguration['session'];
     order?: Array<
       | {
-          identifier: 'source';
+          on: 'source';
           property: Extract<keyof Properties, string>;
           direction: 'ASC' | 'DESC';
         }
       | {
-          identifier: 'target';
+          on: 'target';
           property: Extract<
             keyof RelatedNodesToAssociateI[Alias]['Instance'],
             string
@@ -415,7 +415,7 @@ interface NeogmaInstanceMethodsI<
           direction: 'ASC' | 'DESC';
         }
       | {
-          identifier: 'relationship';
+          on: 'relationship';
           property: Extract<
             keyof RelatedNodesToAssociateI[Alias]['RelationshipProperties'],
             string
@@ -1582,7 +1582,7 @@ export const ModelFactory = <
       if (order) {
         queryBuilder.orderBy(
           order.map((o) => ({
-            identifier: identifiers[o.identifier],
+            identifier: identifiers[o.on],
             direction: o.direction,
             property: o.property,
           })),

@@ -80,15 +80,15 @@ const relationships = await Users.findRelationships({
             rating: 4
         },
     },
-    /* --> (optional) the order of the results. Identifiers can be 'source', 'target', or 'relationship' */
+    /* --> (optional) the order of the results. The 'on' property specifies the entity context: 'source', 'target', or 'relationship' */
     order: [
         {
-            identifier: 'relationship',
+            on: 'relationship',
             property: 'rating',
             direction: 'DESC',
         },
         {
-            identifier: 'target',
+            on: 'target',
             property: 'date',
             direction: 'ASC',
         }
@@ -129,15 +129,15 @@ const relationships = await user.findRelationships({
             rating: 4
         },
     },
-    /* --> (optional) the order of the results. Identifiers can be 'source', 'target', or 'relationship' */
+    /* --> (optional) the order of the results. Use 'on' to apply sorting to the 'source', 'target', or 'relationship' */
     order: [
         {
-            identifier: 'relationship',
+            on: 'relationship',
             property: 'rating',
             direction: 'DESC',
         },
         {
-            identifier: 'target',
+            on: 'target',
             property: 'date',
             direction: 'ASC',
         }
