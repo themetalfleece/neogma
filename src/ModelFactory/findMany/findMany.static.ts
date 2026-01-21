@@ -1,8 +1,8 @@
+import { BindParam } from '../../BindParam/BindParam';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
-import type { Neo4jSupportedProperties } from '../../Queries';
-import { BindParam } from '../../Queries/BindParam/BindParam';
-import { QueryBuilder } from '../../Queries/QueryBuilder';
-import { Where } from '../../Queries/Where';
+import { QueryBuilder } from '../../QueryBuilder';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import { Where } from '../../Where';
 import type { NeogmaInstance } from '../model.types';
 import type { AnyObject } from '../shared.types';
 import type { FindContext, FindManyParams } from './findMany.types';

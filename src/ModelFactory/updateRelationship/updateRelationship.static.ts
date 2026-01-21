@@ -1,8 +1,8 @@
 import type { QueryResult } from 'neo4j-driver';
 
-import type { Neo4jSupportedProperties } from '../../Queries';
-import { QueryBuilder } from '../../Queries';
-import { Where } from '../../Queries/Where';
+import { QueryBuilder } from '../../QueryBuilder';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import { Where } from '../../Where';
 import type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 import type { AnyObject } from '../shared.types';
 import type { UpdateRelationshipParams } from './updateRelationship.types';

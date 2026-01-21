@@ -1,6 +1,6 @@
-import type { Neo4jSupportedProperties } from '../../Queries';
-import type { QueryRunner } from '../../Queries/QueryRunner';
-import type { WhereParamsI } from '../../Queries/Where';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { QueryRunner } from '../../QueryRunner';
+import type { WhereParamsI } from '../../Where';
 import type { NeogmaModel } from '../model.types';
 import type { GenericConfiguration } from '../shared.types';
 

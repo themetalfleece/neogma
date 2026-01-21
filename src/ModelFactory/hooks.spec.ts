@@ -1,7 +1,7 @@
 import { randomUUID as uuid } from 'crypto';
 
-import { QueryBuilder } from '../Queries';
-import { QueryRunner } from '../Queries/QueryRunner';
+import { QueryBuilder } from '../QueryBuilder';
+import { QueryRunner } from '../QueryRunner';
 import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from '.';
 import { closeNeogma, getNeogma } from './testHelpers';
 

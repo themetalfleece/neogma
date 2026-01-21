@@ -1,4 +1,4 @@
-import type { Neo4jSupportedProperties, QueryRunner } from '../../Queries';
+import type { Neo4jSupportedProperties, QueryRunner } from '../../QueryRunner';
 import type {
   CreateDataI,
   NeogmaInstance,

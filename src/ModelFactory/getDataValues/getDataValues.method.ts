@@ -1,4 +1,4 @@
-import type { Neo4jSupportedProperties } from '../../Queries';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { GetDataValuesContext } from './getDataValues.types';
 
 /**

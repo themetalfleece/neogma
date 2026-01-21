@@ -1,4 +1,4 @@
-import type { CreateRelationshipParamsI } from '../../Queries/QueryRunner';
+import type { CreateRelationshipParamsI } from '../../QueryRunner';
 
 export interface CreateRelationshipParams extends CreateRelationshipParamsI {
   assertCreatedRelationships?: number;

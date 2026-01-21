@@ -1,5 +1,5 @@
-import type { Neo4jSupportedTypes } from '../Queries/QueryRunner';
-import type { WhereParamsI } from '../Queries/Where';
+import type { Neo4jSupportedTypes } from '../QueryRunner';
+import type { WhereParamsI } from '../Where';
 import type { AnyObject } from './shared.types';
 
 /** the type of the properties to be added to a relationship */

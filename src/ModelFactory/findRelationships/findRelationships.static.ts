@@ -1,5 +1,5 @@
-import type { Neo4jSupportedProperties } from '../../Queries';
-import { QueryBuilder } from '../../Queries';
+import { QueryBuilder } from '../../QueryBuilder';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
 import type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 import type { AnyObject } from '../shared.types';

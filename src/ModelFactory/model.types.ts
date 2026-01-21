@@ -1,9 +1,9 @@
 import type { QueryResult } from 'neo4j-driver';
 
-import type { Neo4jSupportedProperties } from '../Queries';
-import type { QueryBuilder } from '../Queries/QueryBuilder';
-import type { CreateRelationshipParamsI } from '../Queries/QueryRunner';
-import type { WhereParamsI } from '../Queries/Where';
+import type { QueryBuilder } from '../QueryBuilder';
+import type { Neo4jSupportedProperties } from '../QueryRunner';
+import type { CreateRelationshipParamsI } from '../QueryRunner';
+import type { WhereParamsI } from '../Where';
 import type {
   RelatedNodesCreationParamI,
   RelationshipPropertiesI,
@@ -84,7 +84,7 @@ export type CreateDataI<
 
 // ============ Update Types ============
 
-import type { UpdateTypes } from '../Queries';
+import type { UpdateTypes } from '../QueryRunner';
 
 export type UpdateDataI<Properties> = {
   [K in keyof Properties]?: undefined extends Properties[K]

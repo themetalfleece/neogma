@@ -3,8 +3,8 @@ import { Config, Driver, Session, Transaction } from 'neo4j-driver';
 
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import { NeogmaModel } from './ModelFactory';
-import { QueryBuilder } from './Queries/QueryBuilder';
-import { QueryRunner, Runnable } from './Queries/QueryRunner';
+import { QueryBuilder } from './QueryBuilder';
+import { QueryRunner, Runnable } from './QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import {
   clearAllTempDatabases,

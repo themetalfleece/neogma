@@ -1,4 +1,4 @@
-import type { WhereParamsI } from '../../Queries/Where';
+import type { WhereParamsI } from '../../Where';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 // Re-export RelationshipCrudContext from relateTo since they share the same context

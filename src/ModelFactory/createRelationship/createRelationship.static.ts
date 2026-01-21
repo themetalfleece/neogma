@@ -1,5 +1,5 @@
 import { NeogmaError } from '../../Errors/NeogmaError';
-import { QueryRunner } from '../../Queries/QueryRunner';
+import { QueryRunner } from '../../QueryRunner';
 import type { CreateRelationshipParams } from './createRelationship.types';
 
 /**

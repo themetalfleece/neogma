@@ -1,4 +1,4 @@
-import type { Runnable } from '../Queries/QueryRunner';
+import type { Runnable } from '../QueryRunner';
 
 export type AnyObject = Record<string, any>;
 

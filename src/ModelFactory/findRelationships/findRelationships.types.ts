@@ -1,5 +1,5 @@
-import type { Neo4jSupportedProperties } from '../../Queries';
-import type { WhereParamsI } from '../../Queries/Where';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { WhereParamsI } from '../../Where';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 // Re-export RelationshipCrudContext from relateTo since they share the same context

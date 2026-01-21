@@ -1,6 +1,6 @@
 import { Driver, Session, SessionConfig, Transaction } from 'neo4j-driver';
 
-import { Runnable } from '../Queries/QueryRunner';
+import { Runnable } from '../QueryRunner';
 
 const isTransaction = (tx: any): tx is Transaction =>
   typeof tx?.isOpen?.() === 'boolean';

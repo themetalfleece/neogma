@@ -1,8 +1,9 @@
 import clone from 'clone';
 
 import { Neogma } from '../Neogma';
-import { Neo4jSupportedProperties, QueryBuilder } from '../Queries';
-import type { WhereParamsI } from '../Queries/Where';
+import { QueryBuilder } from '../QueryBuilder';
+import { Neo4jSupportedProperties } from '../QueryRunner';
+import type { WhereParamsI } from '../Where';
 // Import operations from new directories
 import {
   build as buildFn,

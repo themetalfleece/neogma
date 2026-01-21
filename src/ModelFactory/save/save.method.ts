@@ -1,7 +1,7 @@
 import type { QueryResult } from 'neo4j-driver';
 
 import { NeogmaError } from '../../Errors/NeogmaError';
-import type { Neo4jSupportedProperties } from '../../Queries';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { CreateDataI, NeogmaInstance } from '../model.types';
 import type { SaveConfiguration, SaveContext } from './save.types';
 

@@ -1,7 +1,7 @@
 import { NeogmaError } from '../../Errors/NeogmaError';
-import type { Neo4jSupportedProperties } from '../../Queries';
-import { QueryRunner } from '../../Queries/QueryRunner';
-import type { WhereParamsByIdentifierI } from '../../Queries/Where';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import { QueryRunner } from '../../QueryRunner';
+import type { WhereParamsByIdentifierI } from '../../Where';
 import type { AnyObject } from '../shared.types';
 import type { RelateToParams, RelationshipCrudContext } from './relateTo.types';
 

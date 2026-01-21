@@ -1,4 +1,4 @@
-import { QueryRunner } from '../../Queries/QueryRunner';
+import { QueryRunner } from '../../QueryRunner';
 import type { DeleteContext, DeleteParams } from './delete.types';
 
 /**

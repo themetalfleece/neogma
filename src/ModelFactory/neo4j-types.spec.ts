@@ -1,7 +1,7 @@
 import { randomUUID as uuid } from 'crypto';
 
 import { neo4jDriver } from '../index';
-import { QueryRunner } from '../Queries/QueryRunner';
+import { QueryRunner } from '../QueryRunner';
 import { ModelFactory } from '.';
 import { closeNeogma, getNeogma } from './testHelpers';
 

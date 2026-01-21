@@ -1,6 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
-import { QueryRunner } from '../../Queries/QueryRunner';
+import { QueryRunner } from '../../QueryRunner';
 import {
   closeNeogma,
   createOrdersModel,

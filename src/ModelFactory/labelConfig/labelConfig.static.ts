@@ -1,4 +1,4 @@
-import { QueryBuilder } from '../../Queries/QueryBuilder';
+import { QueryBuilder } from '../../QueryBuilder';
 import type { LabelConfigContext } from './labelConfig.types';
 
 /**

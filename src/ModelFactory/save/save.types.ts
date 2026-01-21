@@ -1,4 +1,4 @@
-import type { Neo4jSupportedProperties } from '../../Queries';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaModel } from '../model.types';
 import type { GenericConfiguration } from '../shared.types';
 

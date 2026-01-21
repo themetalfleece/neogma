@@ -1,5 +1,5 @@
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
-import type { Neo4jSupportedProperties } from '../../Queries';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { findMany } from '../findMany';
 import type { FindContext } from '../findMany/findMany.types';
 import type { NeogmaInstance } from '../model.types';

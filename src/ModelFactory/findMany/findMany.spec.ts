@@ -1,6 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
-import { Op } from '../../Queries';
+import { Op } from '../../Where';
 import {
   closeNeogma,
   createOrdersModel,

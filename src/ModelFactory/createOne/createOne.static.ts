@@ -1,4 +1,4 @@
-import type { Neo4jSupportedProperties } from '../../Queries';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { createMany } from '../createMany';
 import type { CreateContext } from '../createMany/createMany.types';
 import type {

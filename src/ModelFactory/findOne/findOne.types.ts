@@ -1,4 +1,4 @@
-import type { WhereParamsI } from '../../Queries/Where';
+import type { WhereParamsI } from '../../Where';
 import type { GenericConfiguration } from '../shared.types';
 
 // Re-export FindContext from findMany since they share the same context

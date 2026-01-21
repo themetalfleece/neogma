@@ -2,7 +2,7 @@ import revalidator from 'revalidator';
 
 import { NeogmaInstanceValidationError } from '../../Errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
-import type { Neo4jSupportedProperties } from '../../Queries';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaModel, RelationshipsI } from '../model.types';
 import type { AnyObject, IValidationSchema } from '../shared.types';
 import type { RelationshipConfigContext } from './relationshipConfig.types';
