@@ -1,8 +1,9 @@
 import { randomUUID as uuid } from 'crypto';
-// Import from Queries index first to ensure proper module initialization
-import { QueryRunner } from '../Queries';
+
 import { NeogmaModel } from '../index';
 import { Neogma } from '../Neogma';
+// Import from Queries index first to ensure proper module initialization
+import { QueryRunner } from '../Queries';
 import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from '.';
 
 const { getResultProperties } = QueryRunner;
@@ -687,9 +688,9 @@ describe('methods this context type safety', () => {
             const valid = this.existing;
 
             // @ts-expect-error - 'nonExistent' does not exist on the instance
-            const invalid = this.nonExistent;
+            void this.nonExistent;
 
-            return valid + String(invalid);
+            return valid;
           },
         },
       },
@@ -721,20 +722,14 @@ describe('methods this context type safety', () => {
         methods: {
           testTypes() {
             // Correct types - should compile
-            const count: number = this.count;
-            const active: boolean = this.active;
+            void (this.count as number);
+            void (this.active as boolean);
 
             // @ts-expect-error - count is number, not string
-            const wrongCount: string = this.count;
+            void (this.count as string);
 
             // @ts-expect-error - active is boolean, not number
-            const wrongActive: number = this.active;
-
-            // Use variables to avoid unused warnings
-            void count;
-            void active;
-            void wrongCount;
-            void wrongActive;
+            void (this.active as number);
           },
         },
       },

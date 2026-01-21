@@ -1,8 +1,9 @@
 import type { QueryResult } from 'neo4j-driver';
+
 import type { Neo4jSupportedProperties } from '../../Queries';
-import type { AnyObject } from '../shared.types';
 import type { NeogmaInstance } from '../model.types';
 import type { InstanceRelationshipContext } from '../relateTo/relateTo.types';
+import type { AnyObject } from '../shared.types';
 import type { InstanceUpdateRelationshipParams } from './updateRelationship.types';
 
 /**

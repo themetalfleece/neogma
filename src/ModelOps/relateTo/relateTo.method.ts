@@ -1,9 +1,9 @@
 import type { Neo4jSupportedProperties } from '../../Queries';
-import type { AnyObject } from '../shared.types';
 import type { NeogmaInstance } from '../model.types';
+import type { AnyObject } from '../shared.types';
 import type {
-  InstanceRelationshipContext,
   InstanceRelateToParams,
+  InstanceRelationshipContext,
 } from './relateTo.types';
 
 /**

@@ -3,7 +3,7 @@ import type { Neo4jSupportedProperties } from '../../Queries';
 import { QueryRunner } from '../../Queries/QueryRunner';
 import type { WhereParamsByIdentifierI } from '../../Queries/Where';
 import type { AnyObject } from '../shared.types';
-import type { RelationshipCrudContext, RelateToParams } from './relateTo.types';
+import type { RelateToParams, RelationshipCrudContext } from './relateTo.types';
 
 /**
  * Creates a relationship using the configuration specified in "relationships".

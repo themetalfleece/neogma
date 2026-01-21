@@ -1,7 +1,8 @@
 import { randomUUID as uuid } from 'crypto';
+
 import {
-  getNeogma,
   closeNeogma,
+  getNeogma,
   ModelFactory,
   ModelRelatedNodesI,
   NeogmaInstance,

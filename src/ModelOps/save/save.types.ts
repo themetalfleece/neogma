@@ -1,6 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../Queries';
-import type { GenericConfiguration } from '../shared.types';
 import type { NeogmaModel } from '../model.types';
+import type { GenericConfiguration } from '../shared.types';
 
 export interface SaveContext<
   Properties extends Neo4jSupportedProperties,

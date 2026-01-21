@@ -1,5 +1,5 @@
-import { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
 import { Neo4jSupportedProperties, NeogmaModel } from '../..';
+import { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
 
 /** returns the given type, while making the given properties required */
 type RequiredProperties<T, P extends keyof T> = T & {

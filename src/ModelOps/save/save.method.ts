@@ -1,8 +1,9 @@
 import type { QueryResult } from 'neo4j-driver';
+
 import { NeogmaError } from '../../Errors/NeogmaError';
 import type { Neo4jSupportedProperties } from '../../Queries';
 import type { CreateDataI, NeogmaInstance } from '../model.types';
-import type { SaveContext, SaveConfiguration } from './save.types';
+import type { SaveConfiguration, SaveContext } from './save.types';
 
 /**
  * Saves an instance to the database. If it's new it creates it, and if it already exists it edits it.

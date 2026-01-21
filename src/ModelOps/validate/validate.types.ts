@@ -1,6 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../Queries';
-import type { IValidationSchema } from '../shared.types';
 import type { NeogmaModel } from '../model.types';
+import type { IValidationSchema } from '../shared.types';
 
 export interface ValidateContext<Properties extends Neo4jSupportedProperties> {
   schema: {

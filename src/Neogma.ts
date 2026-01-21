@@ -1,5 +1,6 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Config, Driver, Session, Transaction } from 'neo4j-driver';
+
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import { NeogmaModel } from './ModelOps';
 import { QueryBuilder } from './Queries/QueryBuilder';

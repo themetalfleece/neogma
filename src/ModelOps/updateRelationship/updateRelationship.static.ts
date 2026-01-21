@@ -1,9 +1,10 @@
 import type { QueryResult } from 'neo4j-driver';
+
+import type { Neo4jSupportedProperties } from '../../Queries';
 import { QueryBuilder } from '../../Queries';
 import { Where } from '../../Queries/Where';
-import type { Neo4jSupportedProperties } from '../../Queries';
-import type { AnyObject } from '../shared.types';
 import type { RelationshipCrudContext } from '../relateTo/relateTo.types';
+import type { AnyObject } from '../shared.types';
 import type { UpdateRelationshipParams } from './updateRelationship.types';
 
 /**

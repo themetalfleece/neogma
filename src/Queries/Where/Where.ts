@@ -1,11 +1,11 @@
+import { neo4jDriver } from '../..';
+import { NeogmaConstraintError } from '../../Errors';
 import { BindParam } from '../BindParam/BindParam';
+import { Literal } from '../Literal';
 import {
   Neo4jSingleTypes,
   Neo4jSupportedTypes,
 } from '../QueryRunner/QueryRunner';
-import { neo4jDriver } from '../..';
-import { NeogmaConstraintError } from '../../Errors';
-import { Literal } from '../Literal';
 
 /** symbols for Where operations */
 const OpEq: unique symbol = Symbol('eq');

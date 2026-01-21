@@ -1,6 +1,7 @@
 import { randomUUID as uuid } from 'crypto';
-import { QueryRunner } from '..';
+
 import { Neogma } from '../..';
+import { QueryRunner } from '..';
 
 const { getResultProperties } = QueryRunner;
 

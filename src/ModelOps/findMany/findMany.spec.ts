@@ -1,10 +1,11 @@
 import { randomUUID as uuid } from 'crypto';
+
 import { Op } from '../../Queries';
 import {
-  getNeogma,
   closeNeogma,
   createOrdersModel,
   createUsersModel,
+  getNeogma,
 } from '../testHelpers';
 
 beforeAll(async () => {

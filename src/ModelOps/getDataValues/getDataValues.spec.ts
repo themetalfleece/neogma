@@ -1,9 +1,10 @@
 import { randomUUID as uuid } from 'crypto';
+
 import {
-  getNeogma,
   closeNeogma,
   createOrdersModel,
   createUsersModel,
+  getNeogma,
   OrderAttributesI,
   UserAttributesI,
 } from '../testHelpers';

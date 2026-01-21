@@ -1,13 +1,11 @@
 import { NeogmaError } from '../../Errors/NeogmaError';
-import { BindParam } from '../../Queries/BindParam/BindParam';
 import {
+  Neo4jSupportedProperties,
   QueryBuilder,
   QueryBuilderParameters,
-  Neo4jSupportedProperties,
 } from '../../Queries';
-import { QueryRunner } from '../../Queries/QueryRunner';
+import { BindParam } from '../../Queries/BindParam/BindParam';
 import type { WhereParamsI } from '../../Queries/Where';
-import type { AnyObject } from '../shared.types';
 import type {
   CreateDataI,
   CreateDataParamsI,
@@ -16,6 +14,7 @@ import type {
   RelationshipsI,
   RelationshipTypePropertyForCreateI,
 } from '../model.types';
+import type { AnyObject } from '../shared.types';
 import type { CreateContext } from './createMany.types';
 
 /**

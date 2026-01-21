@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { Where, Op } from './Where';
 import { trimWhitespace } from '../../utils/string';
+import { Op, Where } from './Where';
 
 describe('Where', () => {
   describe('contructor', () => {

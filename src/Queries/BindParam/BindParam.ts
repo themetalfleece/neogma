@@ -1,7 +1,8 @@
 import clone from 'clone';
+
+import { NeogmaError } from '../../Errors';
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { StringSequence } from '../../utils/StringSequence';
-import { NeogmaError } from '../../Errors';
 import { Literal } from '../Literal';
 
 /**

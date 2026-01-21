@@ -1,12 +1,12 @@
 import type { Neo4jSupportedProperties } from '../../Queries';
-import type { AnyObject } from '../shared.types';
+import { createMany } from '../createMany';
+import type { CreateContext } from '../createMany/createMany.types';
 import type {
   CreateDataI,
   CreateDataParamsI,
   NeogmaInstance,
 } from '../model.types';
-import type { CreateContext } from '../createMany/createMany.types';
-import { createMany } from '../createMany';
+import type { AnyObject } from '../shared.types';
 
 /**
  * Creates a single node with optional related nodes.

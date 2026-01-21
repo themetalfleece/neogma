@@ -1,8 +1,8 @@
-export { relateTo } from './relateTo.static';
 export { instanceRelateTo } from './relateTo.method';
+export { relateTo } from './relateTo.static';
 export type {
-  RelationshipCrudContext,
-  RelateToParams,
-  InstanceRelationshipContext,
   InstanceRelateToParams,
+  InstanceRelationshipContext,
+  RelateToParams,
+  RelationshipCrudContext,
 } from './relateTo.types';

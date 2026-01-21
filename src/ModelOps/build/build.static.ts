@@ -1,7 +1,7 @@
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import type { Neo4jSupportedProperties } from '../../Queries';
+import type { CreateDataI, NeogmaInstance } from '../model.types';
 import type { AnyObject } from '../shared.types';
-import type { NeogmaInstance, CreateDataI } from '../model.types';
 import type { BuildContext } from './build.types';
 
 /**

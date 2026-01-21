@@ -1,4 +1,5 @@
 import revalidator from 'revalidator';
+
 import { NeogmaInstanceValidationError } from '../../Errors/NeogmaInstanceValidationError';
 import type { Neo4jSupportedProperties } from '../../Queries';
 import type { ValidateContext } from './validate.types';

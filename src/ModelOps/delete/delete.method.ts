@@ -1,8 +1,8 @@
 import type { Neo4jSupportedProperties } from '../../Queries';
 import type { NeogmaInstance } from '../model.types';
 import type {
-  InstanceDeleteContext,
   InstanceDeleteConfiguration,
+  InstanceDeleteContext,
 } from './delete.types';
 
 /**

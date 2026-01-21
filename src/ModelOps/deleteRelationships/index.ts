@@ -1,5 +1,5 @@
 export { deleteRelationships } from './deleteRelationships.static';
 export type {
-  RelationshipCrudContext,
   DeleteRelationshipsParams,
+  RelationshipCrudContext,
 } from './deleteRelationships.types';

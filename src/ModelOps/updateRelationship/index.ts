@@ -1,8 +1,8 @@
-export { updateRelationship } from './updateRelationship.static';
 export { instanceUpdateRelationship } from './updateRelationship.method';
+export { updateRelationship } from './updateRelationship.static';
 export type {
-  RelationshipCrudContext,
   InstanceRelationshipContext,
-  UpdateRelationshipParams,
   InstanceUpdateRelationshipParams,
+  RelationshipCrudContext,
+  UpdateRelationshipParams,
 } from './updateRelationship.types';

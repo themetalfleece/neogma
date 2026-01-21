@@ -1,10 +1,10 @@
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../Queries';
-import type { AnyObject } from '../shared.types';
-import type { NeogmaInstance } from '../model.types';
-import type { FindContext } from '../findMany/findMany.types';
-import type { FindOneParams } from './findOne.types';
 import { findMany } from '../findMany';
+import type { FindContext } from '../findMany/findMany.types';
+import type { NeogmaInstance } from '../model.types';
+import type { AnyObject } from '../shared.types';
+import type { FindOneParams } from './findOne.types';
 
 /**
  * Finds a single node matching the query.

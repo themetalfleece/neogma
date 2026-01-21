@@ -1,7 +1,8 @@
 import { randomUUID as uuid } from 'crypto';
-import { ModelFactory } from '.';
+
 import { neo4jDriver } from '../index';
 import { QueryRunner } from '../Queries/QueryRunner';
+import { ModelFactory } from '.';
 import { closeNeogma, getNeogma } from './testHelpers';
 
 const { getResultProperties } = QueryRunner;

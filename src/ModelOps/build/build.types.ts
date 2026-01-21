@@ -1,10 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../Queries';
+import type { NeogmaInstance, RelationshipsI } from '../model.types';
 import type { AnyObject } from '../shared.types';
-import type {
-  NeogmaInstance,
-  CreateDataI,
-  RelationshipsI,
-} from '../model.types';
 
 export interface BuildContext<
   Properties extends Neo4jSupportedProperties,

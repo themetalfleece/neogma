@@ -3,11 +3,11 @@ export { ModelFactory } from './ModelFactory';
 
 // Export public types for backwards compatibility
 export type {
-  RelationshipPropertiesI,
+  FindManyIncludeI,
   ModelRelatedNodesI,
-  RelatedNodesCreationParamI,
-  RelationshipsI,
   NeogmaInstance,
   NeogmaModel,
-  FindManyIncludeI,
+  RelatedNodesCreationParamI,
+  RelationshipPropertiesI,
+  RelationshipsI,
 } from './model.types';

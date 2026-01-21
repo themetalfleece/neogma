@@ -1,8 +1,8 @@
+import type { Neo4jSupportedProperties } from '../../Queries';
 import type { QueryRunner } from '../../Queries/QueryRunner';
 import type { WhereParamsI } from '../../Queries/Where';
-import type { Neo4jSupportedProperties } from '../../Queries';
-import type { AnyObject, GenericConfiguration } from '../shared.types';
 import type { NeogmaInstance } from '../model.types';
+import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 export interface UpdateContext<
   Properties extends Neo4jSupportedProperties,

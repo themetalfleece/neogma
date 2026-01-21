@@ -1,13 +1,25 @@
 import clone from 'clone';
+
 import { Neogma } from '../Neogma';
 import { Neo4jSupportedProperties, QueryBuilder } from '../Queries';
-
 import type { WhereParamsI } from '../Queries/Where';
-import type {
-  AnyObject,
-  GenericConfiguration,
-  IValidationSchema,
-} from './shared.types';
+// Import operations from new directories
+import {
+  build as buildFn,
+  BuildContext,
+  buildFromRecord as buildFromRecordFn,
+} from './build';
+import { CreateContext, createMany as createManyFn } from './createMany';
+import { createOne as createOneFn } from './createOne';
+import { createRelationship as createRelationshipFn } from './createRelationship';
+import { DeleteContext, deleteNodes, InstanceDeleteContext } from './delete';
+import { deleteInstance } from './delete';
+import { deleteRelationships as deleteRelationshipsFn } from './deleteRelationships';
+import { FindContext, findMany as findManyFn } from './findMany';
+import { findOne as findOneFn } from './findOne';
+import { findRelationships as findRelationshipsFn } from './findRelationships';
+import { instanceFindRelationships } from './findRelationships';
+import { getDataValues as getDataValuesFn } from './getDataValues';
 import type {
   NeogmaInstance,
   NeogmaInstanceMethodsI,
@@ -16,48 +28,35 @@ import type {
   RelationshipsI,
   StrictNeogmaInstance,
 } from './model.types';
-
-// Import operations from new directories
 import {
-  build as buildFn,
-  buildFromRecord as buildFromRecordFn,
-  BuildContext,
-} from './build';
-import { createOne as createOneFn } from './createOne';
-import { createMany as createManyFn, CreateContext } from './createMany';
-import { findOne as findOneFn } from './findOne';
-import { findMany as findManyFn, FindContext } from './findMany';
-import { update as updateFn, UpdateContext } from './update';
-import { deleteNodes, DeleteContext, InstanceDeleteContext } from './delete';
-import { deleteInstance } from './delete';
-import {
+  InstanceRelationshipContext,
   relateTo as relateToFn,
   RelationshipCrudContext,
-  InstanceRelationshipContext,
 } from './relateTo';
 import { instanceRelateTo } from './relateTo';
-import { findRelationships as findRelationshipsFn } from './findRelationships';
-import { instanceFindRelationships } from './findRelationships';
-import { deleteRelationships as deleteRelationshipsFn } from './deleteRelationships';
-import { createRelationship as createRelationshipFn } from './createRelationship';
-import { updateRelationship as updateRelationshipFn } from './updateRelationship';
-import { instanceUpdateRelationship } from './updateRelationship';
 import {
   addRelationships as addRelationshipsFn,
-  getRelationshipConfiguration as getRelationshipConfigurationFn,
-  reverseRelationshipConfiguration as reverseRelationshipConfigurationFn,
   getRelationshipByAlias as getRelationshipByAliasFn,
+  getRelationshipConfiguration as getRelationshipConfigurationFn,
   getRelationshipProperties as getRelationshipPropertiesFn,
   RelationshipConfigContext,
+  reverseRelationshipConfiguration as reverseRelationshipConfigurationFn,
 } from './relationshipConfig';
+import { save as saveFn, SaveContext } from './save';
+import type {
+  AnyObject,
+  GenericConfiguration,
+  IValidationSchema,
+} from './shared.types';
+import { update as updateFn, UpdateContext } from './update';
+import { updateRelationship as updateRelationshipFn } from './updateRelationship';
+import { instanceUpdateRelationship } from './updateRelationship';
 import {
   assertPrimaryKeyField,
   getLabelFromRelationshipModel,
   getRelationshipModel,
 } from './utils';
 import { validate as validateFn, ValidateContext } from './validate';
-import { save as saveFn, SaveContext } from './save';
-import { getDataValues as getDataValuesFn } from './getDataValues';
 
 /**
  * A function which returns a class with the model operation functions for the given Properties.

@@ -1,18 +1,18 @@
 import type { QueryResult } from 'neo4j-driver';
+
+import type { Neo4jSupportedProperties } from '../Queries';
 import type { QueryBuilder } from '../Queries/QueryBuilder';
 import type { CreateRelationshipParamsI } from '../Queries/QueryRunner';
 import type { WhereParamsI } from '../Queries/Where';
-import type { Neo4jSupportedProperties } from '../Queries';
+import type {
+  RelatedNodesCreationParamI,
+  RelationshipPropertiesI,
+} from './relationship.types';
 import type {
   AnyObject,
   GenericConfiguration,
   IValidationSchema,
 } from './shared.types';
-import type {
-  RelationshipPropertiesI,
-  RelationshipTypePropertyForCreateI,
-  RelatedNodesCreationParamI,
-} from './relationship.types';
 
 // ============ Relationship Types (defined here to avoid circular deps) ============
 
@@ -438,7 +438,7 @@ export type NeogmaModel<
 
 // Re-export types from relationship.types that are used publicly
 export type {
+  RelatedNodesCreationParamI,
   RelationshipPropertiesI,
   RelationshipTypePropertyForCreateI,
-  RelatedNodesCreationParamI,
 } from './relationship.types';

@@ -1,5 +1,5 @@
+import type { NeogmaModel, RelationshipsI } from '../model.types';
 import type { AnyObject } from '../shared.types';
-import type { RelationshipsI, NeogmaModel } from '../model.types';
 
 export interface RelationshipConfigContext<
   RelatedNodesToAssociateI extends AnyObject,

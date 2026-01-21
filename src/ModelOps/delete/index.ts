@@ -1,8 +1,8 @@
-export { deleteNodes } from './delete.static';
 export { deleteInstance } from './delete.method';
+export { deleteNodes } from './delete.static';
 export type {
   DeleteContext,
   DeleteParams,
-  InstanceDeleteContext,
   InstanceDeleteConfiguration,
+  InstanceDeleteContext,
 } from './delete.types';
