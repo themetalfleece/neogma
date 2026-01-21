@@ -4,8 +4,9 @@ node_modules
 .env
 # built js directory
 dist
-# vscode config
+# editor config
 .vscode
+.claude
 # test coverage
 coverage
 # generated docs

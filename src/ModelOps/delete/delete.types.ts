@@ -1,0 +1,34 @@
+import type { QueryRunner } from '../../Queries/QueryRunner';
+import type { WhereParamsI } from '../../Queries/Where';
+import type { Neo4jSupportedProperties } from '../../Queries';
+import type { GenericConfiguration } from '../shared.types';
+import type { NeogmaInstance, NeogmaModel } from '../model.types';
+
+// Static delete context
+export interface DeleteContext {
+  queryRunner: QueryRunner;
+  getLabel: () => string;
+}
+
+export interface DeleteParams extends GenericConfiguration {
+  detach?: boolean;
+  where: WhereParamsI;
+}
+
+// Instance delete context
+export interface InstanceDeleteContext<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends Record<string, any>,
+  MethodsI extends Record<string, any>,
+> {
+  Model: NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, any>;
+  primaryKeyField: string | undefined;
+  assertPrimaryKeyField: (
+    primaryKeyField: string | undefined,
+    operation: string,
+  ) => string;
+}
+
+export interface InstanceDeleteConfiguration extends GenericConfiguration {
+  detach?: boolean;
+}

@@ -1,0 +1,193 @@
+import { randomUUID as uuid } from 'crypto';
+import {
+  getNeogma,
+  closeNeogma,
+  createOrdersModel,
+  createUsersModel,
+  OrderAttributesI,
+  UserAttributesI,
+} from '../testHelpers';
+
+beforeAll(async () => {
+  const neogma = getNeogma();
+  await neogma.verifyConnectivity();
+});
+
+afterAll(async () => {
+  await closeNeogma();
+});
+
+describe('getDataValues', () => {
+  it('returns only model properties', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = Users.build({
+      id: uuid(),
+      name: 'Test User',
+      age: 25,
+    });
+
+    const dataValues = user.getDataValues();
+
+    // Should only contain model properties
+    expect(dataValues).toHaveProperty('id');
+    expect(dataValues).toHaveProperty('name');
+    expect(dataValues).toHaveProperty('age');
+
+    // Should not contain instance metadata
+    expect(dataValues).not.toHaveProperty('__existsInDatabase');
+    expect(dataValues).not.toHaveProperty('changed');
+    expect(dataValues).not.toHaveProperty('dataValues');
+    expect(dataValues).not.toHaveProperty('labels');
+    expect(dataValues).not.toHaveProperty('getDataValues');
+    expect(dataValues).not.toHaveProperty('save');
+    expect(dataValues).not.toHaveProperty('validate');
+    expect(dataValues).not.toHaveProperty('delete');
+  });
+
+  it('returns correct values', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+
+    const orderData: OrderAttributesI = {
+      id: uuid(),
+      name: 'Test Order',
+    };
+
+    const order = Orders.build(orderData);
+    const dataValues = order.getDataValues();
+
+    expect(dataValues).toEqual(orderData);
+  });
+
+  it('returns updated values after modification', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+
+    const originalName = 'Original Name';
+    const newName = 'New Name';
+
+    const order = Orders.build({
+      id: uuid(),
+      name: originalName,
+    });
+
+    // Modify the instance
+    order.name = newName;
+
+    const dataValues = order.getDataValues();
+
+    expect(dataValues.name).toBe(newName);
+  });
+
+  it('excludes undefined optional properties', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = Users.build({
+      id: uuid(),
+      name: 'Test User',
+      // age is not set
+    });
+
+    const dataValues = user.getDataValues();
+
+    expect(dataValues).toHaveProperty('id');
+    expect(dataValues).toHaveProperty('name');
+    expect(dataValues).not.toHaveProperty('age');
+  });
+
+  it('includes undefined optional properties when they are set', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = Users.build({
+      id: uuid(),
+      name: 'Test User',
+      age: 25,
+    });
+
+    const dataValues = user.getDataValues();
+
+    expect(dataValues).toHaveProperty('age');
+    expect(dataValues.age).toBe(25);
+  });
+
+  it('dataValues property matches getDataValues()', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+
+    const orderData: OrderAttributesI = {
+      id: uuid(),
+      name: 'Test Order',
+    };
+
+    const order = Orders.build(orderData);
+
+    // dataValues property should contain the same data
+    expect(order.dataValues).toEqual(order.getDataValues());
+  });
+});
+
+/**
+ * Type-level tests to ensure type safety is maintained.
+ */
+describe('getDataValues type safety', () => {
+  it('getDataValues returns correct type', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = Users.build({
+      id: uuid(),
+      name: 'Test User',
+      age: 25,
+    });
+
+    const dataValues: UserAttributesI = user.getDataValues();
+
+    // Type tests: valid property access should compile
+    const _id: string = dataValues.id;
+    const _name: string = dataValues.name;
+    const _age: number | undefined = dataValues.age;
+
+    expect(_id).toBeTruthy();
+    expect(_name).toBeTruthy();
+    expect(_age).toBe(25);
+
+    // @ts-expect-error - 'nonExistent' is not a valid property
+    void dataValues.nonExistent;
+
+    // @ts-expect-error - instance methods should not be on data values
+    void dataValues.save;
+
+    // @ts-expect-error - instance metadata should not be on data values
+    void dataValues.__existsInDatabase;
+  });
+
+  it('dataValues property has correct type', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+
+    const order = Orders.build({
+      id: uuid(),
+      name: 'Test Order',
+    });
+
+    // dataValues should have the correct type
+    const dataValues: OrderAttributesI = order.dataValues;
+
+    const _id: string = dataValues.id;
+    const _name: string = dataValues.name;
+
+    expect(_id).toBeTruthy();
+    expect(_name).toBeTruthy();
+
+    // @ts-expect-error - 'nonExistent' is not a valid property
+    void dataValues.nonExistent;
+  });
+});
