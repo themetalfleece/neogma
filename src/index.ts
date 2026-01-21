@@ -1,5 +1,5 @@
 export * from './Errors';
-export * from './ModelOps';
+export * from './ModelFactory';
 export * from './Neogma';
 export * from './Queries';
 export * from './Sessions';

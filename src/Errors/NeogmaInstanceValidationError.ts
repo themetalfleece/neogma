@@ -1,4 +1,4 @@
-import { NeogmaModel } from '../ModelOps';
+import { NeogmaModel } from '../ModelFactory';
 import { NeogmaError } from './NeogmaError';
 
 /** Error from validating an instance */

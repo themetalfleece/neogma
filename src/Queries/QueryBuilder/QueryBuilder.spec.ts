@@ -1,5 +1,5 @@
 import { ModelFactory, neo4jDriver, NeogmaInstance } from '../..';
-import { ModelRelatedNodesI } from '../../ModelOps';
+import { ModelRelatedNodesI } from '../../ModelFactory';
 import { Neogma } from '../../Neogma';
 import { Literal } from '../Literal';
 import { Op } from '../Where';
