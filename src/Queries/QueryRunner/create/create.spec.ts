@@ -1,7 +1,7 @@
 import { randomUUID as uuid } from 'crypto';
 
-import { Neogma } from '../..';
-import { QueryRunner } from '..';
+import { Neogma } from '../../..';
+import { QueryRunner } from '../..';
 
 const { getResultProperties } = QueryRunner;
 
@@ -19,7 +19,7 @@ afterAll(async () => {
   await neogma.driver.close();
 });
 
-describe('create', () => {
+describe('QueryRunner create', () => {
   it('creates nodes', async () => {
     const label = 'LabelOfQueryRunnerCreate';
     const data = [
@@ -53,5 +53,39 @@ describe('create', () => {
       expect(dataEntry).toBeTruthy();
       expect(dataEntry).toEqual(propertiesEntry);
     }
+  });
+
+  describe('type safety', () => {
+    it('accepts valid create parameters', async () => {
+      const label = 'TypeTestLabel';
+      const data = [{ id: uuid(), name: 'test' }];
+
+      // Verify the method signature accepts these types
+      const createPromise = neogma.queryRunner.create({
+        data,
+        label,
+      });
+      expect(createPromise).toBeInstanceOf(Promise);
+    });
+
+    it('rejects create without required label parameter', () => {
+      const _typeCheck = () => {
+        // @ts-expect-error - label is required
+        neogma.queryRunner.create({
+          data: [{ id: '1' }],
+        });
+      };
+      expect(_typeCheck).toBeDefined();
+    });
+
+    it('rejects create without required data parameter', () => {
+      const _typeCheck = () => {
+        // @ts-expect-error - data is required
+        neogma.queryRunner.create({
+          label: 'TestLabel',
+        });
+      };
+      expect(_typeCheck).toBeDefined();
+    });
   });
 });

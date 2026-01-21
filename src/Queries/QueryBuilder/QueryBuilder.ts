@@ -1,47 +1,43 @@
-import { int } from 'neo4j-driver';
 import { QueryResult } from 'neo4j-driver';
 
-import { NeogmaConstraintError, NeogmaError } from '../../Errors';
+import { NeogmaError } from '../../Errors';
 import { getRunnable } from '../../Sessions';
 import { trimWhitespace } from '../../utils/string';
 import { BindParam } from '../BindParam';
-import { Literal } from '../Literal';
-import {
-  Neo4jSupportedProperties,
-  QueryRunner,
-  Runnable,
-} from '../QueryRunner';
-import { Where } from '../Where';
+import { QueryRunner, Runnable } from '../QueryRunner';
+import { getCreateOrMergeString } from './getCreateOrMergeString';
+import { getDeleteString } from './getDeleteString';
+import { getForEachString } from './getForEachString';
+import { getIdentifierWithLabel } from './getIdentifierWithLabel';
+import { getLimitString } from './getLimitString';
+import { getMatchString } from './getMatchString';
+import { getNodeStatement } from './getNodeStatement';
+import { getNormalizedLabels } from './getNormalizedLabels';
+import { getOrderByString } from './getOrderByString';
+import { getPropertiesWithParams } from './getPropertiesWithParams';
+import { getRelationshipStatement } from './getRelationshipStatement';
+import { getRemoveString } from './getRemoveString';
+import { getReturnString } from './getReturnString';
+import { getSetParts } from './getSetParts';
+import { getSetString } from './getSetString';
+import { getSkipString } from './getSkipString';
+import { getUnwindString } from './getUnwindString';
+import { getVariableLengthRelationshipString } from './getVariableLengthRelationshipString';
+import { getWhereString } from './getWhereString';
+import { getWithString } from './getWithString';
 import {
   CreateI,
   DeleteI,
   ForEachI,
-  isCreateMultiple,
   isCreateParameter,
-  isCreateRelated,
   isDeleteParameter,
-  isDeleteWithIdentifier,
-  isDeleteWithLiteral,
   isForEachParameter,
   isLimitParameter,
-  isMatchLiteral,
-  isMatchMultiple,
   isMatchParameter,
-  isMatchRelated,
   isMergeParameter,
-  isNodeWithLabel,
-  isNodeWithModel,
-  isNodeWithProperties,
-  isNodeWithWhere,
   isOrderByParameter,
   isRawParameter,
-  isRelationship,
-  isRelationshipWithProperties,
-  isRelationshipWithWhere,
-  isRemoveLabels,
   isRemoveParameter,
-  isRemoveProperties,
-  isReturnObject,
   isReturnParameter,
   isSetParameter,
   isSkipParameter,
@@ -51,13 +47,9 @@ import {
   LimitI,
   MatchI,
   MergeI,
-  NodeForCreateI,
-  NodeForMatchI,
   OrderByI,
   ParameterI,
   RawI,
-  RelationshipForCreateI,
-  RelationshipForMatchI,
   RemoveI,
   ReturnI,
   SetI,
@@ -66,8 +58,6 @@ import {
   WhereI,
   WithI,
 } from './QueryBuilder.types';
-
-type AnyObject = Record<string, any>;
 
 export type QueryBuilderParameters = {
   ParameterI: ParameterI;
@@ -137,6 +127,11 @@ export class QueryBuilder {
   private setStatementByParameters(parameters: QueryBuilder['parameters']) {
     const statementParts: string[] = [];
 
+    const deps = {
+      bindParam: this.bindParam,
+      getBindParam: () => this.getBindParam(),
+    };
+
     for (const param of parameters) {
       if (param === null || param === undefined) {
         continue;
@@ -145,35 +140,35 @@ export class QueryBuilder {
       if (isRawParameter(param)) {
         statementParts.push(param.raw);
       } else if (isMatchParameter(param)) {
-        statementParts.push(this.getMatchString(param.match));
+        statementParts.push(getMatchString(param.match, deps));
       } else if (isCreateParameter(param)) {
         statementParts.push(
-          this.getCreateOrMergeString(param.create, 'create'),
+          getCreateOrMergeString(param.create, 'create', deps),
         );
       } else if (isMergeParameter(param)) {
-        statementParts.push(this.getCreateOrMergeString(param.merge, 'merge'));
+        statementParts.push(getCreateOrMergeString(param.merge, 'merge', deps));
       } else if (isSetParameter(param)) {
-        statementParts.push(this.getSetString(param.set));
+        statementParts.push(getSetString(param.set, deps));
       } else if (isDeleteParameter(param)) {
-        statementParts.push(this.getDeleteString(param.delete));
+        statementParts.push(getDeleteString(param.delete));
       } else if (isRemoveParameter(param)) {
-        statementParts.push(this.getRemoveString(param.remove));
+        statementParts.push(getRemoveString(param.remove));
       } else if (isReturnParameter(param)) {
-        statementParts.push(this.getReturnString(param.return));
+        statementParts.push(getReturnString(param.return));
       } else if (isLimitParameter(param)) {
-        statementParts.push(this.getLimitString(param.limit));
+        statementParts.push(getLimitString(param.limit, deps));
       } else if (isWithParameter(param)) {
-        statementParts.push(this.getWithString(param.with));
+        statementParts.push(getWithString(param.with));
       } else if (isSkipParameter(param)) {
-        statementParts.push(this.getSkipString(param.skip));
+        statementParts.push(getSkipString(param.skip, deps));
       } else if (isUnwindParameter(param)) {
-        statementParts.push(this.getUnwindString(param.unwind));
+        statementParts.push(getUnwindString(param.unwind));
       } else if (isForEachParameter(param)) {
-        statementParts.push(this.getForEachString(param.forEach));
+        statementParts.push(getForEachString(param.forEach));
       } else if (isOrderByParameter(param)) {
-        statementParts.push(this.getOrderByString(param.orderBy));
+        statementParts.push(getOrderByString(param.orderBy));
       } else if (isWhereParameter(param)) {
-        statementParts.push(this.getWhereString(param.where));
+        statementParts.push(getWhereString(param.where, deps));
       }
     }
 
@@ -183,520 +178,29 @@ export class QueryBuilder {
     );
   }
 
-  private getNodeString(node: NodeForMatchI | NodeForCreateI): string {
-    if (typeof node === 'string') {
-      return node;
-    }
-
-    // else, it's a NodeObjectI
-    let label = '';
-    if (isNodeWithLabel(node)) {
-      label = node.label;
-    } else if (isNodeWithModel(node)) {
-      label = node.model.getLabel();
-    }
-
-    const getNodeStatementParams: Parameters<
-      typeof QueryBuilder.getNodeStatement
-    >[0] = {
-      identifier: node.identifier,
-      label,
-    };
-
-    if (isNodeWithWhere(node)) {
-      getNodeStatementParams.inner = new Where(
-        {
-          [node.identifier || '']: node.where,
-        },
-        this.bindParam,
-      );
-    } else if (isNodeWithProperties(node)) {
-      getNodeStatementParams.inner = {
-        properties: node.properties,
-        bindParam: this.getBindParam(),
-      };
-    }
-
-    // (identifier: label { where })
-    return QueryBuilder.getNodeStatement(getNodeStatementParams);
-  }
-
-  private getRelationshipString(
-    relationship: RelationshipForMatchI | RelationshipForCreateI,
-  ): string {
-    if (typeof relationship === 'string') {
-      return relationship;
-    }
-
-    // else, it's a relationship object
-    const { direction, identifier, name, minHops, maxHops } = relationship;
-
-    const getRelationshipStatementParams: Parameters<
-      typeof QueryBuilder.getRelationshipStatement
-    >[0] = {
-      direction,
-      identifier: relationship.identifier,
-      name,
-      minHops,
-      maxHops,
-    };
-
-    if (isRelationshipWithWhere(relationship)) {
-      getRelationshipStatementParams.inner = new Where(
-        {
-          [identifier || '']: relationship.where,
-        },
-        this.bindParam,
-      );
-    } else if (isRelationshipWithProperties(relationship)) {
-      getRelationshipStatementParams.inner = {
-        properties: relationship.properties,
-        bindParam: this.getBindParam(),
-      };
-    }
-
-    return QueryBuilder.getRelationshipStatement(
-      getRelationshipStatementParams,
-    );
-  }
-
-  /** returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
-  private getMatchString(match: MatchI['match']): string {
-    if (typeof match === 'string') {
-      return `MATCH ${match}`;
-    }
-
-    if (isMatchMultiple(match)) {
-      return [
-        match.optional ? 'OPTIONAL' : '',
-        'MATCH',
-        match.multiple.map((element) => this.getNodeString(element)).join(', '),
-      ].join(' ');
-    }
-
-    if (isMatchRelated(match)) {
-      // every even element is a node, every odd element is a relationship
-      const parts: string[] = [];
-
-      for (let index = 0; index < match.related.length; index++) {
-        const element = match.related[index];
-        if (index % 2) {
-          // even, parse as relationship
-          if (!isRelationship(element)) {
-            throw new NeogmaConstraintError(
-              'even argument of related is not a relationship',
-            );
-          }
-          parts.push(this.getRelationshipString(element));
-        } else {
-          // odd, parse as node
-          parts.push(this.getNodeString(element));
-        }
-      }
-
-      return [match.optional ? 'OPTIONAL' : '', 'MATCH', parts.join('')].join(
-        ' ',
-      );
-    }
-
-    if (isMatchLiteral(match)) {
-      return [
-        match.optional ? 'OPTIONAL' : '',
-        `MATCH ${this.getNodeString(match.literal)}`,
-      ].join(' ');
-    }
-
-    // else, is a node
-    return [
-      match.optional ? 'OPTIONAL' : '',
-      `MATCH ${this.getNodeString(match)}`,
-    ].join(' ');
-  }
-
-  private getCreateOrMergeString(
-    create: CreateI['create'],
-    mode: 'create' | 'merge',
-  ): string {
-    const createOrMerge = mode === 'merge' ? 'MERGE' : 'CREATE';
-
-    if (typeof create === 'string') {
-      return `${createOrMerge} ${create}`;
-    }
-
-    if (isCreateMultiple(create)) {
-      return [
-        createOrMerge,
-        create.multiple
-          .map((element) => this.getNodeString(element))
-          .join(', '),
-      ].join(' ');
-    }
-
-    if (isCreateRelated(create)) {
-      // every even element is a node, every odd element is a relationship
-      const parts: string[] = [];
-
-      for (let index = 0; index < create.related.length; index++) {
-        const element = create.related[index];
-        if (index % 2) {
-          // even, parse as relationship
-          if (!isRelationship(element)) {
-            throw new NeogmaConstraintError(
-              'even argument of related is not a relationship',
-            );
-          }
-          parts.push(this.getRelationshipString(element));
-        } else {
-          // odd, parse as node
-          parts.push(this.getNodeString(element));
-        }
-      }
-
-      return [createOrMerge, parts.join('')].join(' ');
-    }
-
-    // else, is a node
-    if (isNodeWithLabel(create)) {
-      return [
-        createOrMerge,
-        this.getNodeString({
-          identifier: create.identifier,
-          label: create.label,
-          properties: create.properties,
-        }),
-      ].join(' ');
-    }
-    if (isNodeWithModel(create)) {
-      return [
-        createOrMerge,
-        this.getNodeString({
-          identifier: create.identifier,
-          model: create.model,
-          properties: create.properties,
-        }),
-      ].join(' ');
-    }
-
-    throw new NeogmaConstraintError('Invanid create parameter', {
-      actual: create,
-    });
-  }
-
-  /** returns a string in the format: `SET a.p1 = $v1, a.p2 = $v2` */
-  private getSetString(set: SetI['set']): string {
-    if (typeof set === 'string') {
-      return `SET ${set}`;
-    }
-
-    return QueryBuilder.getSetParts({
-      data: set.properties,
-      identifier: set.identifier,
-      bindParam: this.bindParam,
-    }).statement;
-  }
-
-  private getDeleteString(dlt: DeleteI['delete']): string {
-    if (typeof dlt === 'string') {
-      return `DELETE ${dlt}`;
-    }
-
-    if (isDeleteWithIdentifier(dlt)) {
-      const identifiers = Array.isArray(dlt.identifiers)
-        ? dlt.identifiers
-        : [dlt.identifiers];
-
-      return `${dlt.detach ? 'DETACH ' : ''}DELETE ${identifiers.join(', ')}`;
-    }
-
-    if (isDeleteWithLiteral(dlt)) {
-      return `${dlt.detach ? 'DETACH ' : ''}DELETE ${dlt.literal}`;
-    }
-
-    throw new NeogmaConstraintError('invalid delete configuration');
-  }
-
-  private getRemoveString(remove: RemoveI['remove']): string {
-    if (typeof remove === 'string') {
-      return `REMOVE ${remove}`;
-    }
-
-    if (isRemoveProperties(remove)) {
-      const properties = Array.isArray(remove.properties)
-        ? remove.properties
-        : [remove.properties];
-      const propertiesWithIdentifier = properties.map(
-        (p) => `${remove.identifier}.${p}`,
-      );
-      return `REMOVE ${propertiesWithIdentifier.join(', ')}`;
-    }
-
-    if (isRemoveLabels(remove)) {
-      const labels = Array.isArray(remove.labels)
-        ? remove.labels
-        : [remove.labels];
-      return `REMOVE ${remove.identifier}:${labels.join(':')}`;
-    }
-
-    throw new NeogmaConstraintError('invalid remove configuration');
-  }
-
-  private getReturnString(rtn: ReturnI['return']): string {
-    if (typeof rtn === 'string') {
-      return `RETURN ${rtn}`;
-    }
-
-    if (isReturnObject(rtn)) {
-      const returnString = rtn
-        .map((v) => `${v.identifier}${v.property ? '.' + v.property : ''}`)
-        .join(', ');
-
-      return `RETURN ${returnString}`;
-    }
-
-    // else string array
-    return `RETURN ${rtn.join(', ')}`;
-  }
-
-  private getLimitString(limit: LimitI['limit']): string {
-    const limitString =
-      typeof limit === 'string'
-        ? limit
-        : `$${this.bindParam.getUniqueNameAndAdd('limit', int(limit))}`;
-
-    return `LIMIT ${limitString}`;
-  }
-
-  private getSkipString(skip: SkipI['skip']): string {
-    const skipString =
-      typeof skip === 'string'
-        ? skip
-        : `$${this.bindParam.getUniqueNameAndAdd('skip', int(skip))}`;
-
-    return `SKIP ${skipString}`;
-  }
-
-  private getWithString(wth: WithI['with']): string {
-    const wthArr = Array.isArray(wth) ? wth : [wth];
-
-    return `WITH ${wthArr.join(', ')}`;
-  }
-
-  private getUnwindString(unwind: UnwindI['unwind']): string {
-    const unwindString =
-      typeof unwind === 'string' ? unwind : `${unwind.value} AS ${unwind.as}`;
-
-    return `UNWIND ${unwindString}`;
-  }
-
-  private getForEachString(forEach: ForEachI['forEach']): string {
-    return `FOR EACH ${forEach}`;
-  }
-
-  private getOrderByString(orderBy: OrderByI['orderBy']): string {
-    if (typeof orderBy === 'string') {
-      return `ORDER BY ${orderBy}`;
-    }
-
-    if (Array.isArray(orderBy)) {
-      const orderByParts = orderBy.map((element) => {
-        if (typeof element === 'string') {
-          return element;
-        }
-        if (Array.isArray(element)) {
-          return `${element[0]} ${element[1]}`;
-        }
-        return [
-          // identifier.property
-          [element.identifier, element.property].filter((v) => v).join('.'),
-          // ASC or DESC
-          element.direction,
-        ]
-          .filter((v) => v)
-          .join(' ');
-      });
-
-      return `ORDER BY ${orderByParts.join(', ')}`;
-    }
-
-    // else, it's the object type
-    const orderByString = [
-      // identifier.property
-      [orderBy.identifier, orderBy.property].filter((v) => v).join('.'),
-      // ASC or DESC
-      orderBy.direction,
-    ]
-      .filter((v) => v)
-      .join(' ');
-
-    return `ORDER BY ${orderByString}`;
-  }
-
-  private getWhereString(where: WhereI['where']): string {
-    if (typeof where === 'string') {
-      return `WHERE ${where}`;
-    }
-
-    if (where instanceof Where) {
-      const statement = where.getStatement('text');
-      if (!statement) {
-        return '';
-      }
-      return `WHERE ${statement}`;
-    }
-
-    // else, where object
-    const whereInstance = new Where(where, this.bindParam);
-    const statement = whereInstance.getStatement('text');
-    if (!statement) {
-      return '';
-    }
-    return `WHERE ${statement}`;
-  }
-
   /**
-   * surrounds the label with backticks to also allow spaces
+   * Surrounds the label with backticks to also allow spaces
    * @param label - the label to use
    * @param operation - defaults to 'and'. Whether to generate a "and" or an "or" operation for the labels
    */
-  public static getNormalizedLabels = (
-    label: string | string[],
-    operation?: 'and' | 'or',
-  ): string => {
-    const labels = label instanceof Array ? label : [label];
-    return labels
-      .map((l) => '`' + l + '`')
-      .join(operation === 'or' ? '|' : ':');
-  };
+  public static getNormalizedLabels = getNormalizedLabels;
 
   /**
-   * returns a string to be used in a query, regardless if any of the identifier or label are null
+   * Returns a string to be used in a query, regardless if any of the identifier or label are null
    */
-  public static getIdentifierWithLabel = (
-    identifier?: string,
-    label?: string,
-  ): string => {
-    return `${identifier ? identifier : ''}${label ? ':' + label : ''}`;
-  };
+  public static getIdentifierWithLabel = getIdentifierWithLabel;
 
   /**
-   * returns the appropriate string for a node, ready to be put in a statement
-   * example: (ident: Label { a.p1: $v1 })
+   * Returns the appropriate string for a node, ready to be put in a statement
+   * Example: (ident: Label { a.p1: $v1 })
    */
-  public static getNodeStatement = ({
-    identifier,
-    label,
-    inner,
-  }: {
-    /** identifier for the node */
-    identifier?: string;
-    /** identifier for the label */
-    label?: string;
-    /** a statement to be used inside the node, like a where condition or properties */
-    inner?:
-      | string
-      | Where
-      | {
-          properties: Neo4jSupportedProperties;
-          bindParam: BindParam;
-        };
-  }): string => {
-    const nodeParts: string[] = [];
-
-    if (identifier || label) {
-      nodeParts.push(QueryBuilder.getIdentifierWithLabel(identifier, label));
-    }
-
-    if (inner) {
-      if (typeof inner === 'string') {
-        nodeParts.push(inner);
-      } else if (inner instanceof Where) {
-        nodeParts.push(inner.getStatement('object'));
-      } else {
-        nodeParts.push(
-          QueryBuilder.getPropertiesWithParams(
-            inner.properties,
-            inner.bindParam,
-          ),
-        );
-      }
-    }
-
-    return `(${nodeParts.join(' ')})`;
-  };
+  public static getNodeStatement = getNodeStatement;
 
   /**
-   * returns the appropriate string for a relationship, ready to be put in a statement
-   * example: -[identifier:name*minHops..maxHops {where}]->
+   * Returns the appropriate string for a relationship, ready to be put in a statement
+   * Example: -[identifier:name*minHops..maxHops {where}]->
    */
-  public static getRelationshipStatement = (params: {
-    /** relationship direction */
-    direction: 'in' | 'out' | 'none';
-    /** relationship name */
-    name?: string;
-    /** relationship identifier. If empty, no identifier will be used */
-    identifier?: string;
-    /** variable length relationship: minimum hops */
-    minHops?: number;
-    /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
-    maxHops?: number;
-    /** a statement to be used inside the relationship, like a where condition or properties */
-    inner?:
-      | string
-      | Where
-      | {
-          properties: Neo4jSupportedProperties;
-          bindParam: BindParam;
-        };
-  }): string => {
-    const { direction, name, inner, minHops, maxHops } = params;
-    const identifier = params.identifier || '';
-
-    const allParts: string[] = [];
-
-    // <- or -
-    allParts.push(direction === 'in' ? '<-' : '-');
-
-    // strings will be inside [ ]
-    const innerRelationshipParts: string[] = [];
-    // identifier:Name
-    if (identifier || name) {
-      innerRelationshipParts.push(
-        QueryBuilder.getIdentifierWithLabel(identifier, name),
-      );
-    }
-
-    const variableLength = QueryBuilder.getVariableLengthRelationshipString({
-      minHops,
-      maxHops,
-    });
-
-    if (variableLength) {
-      innerRelationshipParts.push(variableLength);
-    }
-
-    if (inner) {
-      if (typeof inner === 'string') {
-        innerRelationshipParts.push(inner);
-      } else if (inner instanceof Where) {
-        innerRelationshipParts.push(inner.getStatement('object'));
-      } else {
-        innerRelationshipParts.push(
-          QueryBuilder.getPropertiesWithParams(
-            inner.properties,
-            inner.bindParam,
-          ),
-        );
-      }
-    }
-
-    // wrap it in [ ]
-    allParts.push(`[${innerRelationshipParts.join(' ')}]`);
-
-    // -> or -
-    allParts.push(direction === 'out' ? '->' : '-');
-
-    return allParts.join('');
-  };
+  public static getRelationshipStatement = getRelationshipStatement;
 
   /**
    * Returns the inner part of a relationship given the min and max hops. It doesn't include the brackets ([])
@@ -704,105 +208,18 @@ export class QueryBuilder {
    *
    * https://neo4j.com/docs/cypher-manual/current/patterns/reference/#variable-length-relationships-rules
    */
-  public static getVariableLengthRelationshipString = ({
-    minHops,
-    maxHops,
-  }: {
-    minHops?: number | undefined;
-    maxHops?: number | undefined;
-  }): string | null => {
-    // infinity: *
-    if (minHops === Infinity || maxHops === Infinity) {
-      return '*';
-    }
+  public static getVariableLengthRelationshipString =
+    getVariableLengthRelationshipString;
 
-    // only min hops: *m..
-    if (typeof minHops === 'number' && typeof maxHops !== 'number') {
-      return `*${minHops}..`;
-    }
-
-    // only max hops: *..n
-    if (typeof minHops !== 'number' && typeof maxHops === 'number') {
-      return `*..${maxHops}`;
-    }
-
-    // both: *m..n
-    if (typeof minHops === 'number' && typeof maxHops === 'number') {
-      if (minHops === maxHops) {
-        // exactly: *m
-        return `*${minHops}`;
-      }
-      return `*${minHops}..${maxHops}`;
-    }
-
-    return null;
-  };
-
-  /** returns the parts and the statement for a SET operation with the given params */
-  public static getSetParts = (params: {
-    /** properties to set */
-    data: Neo4jSupportedProperties;
-    /** bind param to use */
-    bindParam: BindParam;
-    /** identifier to use */
-    identifier: string;
-  }): {
-    parts: string[];
-    statement: string;
-  } => {
-    const { data, bindParam, identifier } = params;
-
-    const setParts: string[] = [];
-    for (const key in data) {
-      if (!data.hasOwnProperty(key)) {
-        continue;
-      }
-      if (data[key] instanceof Literal) {
-        setParts.push(
-          `${identifier}.${key} = ${(data[key] as Literal).getValue()}`,
-        );
-      } else {
-        const paramKey = bindParam.getUniqueNameAndAdd(key, data[key]);
-        setParts.push(`${identifier}.${key} = $${paramKey}`);
-      }
-    }
-
-    if (!setParts.length) {
-      return {
-        parts: [],
-        statement: '',
-      };
-    }
-
-    return {
-      parts: setParts,
-      statement: `SET ${setParts.join(', ')}`,
-    };
-  };
+  /** Returns the parts and the statement for a SET operation with the given params */
+  public static getSetParts = getSetParts;
 
   /**
-   * returns an object with replacing its values with a bind param value.
-   * if value is a literal, returns literal name as value
-   * example return value: { a.p1 = $v1, b.p2 = $v2, c.p3 = literalP3 }
+   * Returns an object with replacing its values with a bind param value.
+   * If value is a literal, returns literal name as value
+   * Example return value: { a.p1 = $v1, b.p2 = $v2, c.p3 = literalP3 }
    */
-  public static getPropertiesWithParams = (
-    /** data to set */
-    data: Neo4jSupportedProperties,
-    /** bind param to use and mutate */
-    bindParam: BindParam,
-  ): string => {
-    const parts: string[] = [];
-
-    for (const key of Object.keys(data)) {
-      if (data[key] instanceof Literal) {
-        parts.push(`${key}: ${(data[key] as Literal).getValue()}`);
-      } else {
-        parts.push(`${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`);
-      }
-    }
-
-    return `{ ${parts.join(', ')} }`;
-  };
+  public static getPropertiesWithParams = getPropertiesWithParams;
 
   /** runs this instance with the given QueryRunner instance */
   public async run(
