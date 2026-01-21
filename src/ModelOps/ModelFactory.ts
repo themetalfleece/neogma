@@ -14,6 +14,7 @@ import type {
   NeogmaModel,
   NeogmaModelStaticsI,
   RelationshipsI,
+  StrictNeogmaInstance,
 } from './model.types';
 
 // Import operations from new directories
@@ -76,7 +77,10 @@ export const ModelFactory = <
     };
     label: string | string[];
     statics?: Partial<StaticsI>;
-    methods?: Partial<MethodsI>;
+    methods?: Partial<MethodsI> &
+      ThisType<
+        StrictNeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>
+      >;
     primaryKeyField?: Extract<keyof Properties, string>;
     relationships?: Partial<RelationshipsI<RelatedNodesToAssociateI>>;
   },

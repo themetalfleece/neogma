@@ -401,6 +401,32 @@ export type NeogmaInstance<
   NeogmaInstanceMethodsI<Properties, RelatedNodesToAssociateI, MethodsI> &
   MethodsI;
 
+/**
+ * Removes index signatures from a type, keeping only explicitly defined properties.
+ * This ensures strict property access checking even when the type extends Record<string, ...>.
+ */
+export type RemoveIndexSignature<T> = {
+  [K in keyof T as string extends K
+    ? never
+    : number extends K
+      ? never
+      : symbol extends K
+        ? never
+        : K]: T[K];
+};
+
+/**
+ * A strict version of NeogmaInstance that removes index signatures from Properties.
+ * Used for ThisType in methods to ensure proper type checking of property access.
+ */
+export type StrictNeogmaInstance<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+> = RemoveIndexSignature<Properties> &
+  NeogmaInstanceMethodsI<Properties, RelatedNodesToAssociateI, MethodsI> &
+  MethodsI;
+
 /** the type of a Neogma Model */
 export type NeogmaModel<
   Properties extends Neo4jSupportedProperties,
