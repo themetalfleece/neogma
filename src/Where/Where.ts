@@ -47,10 +47,12 @@ export class Where {
   /** all the given options, so we can easily combine them into a new statement */
   private rawParams: WhereParamsByIdentifierI[] = [];
   /**
-   * an object with the key being the `identifier.property` and the value being the the bind param name which corresponds to it, and an operator to be used in the statement
-   * this is needed for the following reasons:
-   * 1) when generating the statement, those values are used
-   * 2) the bind param names which are generated from this Where need to be differentiated from the actual keys of the bindParam, since this Where can only remove those
+   * Maps each `identifier.property` to its bind parameter name and operator.
+   *
+   * This mapping is necessary for:
+   * 1. Generating the WHERE statement using these values
+   * 2. Differentiating bind parameter names created by this Where instance
+   *    from those in the BindParam, since this Where can only remove parameters it created
    */
   private identifierPropertyData: Array<{
     identifier: string;

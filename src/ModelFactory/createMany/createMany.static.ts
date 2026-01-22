@@ -1,5 +1,5 @@
 import { BindParam } from '../../BindParam/BindParam';
-import { NeogmaError } from '../../Errors/NeogmaError';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { QueryBuilder, QueryBuilderParameters } from '../../QueryBuilder';
 import { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { WhereParamsI } from '../../Where';
@@ -334,12 +334,14 @@ export async function createMany<
       relationshipsCreated !==
       relationshipsCreatedByProperties + assertRelationshipsOfWhere
     ) {
-      throw new NeogmaError(
-        `Not all required relationships by where param were created`,
+      throw new NeogmaConstraintError(
+        'Not all required relationships by where param were created',
         {
-          relationshipsCreated,
-          relationshipCreatedByProperties: relationshipsCreatedByProperties,
-          assertRelationshipsOfWhere,
+          actual: { relationshipsCreated },
+          expected: {
+            total:
+              relationshipsCreatedByProperties + assertRelationshipsOfWhere,
+          },
         },
       );
     }

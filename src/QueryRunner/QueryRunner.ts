@@ -18,6 +18,16 @@ import { update, UpdateParams } from './update';
 
 type AnyObject = Record<string, any>;
 
+/**
+ * Executes Cypher queries against a Neo4j database.
+ * Provides methods for running raw queries and common operations like create, update, and delete.
+ *
+ * @example
+ * ```ts
+ * const queryRunner = new QueryRunner({ driver, logger: console.log });
+ * const result = await queryRunner.run('MATCH (n:User) RETURN n', {});
+ * ```
+ */
 export class QueryRunner {
   private driver: Driver;
   public sessionParams?: SessionConfig;
@@ -28,10 +38,17 @@ export class QueryRunner {
   /** maps a session object to a uuid, for logging purposes */
   private sessionIdentifiers = new WeakMap<Runnable, string>([]);
 
+  /**
+   * Creates a new QueryRunner instance.
+   *
+   * @param params - Configuration for the query runner
+   * @param params.driver - The Neo4j driver instance
+   * @param params.logger - Optional logging function for queries
+   * @param params.sessionParams - Default session configuration for queries
+   */
   constructor(params: {
     driver: QueryRunner['driver'];
     logger?: QueryRunner['logger'];
-    /** these params will be used when creating a new session to run any query */
     sessionParams?: SessionConfig;
   }) {
     this.driver = params.driver;

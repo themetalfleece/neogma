@@ -1,4 +1,4 @@
-import { NeogmaError } from '../../Errors/NeogmaError';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { QueryRunner } from '../../QueryRunner';
 import type { CreateRelationshipParams } from './createRelationship.types';
 
@@ -18,10 +18,13 @@ export async function createRelationship(
     assertCreatedRelationships &&
     relationshipsCreated !== assertCreatedRelationships
   ) {
-    throw new NeogmaError(`Not all required relationships were created`, {
-      relationshipsCreated,
-      ...params,
-    });
+    throw new NeogmaConstraintError(
+      'Not all required relationships were created',
+      {
+        actual: { relationshipsCreated },
+        expected: { assertCreatedRelationships },
+      },
+    );
   }
 
   return relationshipsCreated;

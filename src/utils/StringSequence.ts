@@ -1,5 +1,7 @@
 /* inspired by https://stackoverflow.com/a/30686832 */
 
+import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
+
 /**
  * provides a sequence of string in order, i.e. 'aaa', 'aab' etc
  * warps around when the target is reached
@@ -27,7 +29,7 @@ export class StringSequence {
     this.currentNumber++;
     if (this.currentNumber > this.targetNumber) {
       if (throwOnTargetExcceeded) {
-        throw new Error(`Target string reached`);
+        throw new NeogmaConstraintError('Target string reached');
       }
       this.currentNumber = this.initialNumber;
     }

@@ -1,4 +1,4 @@
-import { NeogmaError } from '../../Errors/NeogmaError';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { QueryRunner } from '../../QueryRunner';
@@ -21,7 +21,9 @@ export async function deleteRelationships<
   const { alias, where, session } = params;
 
   if (!where) {
-    throw new NeogmaError('`where` param was not given to deleteRelationships');
+    throw new NeogmaConstraintError(
+      '`where` param is required for deleteRelationships',
+    );
   }
 
   const identifiers = {

@@ -6,10 +6,14 @@ import { Literal } from '../Literal';
 import { StringSequence } from '../utils/StringSequence';
 
 /**
- * the bind param which should be passed to a query. It throws an error if more than one of each key is added
+ * A bind parameter object that should be passed to a query.
+ * Throws an error if a duplicate key is added.
  */
 export class BindParam {
-  /** acquires a BindParam, so it ensures that a BindParam is always returned. If it's passed, it will be returned as is. Else, a new one will be created and returned */
+  /**
+   * Acquires a BindParam instance.
+   * Returns the provided instance if it exists, or creates a new one.
+   */
   public static acquire(bindParam?: BindParam | null): BindParam {
     return bindParam || new BindParam();
   }

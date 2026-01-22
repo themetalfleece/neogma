@@ -116,7 +116,7 @@ console.log(newWhere.bindParam.get()); // { x: 4, y: 'bar', z: true, z__aaaa: 'f
 
 ## Adding parameters to an existing Where instance
 
-Similarilly to creating a new `Where` instance, parameters can be added to an existing instance.
+Similarly to creating a new `Where` instance, parameters can be added to an existing instance.
 
 ```js
 const where = new Where({

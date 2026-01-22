@@ -1,6 +1,9 @@
 import { NeogmaError } from './NeogmaError';
 
-/** General constraint error */
+/**
+ * Error thrown when a requested resource (node, relationship, model) is not found.
+ * Typically used in findOne operations when throwIfNotFound is true.
+ */
 export class NeogmaNotFoundError extends NeogmaError {
   public message: NeogmaError['message'];
   public data: Record<string, any>;
@@ -10,7 +13,7 @@ export class NeogmaNotFoundError extends NeogmaError {
     data?: NeogmaNotFoundError['data'],
   ) {
     super(message, data);
-    this.message = message || 'neogma not found error';
+    this.message = message || 'Neogma not found error';
     this.data = data || {};
 
     Object.setPrototypeOf(this, NeogmaNotFoundError.prototype);

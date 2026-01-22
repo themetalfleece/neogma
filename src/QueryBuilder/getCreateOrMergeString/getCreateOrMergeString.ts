@@ -83,7 +83,7 @@ export const getCreateOrMergeString = (
     ].join(' ');
   }
 
-  throw new NeogmaConstraintError('Invanid create parameter', {
+  throw new NeogmaConstraintError('Invalid create parameter', {
     actual: create,
   });
 };

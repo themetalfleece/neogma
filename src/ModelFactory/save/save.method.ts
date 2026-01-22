@@ -1,6 +1,6 @@
 import type { QueryResult } from 'neo4j-driver';
 
-import { NeogmaError } from '../../Errors/NeogmaError';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { CreateDataI, NeogmaInstance } from '../model.types';
 import type { SaveConfiguration, SaveContext } from './save.types';
@@ -55,11 +55,11 @@ export async function save<
       ).summary.counters.updates().propertiesSet;
 
       if (propertiesSet !== numberOfPropertiesToSet) {
-        throw new NeogmaError(
+        throw new NeogmaConstraintError(
           'Update via save failed, not all properties were updated',
           {
-            instance,
-            updateRes,
+            actual: { propertiesSet },
+            expected: { numberOfPropertiesToSet },
           },
         );
       }

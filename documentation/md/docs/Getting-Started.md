@@ -44,7 +44,7 @@ The `neo4jDriver` exports everything from the `neo4j-driver` package, including 
 ```js
 /* --> validator */
 neo4jDriver.Date();
-/* --> type contructor */
+/* --> type constructor */
 neo4jDriver.types.DateTime();
 /* --> typescript interface */
 neo4jDriver.Point;

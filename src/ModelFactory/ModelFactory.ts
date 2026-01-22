@@ -60,8 +60,39 @@ import {
 import { validate as validateFn, ValidateContext } from './validate';
 
 /**
- * A function which returns a class with the model operation functions for the given Properties.
- * RelatedNodesToAssociateI are the corresponding Nodes for Relationships.
+ * Creates a Model class for interacting with Neo4j nodes of a specific type.
+ * Models provide CRUD operations, relationship management, validation, and instance methods.
+ *
+ * @typeParam Properties - The properties of the nodes this model represents
+ * @typeParam RelatedNodesToAssociateI - Configuration for related nodes and relationships
+ * @typeParam StaticsI - Custom static methods to add to the model
+ * @typeParam MethodsI - Custom instance methods to add to model instances
+ *
+ * @param parameters - The model configuration
+ * @param parameters.schema - Validation schema for node properties
+ * @param parameters.label - The Neo4j label(s) for nodes of this type
+ * @param parameters.statics - Optional custom static methods
+ * @param parameters.methods - Optional custom instance methods
+ * @param parameters.primaryKeyField - Optional field to use as the primary key
+ * @param parameters.relationships - Optional relationship configurations
+ * @param neogma - The Neogma instance to use for database operations
+ *
+ * @returns A Model class with CRUD operations and relationship management
+ *
+ * @example
+ * ```ts
+ * const Users = ModelFactory({
+ *   label: 'User',
+ *   schema: {
+ *     id: { type: 'string', required: true },
+ *     name: { type: 'string', minLength: 3 },
+ *   },
+ *   primaryKeyField: 'id',
+ *   relationshipCreationKeys: {},
+ * }, neogma);
+ *
+ * const user = await Users.createOne({ id: '1', name: 'John' });
+ * ```
  */
 export const ModelFactory = <
   Properties extends Neo4jSupportedProperties,

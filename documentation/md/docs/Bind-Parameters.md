@@ -1,6 +1,6 @@
 # Bind Parameters
 
-The `BindPara` class provides utilities of easily creating a bind parameters object to be used in a query. Using the appropriate methods, if a key already exists in the parameter, a different one will be used. So, there is no need of manually ensuring uniqueness of keys.
+The `BindParam` class provides utilities for easily creating bind parameter objects to be used in queries. Using the appropriate methods, if a key already exists, a different one will be generated. There is no need to manually ensure uniqueness of keys.
 
 ## Creating a BindParam instance
 
@@ -40,7 +40,7 @@ const bindParam = new BindParam(
 
 ## Getting the values of a BindParam
 
-The `get` method can be used
+Use the `get` method to retrieve all bind parameter values.
 
 ```js
 const bindParam = new BindParam({
@@ -53,7 +53,7 @@ console.log(bindParam.get()); // { x: 5, y: 'bar' }
 
 ## Adding a value to an existing BindParam instance
 
-The `add` method can be used, however the added keys must be unique. To add non-unique keys, the `getUniqueName` method must be used.
+Use the `add` method to add new values. All keys must be unique. To add values with duplicate key names, use the `getUniqueName` method.
 
 ```js
 /* --> */

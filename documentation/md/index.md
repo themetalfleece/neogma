@@ -6,7 +6,7 @@ Object-Graph-Mapping neo4j framework, fully-typed with TypeScript, for easy and 
 [![types includes](https://badgen.net/npm/types/tslib)](https://www.typescriptlang.org/)
 
 ## Overview
-Neogma uses Model definitions to simplify and automate lots of operations. Alternatively, a flexible and fully-fletched query builder and a query runner is also provided for running operations directly with Javascript objects, without a Model definition.
+Neogma uses Model definitions to simplify and automate many operations. Alternatively, a flexible and fully-fledged query builder and a query runner are also provided for running operations directly with JavaScript objects, without a Model definition.
 
 By using Typescript, a user can also benefit from Neogma's type safety in all its parts. The types are built-in and used in neogma's core, so no external typings are needed.
 

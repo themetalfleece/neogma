@@ -1,6 +1,9 @@
 import { NeogmaError } from './NeogmaError';
 
-/** General constraint error */
+/**
+ * Error thrown when a constraint or validation rule is violated.
+ * Use this for structural issues like missing required fields, invalid parameters, or type mismatches.
+ */
 export class NeogmaConstraintError extends NeogmaError {
   public message: NeogmaError['message'];
   public data: {
@@ -14,7 +17,7 @@ export class NeogmaConstraintError extends NeogmaError {
     data?: NeogmaConstraintError['data'],
   ) {
     super(message, data);
-    this.message = message || 'neogma constraint error';
+    this.message = message || 'Neogma constraint error';
     this.data = data || {};
 
     Object.setPrototypeOf(this, NeogmaConstraintError.prototype);
