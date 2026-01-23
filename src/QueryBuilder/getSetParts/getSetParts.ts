@@ -7,7 +7,7 @@ export const getSetParts = (params: GetSetPartsParams): GetSetPartsResult => {
 
   const setParts: string[] = [];
   for (const key in data) {
-    if (!data.hasOwnProperty(key)) {
+    if (!Object.hasOwn(data, key)) {
       continue;
     }
     if (data[key] instanceof Literal) {

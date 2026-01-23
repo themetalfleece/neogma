@@ -5,17 +5,7 @@ import { NeogmaError } from './NeogmaError';
  * Typically used in findOne operations when throwIfNotFound is true.
  */
 export class NeogmaNotFoundError extends NeogmaError {
-  public message: NeogmaError['message'];
-  public data: Record<string, any>;
-
-  constructor(
-    message: NeogmaNotFoundError['message'],
-    data?: NeogmaNotFoundError['data'],
-  ) {
+  constructor(message: string, data?: Record<string, unknown>) {
     super(message, data);
-    this.message = message || 'Neogma not found error';
-    this.data = data || {};
-
-    Object.setPrototypeOf(this, NeogmaNotFoundError.prototype);
   }
 }

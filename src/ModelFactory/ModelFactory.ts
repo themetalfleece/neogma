@@ -730,7 +730,7 @@ export const ModelFactory = <
 
   // Add statics
   for (const staticKey in statics) {
-    if (!Object.prototype.hasOwnProperty.call(statics, staticKey)) {
+    if (!Object.hasOwn(statics, staticKey)) {
       continue;
     }
     Model[staticKey as keyof typeof Model] = statics[staticKey];
@@ -738,7 +738,7 @@ export const ModelFactory = <
 
   // Add methods
   for (const methodKey in methods) {
-    if (!Object.prototype.hasOwnProperty.call(methods, methodKey)) {
+    if (!Object.hasOwn(methods, methodKey)) {
       continue;
     }
     Model.prototype[methodKey as keyof typeof Model.prototype] =

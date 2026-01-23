@@ -97,7 +97,7 @@ export async function createMany<
 
       instance.__existsInDatabase = true;
       for (const key in instance.changed) {
-        if (!Object.prototype.hasOwnProperty.call(instance.changed, key)) {
+        if (!Object.hasOwn(instance.changed, key)) {
           continue;
         }
         instance.changed[key as keyof Properties] = false;

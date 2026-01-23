@@ -1,22 +1,21 @@
 import { NeogmaModel } from '../ModelFactory';
 import { NeogmaError } from './NeogmaError';
 
-/** Error from validating an instance */
+export interface NeogmaInstanceValidationErrorData
+  extends Record<string, unknown> {
+  model: NeogmaModel<any, any, any, any>;
+  errors: Revalidator.IErrrorProperty[];
+}
+
+/**
+ * Error thrown when instance validation fails.
+ * Contains the model and validation errors.
+ */
 export class NeogmaInstanceValidationError extends NeogmaError {
-  public message: NeogmaError['message'];
-  public data: {
-    model: NeogmaModel<any, any, any, any>;
-    errors: Revalidator.IErrrorProperty[];
-  };
+  public override data: NeogmaInstanceValidationErrorData;
 
-  constructor(
-    message: NeogmaInstanceValidationError['message'],
-    data: NeogmaInstanceValidationError['data'],
-  ) {
+  constructor(message: string, data: NeogmaInstanceValidationErrorData) {
     super(message, data);
-    this.message = message || 'neogma validation error';
     this.data = data;
-
-    Object.setPrototypeOf(this, NeogmaInstanceValidationError.prototype);
   }
 }

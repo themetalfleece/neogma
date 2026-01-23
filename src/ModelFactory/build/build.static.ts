@@ -39,7 +39,7 @@ export function build<
     const key = _key as keyof Properties;
 
     // set dataValues using data
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
+    if (Object.hasOwn(data, key)) {
       instance.dataValues[key] = (data as AnyObject)[key as string];
       instance.changed[key] = status === 'new';
     }

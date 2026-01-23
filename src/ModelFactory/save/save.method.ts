@@ -3,6 +3,7 @@ import type { QueryResult } from 'neo4j-driver';
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { CreateDataI, NeogmaInstance } from '../model.types';
+import { getInstanceProperty } from '../utils/propertyAccessor';
 import type { SaveConfiguration, SaveContext } from './save.types';
 
 /**
@@ -36,7 +37,7 @@ export async function save<
     const updateData: Record<string, any> = {};
     for (const [key, changed] of Object.entries(instance.changed)) {
       if (changed && ctx.schemaKeys.has(key)) {
-        updateData[key] = (instance as any)[key];
+        updateData[key] = getInstanceProperty(instance, key);
       }
     }
 
@@ -46,7 +47,7 @@ export async function save<
         return: false,
         session: config?.session,
         where: {
-          [primaryKeyField]: (instance as any)[primaryKeyField],
+          [primaryKeyField]: getInstanceProperty(instance, primaryKeyField),
         },
       });
 
@@ -67,7 +68,7 @@ export async function save<
 
     // set all changed to false
     for (const key in instance.changed) {
-      if (!Object.prototype.hasOwnProperty.call(instance.changed, key)) {
+      if (!Object.hasOwn(instance.changed, key)) {
         continue;
       }
       instance.changed[key as keyof Properties] = false;

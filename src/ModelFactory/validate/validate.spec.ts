@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { NeogmaInstanceValidationError } from '../../Errors';
 import {
   closeNeogma,
   createOrdersModel,
@@ -18,7 +19,7 @@ afterAll(async () => {
 });
 
 describe('validate', () => {
-  it('throws on invalid data - minLength', async () => {
+  it('throws NeogmaInstanceValidationError on invalid data - minLength', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
 
@@ -27,7 +28,16 @@ describe('validate', () => {
       name: 'ab', // Too short, minLength is 3
     });
 
-    await expect(order.validate()).rejects.toThrow();
+    await expect(order.validate()).rejects.toThrow(
+      NeogmaInstanceValidationError,
+    );
+
+    try {
+      await order.validate();
+    } catch (e) {
+      expect(e).toBeInstanceOf(NeogmaInstanceValidationError);
+      expect(e).toBeInstanceOf(Error);
+    }
   });
 
   it('passes on valid data', async () => {
@@ -43,7 +53,7 @@ describe('validate', () => {
     await expect(order.validate()).resolves.not.toThrow();
   });
 
-  it('throws on invalid data - required field missing', async () => {
+  it('throws NeogmaInstanceValidationError on invalid data - required field missing', async () => {
     const neogma = getNeogma();
 
     type TestAttributesI = {
@@ -70,7 +80,15 @@ describe('validate', () => {
       // Missing requiredField
     } as TestAttributesI);
 
-    await expect(instance.validate()).rejects.toThrow();
+    await expect(instance.validate()).rejects.toThrow(
+      NeogmaInstanceValidationError,
+    );
+
+    try {
+      await instance.validate();
+    } catch (e) {
+      expect(e).toBeInstanceOf(NeogmaInstanceValidationError);
+    }
   });
 
   it('passes when optional field is missing', async () => {
@@ -104,7 +122,7 @@ describe('validate', () => {
     await expect(instance.validate()).resolves.not.toThrow();
   });
 
-  it('throws on invalid data - type mismatch', async () => {
+  it('throws NeogmaInstanceValidationError on invalid data - type mismatch', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
@@ -115,10 +133,18 @@ describe('validate', () => {
       age: 'not a number' as any, // age should be a number
     });
 
-    await expect(user.validate()).rejects.toThrow();
+    await expect(user.validate()).rejects.toThrow(
+      NeogmaInstanceValidationError,
+    );
+
+    try {
+      await user.validate();
+    } catch (e) {
+      expect(e).toBeInstanceOf(NeogmaInstanceValidationError);
+    }
   });
 
-  it('throws on invalid data - minimum value', async () => {
+  it('throws NeogmaInstanceValidationError on invalid data - minimum value', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
@@ -129,10 +155,18 @@ describe('validate', () => {
       age: -1, // age minimum is 0
     });
 
-    await expect(user.validate()).rejects.toThrow();
+    await expect(user.validate()).rejects.toThrow(
+      NeogmaInstanceValidationError,
+    );
+
+    try {
+      await user.validate();
+    } catch (e) {
+      expect(e).toBeInstanceOf(NeogmaInstanceValidationError);
+    }
   });
 
-  it('validates nested relationship properties', async () => {
+  it('throws NeogmaInstanceValidationError for nested relationship properties', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
@@ -152,7 +186,25 @@ describe('validate', () => {
           ],
         },
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(NeogmaInstanceValidationError);
+
+    try {
+      await Users.createOne({
+        id: uuid(),
+        name: 'User',
+        Orders: {
+          properties: [
+            {
+              id: uuid(),
+              name: 'Order',
+              Rating: 10,
+            },
+          ],
+        },
+      });
+    } catch (e) {
+      expect(e).toBeInstanceOf(NeogmaInstanceValidationError);
+    }
   });
 });
 
@@ -174,7 +226,7 @@ describe('validate type safety', () => {
     expect(result).toBeUndefined();
   });
 
-  it('validation is called during save', async () => {
+  it('validation is called during save and throws NeogmaInstanceValidationError', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
 
@@ -183,8 +235,14 @@ describe('validate type safety', () => {
       name: 'ab', // Invalid - too short
     });
 
-    // save() should validate and throw
-    await expect(order.save()).rejects.toThrow();
+    // save() should validate and throw NeogmaInstanceValidationError
+    await expect(order.save()).rejects.toThrow(NeogmaInstanceValidationError);
+
+    try {
+      await order.save();
+    } catch (e) {
+      expect(e).toBeInstanceOf(NeogmaInstanceValidationError);
+    }
   });
 
   it('validation can be skipped during save', async () => {

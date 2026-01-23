@@ -2,6 +2,7 @@ import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
 import type { InstanceRelationshipContext } from '../relateTo/relateTo.types';
 import type { AnyObject } from '../shared.types';
+import { getInstanceProperty } from '../utils/propertyAccessor';
 import type { InstanceFindRelationshipsParams } from './findRelationships.types';
 
 /**
@@ -47,7 +48,7 @@ export async function instanceFindRelationships<
       relationship: where?.relationship,
       target: where?.target,
       source: {
-        [primaryKeyField]: (instance as any)[primaryKeyField],
+        [primaryKeyField]: getInstanceProperty(instance, primaryKeyField),
       },
     },
   });

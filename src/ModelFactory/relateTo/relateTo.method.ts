@@ -1,6 +1,7 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
 import type { AnyObject } from '../shared.types';
+import { getInstanceProperty } from '../utils/propertyAccessor';
 import type {
   InstanceRelateToParams,
   InstanceRelationshipContext,
@@ -32,7 +33,7 @@ export async function instanceRelateTo<
     ...params,
     where: {
       source: {
-        [primaryKeyField]: (instance as any)[primaryKeyField],
+        [primaryKeyField]: getInstanceProperty(instance, primaryKeyField),
       },
       target: params.where,
     },

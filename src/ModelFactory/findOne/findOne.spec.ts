@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { NeogmaNotFoundError } from '../../Errors';
 import {
   closeNeogma,
   createOrdersModel,
@@ -75,19 +76,23 @@ describe('findOne', () => {
     expect(foundUser).toBeNull();
   });
 
-  it('throws when throwIfNotFound is true and not found', async () => {
+  it('throws NeogmaNotFoundError when throwIfNotFound is true and not found', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await expect(
-      Users.findOne({
+    try {
+      await Users.findOne({
         where: {
           id: 'non-existent-id',
         },
         throwIfNotFound: true,
-      }),
-    ).rejects.toThrow();
+      });
+      fail('Expected NeogmaNotFoundError to be thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(NeogmaNotFoundError);
+      expect(error).toBeInstanceOf(Error);
+    }
   });
 });
 

@@ -73,12 +73,22 @@ export class Where {
     Object.setPrototypeOf(this, Where.prototype);
   }
 
-  /** gets the BindParam used in this Where */
+  /**
+   * Returns the BindParam instance used by this Where clause.
+   * The BindParam contains all the parameterized values for the WHERE conditions.
+   *
+   * @returns The BindParam instance containing query parameters
+   */
   public getBindParam(): BindParam {
     return this.bindParam;
   }
 
-  /** gets the raw where parameters used to generate the final result */
+  /**
+   * Returns the raw where parameters array used to generate the final WHERE clause.
+   * Each entry represents a set of where conditions that were added to this instance.
+   *
+   * @returns Array of where parameter objects, in the order they were added
+   */
   public getRawParams(): Where['rawParams'] {
     return this.rawParams;
   }

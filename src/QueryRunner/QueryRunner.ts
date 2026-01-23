@@ -56,6 +56,11 @@ export class QueryRunner {
     this.sessionParams = params.sessionParams;
   }
 
+  /**
+   * Returns the Neo4j driver instance used by this QueryRunner.
+   *
+   * @returns The Neo4j driver instance
+   */
   public getDriver(): Driver {
     return this.driver;
   }

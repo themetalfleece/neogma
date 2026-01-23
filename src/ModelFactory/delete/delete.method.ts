@@ -1,5 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
+import { getInstanceProperty } from '../utils/propertyAccessor';
 import type {
   InstanceDeleteConfiguration,
   InstanceDeleteContext,
@@ -38,7 +39,7 @@ export async function deleteInstance<
   return ctx.Model.delete({
     ...configuration,
     where: {
-      [primaryKeyField]: (instance as any)[primaryKeyField],
+      [primaryKeyField]: getInstanceProperty(instance, primaryKeyField),
     },
   });
 }

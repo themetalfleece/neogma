@@ -64,7 +64,7 @@ export class StringSequence {
   /**
    * pads the string by prepending 'a' at the start of it until the padSize is reached
    */
-  private pad(string): string {
+  private pad(string: string): string {
     while (string.length < this.padSize) {
       string = 'a' + string;
     }

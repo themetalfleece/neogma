@@ -5,10 +5,7 @@ import { NeogmaError } from './NeogmaError';
  * This can occur due to network issues, invalid credentials, or unavailable database.
  */
 export class NeogmaConnectivityError extends NeogmaError {
-  constructor(data?: NeogmaConnectivityError['data']) {
+  constructor(data?: Record<string, unknown>) {
     super('Error while connecting to Neo4j', data);
-    this.data = data || {};
-
-    Object.setPrototypeOf(this, NeogmaConnectivityError.prototype);
   }
 }
