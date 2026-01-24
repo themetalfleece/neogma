@@ -6,6 +6,9 @@
   "types": "dist/index.d.ts",
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=24.13.0"
+  },
   "files": [
     "dist/**/*"
   ],
@@ -13,29 +16,29 @@
     "@types/revalidator": "^0.3.12",
     "clone": "^2.1.2",
     "dotenv": "^17.2.3",
-    "neo4j-driver": "^6.0.0",
+    "neo4j-driver": "^6.0.1",
     "revalidator": "^0.3.1"
   },
   "devDependencies": {
     "@types/clone": "^2.1.4",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.7.2",
-    "@typescript-eslint/eslint-plugin": "^8.46.0",
-    "@typescript-eslint/parser": "^8.46.0",
-    "eslint": "^9.37.0",
+    "@types/node": "~24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unused-imports": "^4.3.0",
     "jest": "^30.2.0",
-    "prettier": "^3.6.2",
-    "rimraf": "^6.0.1",
-    "ts-jest": "^29.4.5",
+    "prettier": "^3.8.1",
+    "rimraf": "^6.1.2",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "lint": "eslint --fix --quiet src/**/*.ts",
-    "format": "prettier --log-level silent --write src/**/*.ts",
+    "lint": "eslint --fix --quiet \"src/**/*.ts\"",
+    "format": "prettier --log-level silent --write \"src/**/*.ts\"",
     "prepare": "rimraf -rf dist && tsc",
     "prebuild": "yarn lint && yarn format",
     "build": "tsc",
@@ -56,5 +59,5 @@
     "url": "https://github.com/themetalfleece/neogma/issues"
   },
   "homepage": "https://github.com/themetalfleece/neogma#readme",
-  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
+  "packageManager": "yarn@4.12.0+sha512.f45ab632439a67f8bc759bf32ead036a1f413287b9042726b7cc4818b7b49e14e9423ba49b18f9e06ea4941c1ad062385b1d8760a8d5091a1a31e5f6219afca8"
 }

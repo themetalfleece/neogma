@@ -1,8 +1,10 @@
 import { NeogmaModel } from '../ModelFactory';
 import { NeogmaError } from './NeogmaError';
 
-export interface NeogmaInstanceValidationErrorData
-  extends Record<string, unknown> {
+export interface NeogmaInstanceValidationErrorData extends Record<
+  string,
+  unknown
+> {
   model: NeogmaModel<any, any, any, any>;
   errors: Revalidator.IErrrorProperty[];
 }
