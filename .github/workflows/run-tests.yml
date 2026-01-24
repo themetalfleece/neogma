@@ -20,13 +20,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'yarn'
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Start Neo4j with Docker Compose
         run: docker compose up -d
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Wait for Neo4j
         uses: ifaxity/wait-on-action@v1.1.0
