@@ -292,7 +292,7 @@ The following operators are available:
 ```js
 const where = new Where({
     n: {
-        x: { 
+        x: {
             [Op.contains]: 'xyz',
         },
     },
@@ -301,6 +301,111 @@ const where = new Where({
 console.log(where.getStatement('text')); // n.x CONTAINS $x
 // "object" statement not available
 console.log(where.bindParam.get()); // { x: 'xyz' }
+```
+
+## Using Operators in QueryBuilder Match
+
+When using operators in QueryBuilder's `match()` method for nodes or relationships, all operators are supported. The QueryBuilder automatically separates equality operators (which can use Neo4j's bracket syntax `{ prop: $val }`) from non-equality operators (which require a WHERE clause).
+
+### Example: Using Comparison Operators in Match
+
+```js
+const queryBuilder = new QueryBuilder().match({
+    identifier: 'u',
+    label: 'User',
+    where: {
+        name: 'John',           // eq operator - uses bracket syntax
+        age: { [Op.gte]: 18 },  // non-eq - generates WHERE clause
+    },
+});
+
+// Generates: MATCH (u:User { name: $name }) WHERE u.age >= $age
+console.log(queryBuilder.getStatement());
+// { name: 'John', age: 18 }
+console.log(queryBuilder.getBindParam().get());
+```
+
+### Example: Multiple Operators on Same Property
+
+```js
+const queryBuilder = new QueryBuilder().match({
+    identifier: 'u',
+    label: 'User',
+    where: {
+        age: { [Op.gte]: 18, [Op.lte]: 65 },
+    },
+});
+
+// Generates: MATCH (u:User) WHERE u.age >= $age AND u.age <= $age__aaaa
+console.log(queryBuilder.getStatement());
+```
+
+### Example: Operators on Relationships
+
+```js
+const queryBuilder = new QueryBuilder().match({
+    related: [
+        { identifier: 'u', label: 'User' },
+        {
+            direction: 'out',
+            name: 'FOLLOWS',
+            identifier: 'r',
+            where: { since: { [Op.gte]: 2020 } },
+        },
+        { identifier: 'p', label: 'Post' },
+    ],
+});
+
+// Generates: MATCH (u:User)-[r:FOLLOWS]->(p:Post) WHERE r.since >= $since
+console.log(queryBuilder.getStatement());
+```
+
+### Auto-generated Identifiers
+
+When using non-equality operators without an explicit identifier, QueryBuilder automatically generates a unique identifier for the WHERE clause:
+
+```js
+// With explicit identifier
+new QueryBuilder().match({
+    identifier: 'n',
+    label: 'Node',
+    where: { age: { [Op.gt]: 18 } },
+});
+// Result: MATCH (n:Node) WHERE n.age > $age
+
+// Without identifier - one is auto-generated
+new QueryBuilder().match({
+    label: 'Node',
+    where: { age: { [Op.gt]: 18 } },
+});
+// Result: MATCH (__n:Node) WHERE __n.age > $age
+```
+
+The same applies to relationships - if no identifier is provided and non-equality operators are used, a unique identifier (like `__r`) is generated automatically.
+
+### Using a Custom BindParam
+
+You can pass a custom `BindParam` instance to the QueryBuilder constructor. The auto-generated identifiers will use this shared BindParam, which is useful for:
+- Sharing parameters across multiple queries
+- Controlling parameter naming
+- Accessing generated identifiers programmatically
+
+```js
+import { BindParam, QueryBuilder, Op } from 'neogma';
+
+const bindParam = new BindParam();
+
+const queryBuilder = new QueryBuilder(bindParam).match({
+    label: 'Node',
+    where: { age: { [Op.gt]: 18 } },
+});
+
+// Result: MATCH (__n:Node) WHERE __n.age > $age
+console.log(queryBuilder.getStatement());
+
+// Access bind parameters from either reference
+console.log(bindParam.get()); // { age: 18 }
+console.log(queryBuilder.getBindParam().get()); // { age: 18 }
 ```
 
 ## Using a literal string

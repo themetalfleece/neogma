@@ -8,14 +8,15 @@ import {
 import {
   GetRelationshipStringDeps,
   GetRelationshipStringRelationship,
+  GetRelationshipStringResult,
 } from './getRelationshipString.types';
 
 export const getRelationshipString = (
   relationship: GetRelationshipStringRelationship,
   deps: GetRelationshipStringDeps,
-): string => {
+): GetRelationshipStringResult => {
   if (typeof relationship === 'string') {
-    return relationship;
+    return { statement: relationship, standaloneWhere: null };
   }
 
   // else, it's a relationship object
@@ -29,13 +30,36 @@ export const getRelationshipString = (
     maxHops,
   };
 
+  let standaloneWhere: Where | null = null;
+
   if (isRelationshipWithWhere(relationship)) {
-    getRelationshipStatementParams.inner = new Where(
-      {
-        [identifier || '']: relationship.where,
-      },
-      deps.bindParam,
-    );
+    // Split where params into eq-only (for bracket syntax) and non-eq (for WHERE clause)
+    const { eqParams, nonEqParams } = Where.splitByOperator(relationship.where);
+
+    const hasNonEqParams = Object.keys(nonEqParams).length > 0;
+
+    // Generate a unique identifier if needed for non-eq operators
+    let relationshipIdentifier = identifier || '';
+    if (!relationshipIdentifier && hasNonEqParams) {
+      relationshipIdentifier = deps.bindParam.getUniqueName('__r');
+      getRelationshipStatementParams.identifier = relationshipIdentifier;
+    }
+
+    // Use eq params for bracket syntax inside the relationship pattern
+    if (Object.keys(eqParams).length > 0) {
+      getRelationshipStatementParams.inner = new Where(
+        { [relationshipIdentifier]: eqParams },
+        deps.bindParam,
+      );
+    }
+
+    // Create separate Where for non-eq params to be used in WHERE clause
+    if (hasNonEqParams) {
+      standaloneWhere = new Where(
+        { [relationshipIdentifier]: nonEqParams },
+        deps.bindParam,
+      );
+    }
   } else if (isRelationshipWithProperties(relationship)) {
     getRelationshipStatementParams.inner = {
       properties: relationship.properties,
@@ -43,5 +67,8 @@ export const getRelationshipString = (
     };
   }
 
-  return getRelationshipStatement(getRelationshipStatementParams);
+  return {
+    statement: getRelationshipStatement(getRelationshipStatementParams),
+    standaloneWhere,
+  };
 };
