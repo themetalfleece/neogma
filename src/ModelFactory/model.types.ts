@@ -25,9 +25,8 @@ export interface ModelRelatedNodesI<
   /** the instance of the related model */
   RelatedInstance,
   /** properties for the relationship */
-  CreateRelationshipProperties extends
-    | RelationshipPropertiesI
-    | object = object,
+  CreateRelationshipProperties extends RelationshipPropertiesI | object =
+    object,
   RelationshipProperties extends RelationshipPropertiesI | object = object,
 > {
   /** interface of the data to create */
