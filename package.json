@@ -6,6 +6,9 @@
   "types": "dist/index.d.ts",
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=24.13.0"
+  },
   "files": [
     "dist/**/*"
   ],
@@ -19,7 +22,7 @@
   "devDependencies": {
     "@types/clone": "^2.1.4",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.10",
+    "@types/node": "~24.10.0",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
     "eslint": "^9.39.2",
