@@ -1,13 +1,13 @@
-/** The base error which is thrown in neogma. All other errors entend this. */
+/**
+ * The base error class for all Neogma errors.
+ * All other Neogma error classes extend this.
+ */
 export class NeogmaError extends Error {
-  public message: string;
-  public data: Record<string, any>;
+  public data: Record<string, unknown>;
 
-  constructor(message: NeogmaError['message'], data?: NeogmaError['data']) {
+  constructor(message: string, data?: Record<string, unknown>) {
     super(message);
-    this.message = message || 'General neogma error';
+    this.name = this.constructor.name;
     this.data = data || {};
-
-    Object.setPrototypeOf(this, NeogmaError.prototype);
   }
 }

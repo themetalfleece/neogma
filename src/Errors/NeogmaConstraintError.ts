@@ -1,22 +1,20 @@
 import { NeogmaError } from './NeogmaError';
 
-/** General constraint error */
+export interface NeogmaConstraintErrorData extends Record<string, unknown> {
+  description?: unknown;
+  actual?: unknown;
+  expected?: unknown;
+}
+
+/**
+ * Error thrown when a constraint or validation rule is violated.
+ * Use this for structural issues like missing required fields, invalid parameters, or type mismatches.
+ */
 export class NeogmaConstraintError extends NeogmaError {
-  public message: NeogmaError['message'];
-  public data: {
-    description?: any;
-    actual?: any;
-    expected?: any;
-  };
+  public override data: NeogmaConstraintErrorData;
 
-  constructor(
-    message: NeogmaConstraintError['message'],
-    data?: NeogmaConstraintError['data'],
-  ) {
+  constructor(message: string, data?: NeogmaConstraintErrorData) {
     super(message, data);
-    this.message = message || 'neogma constraint error';
     this.data = data || {};
-
-    Object.setPrototypeOf(this, NeogmaConstraintError.prototype);
   }
 }

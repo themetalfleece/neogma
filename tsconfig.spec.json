@@ -1,4 +1,7 @@
 {
   "extends": "./tsconfig",
+  "compilerOptions": {
+    "noImplicitThis": true
+  },
   "exclude": ["node_modules"]
 }

@@ -2,6 +2,14 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFiles: ['<rootDir>/src/test/setupTests.ts'],
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.spec.json',
+      },
+    ],
+  },
   // For a detailed explanation regarding each configuration property, visit:
 
   // https://jestjs.io/docs/en/configuration.html

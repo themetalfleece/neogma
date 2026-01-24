@@ -1,9 +1,10 @@
 import * as neo4j_driver from 'neo4j-driver';
 import { Config, Driver, Session, Transaction } from 'neo4j-driver';
+
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
-import { NeogmaModel } from './ModelOps';
-import { QueryBuilder } from './Queries/QueryBuilder';
-import { QueryRunner, Runnable } from './Queries/QueryRunner';
+import { NeogmaModel } from './ModelFactory';
+import { QueryBuilder } from './QueryBuilder';
+import { QueryRunner, Runnable } from './QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import {
   clearAllTempDatabases,
@@ -25,17 +26,39 @@ interface ConnectOptionsI extends Config {
   logger?: QueryRunner['logger'];
 }
 
+/**
+ * Main class for connecting to and interacting with a Neo4j database.
+ * Provides the connection driver, query runner, and model registry.
+ *
+ * @example
+ * ```ts
+ * const neogma = new Neogma(
+ *   { url: 'bolt://localhost:7687', username: 'neo4j', password: 'password' },
+ *   { logger: console.log }
+ * );
+ * await neogma.verifyConnectivity();
+ * ```
+ */
 export class Neogma {
+  /** The Neo4j driver instance for database connections */
   public readonly driver: Driver;
+  /** The QueryRunner instance for executing queries */
   public readonly queryRunner: QueryRunner;
-  /** a map between each Model's modelName and the Model itself */
+  /** A map between each Model's modelName and the Model itself */
   public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
+  /** The default database name used for queries */
   public database?: string;
 
   /**
+   * Creates a new Neogma instance and establishes a connection to the Neo4j database.
    *
-   * @param {ConnectParamsI} params - the connection params
-   * @param {ConnectOptionsI} options - additional options for the QueryRunner
+   * @param params - The connection parameters
+   * @param params.url - The Neo4j connection URL (e.g., 'bolt://localhost:7687')
+   * @param params.username - The database username
+   * @param params.password - The database password
+   * @param params.database - Optional default database name
+   * @param options - Additional Neo4j driver configuration options
+   * @throws {NeogmaConnectivityError} If the connection fails
    */
   constructor(params: ConnectParamsI, options?: ConnectOptionsI) {
     const { url, username, password } = params;
@@ -64,9 +87,12 @@ export class Neogma {
   }
 
   /**
+   * Creates a new Neogma instance with a temporary database.
+   * Useful for testing scenarios where an isolated database is needed.
    *
-   * @param {ConnectParamsI} params - the connection params
-   * @param {ConnectOptionsI} options - additional options for the QueryRunner
+   * @param params - The connection parameters
+   * @param options - Additional Neo4j driver configuration options
+   * @returns A Neogma instance connected to the newly created temporary database
    */
   public static fromTempDatabase = async (
     params: ConnectParamsI,
@@ -95,6 +121,11 @@ export class Neogma {
   public clearTempDatabasesOlderThan = async (seconds: number) =>
     clearTempDatabasesOlderThan(this.driver, seconds);
 
+  /**
+   * Verifies the connection to the Neo4j database.
+   *
+   * @throws {NeogmaConnectivityError} If the connection verification fails
+   */
   public verifyConnectivity = async (): Promise<void> => {
     try {
       await this.driver.verifyConnectivity();

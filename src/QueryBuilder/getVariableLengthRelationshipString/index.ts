@@ -1,0 +1,1 @@
+export { getVariableLengthRelationshipString } from './getVariableLengthRelationshipString';

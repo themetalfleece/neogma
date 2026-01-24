@@ -32,7 +32,7 @@ await session.close();
 ```
 
 ## Getting a session with the getSession helper
-A session can also be obtained with the `getSession` helper. Its first parameter is an existing session: if it's set, it will be used as-is in the callback. Else, a new one will be created. Ιts second parameter is a callback with the session as the first parameter. 
+A session can also be obtained with the `getSession` helper. Its first parameter is an existing session: if it's set, it will be used as-is in the callback. Else, a new one will be created. Its second parameter is a callback with the session as the first parameter. 
 
 After the callback is done, the session automatically closes.
 
@@ -112,7 +112,7 @@ await transaction.commit(); // or .rollback() to roll it back
 A transaction can also be obtained with the `getTransaction` helper. Its first parameter is an existing transaction or a session.
 * If it's a transaction, it will be used as-is in the callback.
 * Else, a new one will be created. If the first parameter is a session, it will be used to create the transaction.
-Ιts second parameter is a callback with the transaction as the first parameter. 
+Its second parameter is a callback with the transaction as the first parameter. 
 
 After the callback is done, the transaction automatically gets commited and the session closes. In case an error is thrown, the transaction automatically gets rolled back.
 

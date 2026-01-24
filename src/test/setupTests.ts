@@ -1,4 +1,8 @@
 import * as dotenv from 'dotenv';
 
 // Load .env file with quiet mode in CI to suppress console logs
-dotenv.config({ quiet: process.env.CI === 'true' });
+dotenv.config({ quiet: true });
+
+// Import modules to ensure proper module initialization order
+import '../QueryBuilder';
+import '../QueryRunner';

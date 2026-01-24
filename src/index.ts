@@ -1,7 +1,10 @@
+export * from './BindParam';
 export * from './Errors';
+export * from './Literal';
+export * from './ModelFactory';
 export * from './Neogma';
-export * from './ModelOps';
-export * from './Queries';
+export * from './QueryBuilder';
+export * from './QueryRunner';
 export * from './Sessions';
-
+export * from './Where';
 export * as neo4jDriver from 'neo4j-driver';
