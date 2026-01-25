@@ -396,12 +396,27 @@ describe('Where', () => {
         expect(Op._in in value).toBe(true);
       });
 
-      it('accepts Op.in with array of arrays', () => {
-        // Check if the array equals one of several arrays
+      it('accepts Op.in with array of arrays (T[][] for array property)', () => {
+        // For array-typed properties, Op.in takes T[][] (array of possible array values).
+        // This checks if the array property equals one of several possible arrays.
+        // E.g., WHERE tags IN [['admin', 'user'], ['guest']]
+        // This requires Neo4jSingleTypes[][] in WhereTypes['In'] even though
+        // Neo4jSupportedTypes only goes up to Neo4jSingleTypes[].
         const value: WhereValuesI<string[]> = {
           [Op.in]: [
             ['a', 'b'],
             ['c', 'd'],
+          ],
+        };
+        expect(Op.in in value).toBe(true);
+      });
+
+      it('accepts Op.in with number[][] for number[] property', () => {
+        // Same pattern for number arrays
+        const value: WhereValuesI<number[]> = {
+          [Op.in]: [
+            [1, 2, 3],
+            [4, 5, 6],
           ],
         };
         expect(Op.in in value).toBe(true);

@@ -39,6 +39,12 @@ export type WhereTypes = {
     [Op.ne]: Neo4jSupportedTypes | Literal;
   };
   In: {
+    /**
+     * Neo4jSingleTypes[][] is needed to support Op.in on array-typed properties.
+     * E.g., for a `string[]` property, Op.in takes `string[][]` (array of possible array values).
+     * Note: This extends beyond Neo4jSupportedTypes which only goes to Neo4jSingleTypes[].
+     * The Neo4j driver handles nested arrays correctly at runtime.
+     */
     [Op.in]: Neo4jSingleTypes[] | Neo4jSingleTypes[][] | Literal;
   };
   _In: {
