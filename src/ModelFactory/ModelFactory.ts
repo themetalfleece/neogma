@@ -62,6 +62,7 @@ import { update as updateFn, UpdateContext } from './update';
 import {
   instanceUpdateRelationship,
   InstanceUpdateRelationshipParams,
+  UpdateRelationshipData,
   updateRelationship as updateRelationshipFn,
 } from './updateRelationship';
 import {
@@ -716,7 +717,7 @@ export const ModelFactory = <
       Alias extends keyof RelatedNodesToAssociateI,
     >(
       this: Instance,
-      data: AnyObject,
+      data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
       params: InstanceUpdateRelationshipParams<RelatedNodesToAssociateI, Alias>,
     ): Promise<QueryResult> {
       const ctx: InstanceRelationshipContext<

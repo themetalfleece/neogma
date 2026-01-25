@@ -5,7 +5,10 @@ import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { Where } from '../../Where';
 import type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 import type { AnyObject } from '../shared.types';
-import type { UpdateRelationshipParams } from './updateRelationship.types';
+import type {
+  UpdateRelationshipData,
+  UpdateRelationshipParams,
+} from './updateRelationship.types';
 
 /**
  * Updates relationship properties.
@@ -17,7 +20,7 @@ export async function updateRelationship<
   Alias extends keyof RelatedNodesToAssociateI,
 >(
   ctx: RelationshipCrudContext<Properties, RelatedNodesToAssociateI, MethodsI>,
-  data: AnyObject,
+  data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
   params: UpdateRelationshipParams<Properties, RelatedNodesToAssociateI, Alias>,
 ): Promise<QueryResult> {
   const relationship = ctx.getRelationshipConfiguration(params.alias);

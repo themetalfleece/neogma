@@ -21,6 +21,7 @@ import type {
 } from './shared.types';
 import type {
   InstanceUpdateRelationshipWhereClause,
+  UpdateRelationshipData,
   UpdateRelationshipWhereClause,
 } from './updateRelationship/updateRelationship.types';
 
@@ -179,7 +180,7 @@ export interface NeogmaModelStaticsI<
     },
   ) => Promise<[Instance[], QueryResult]>;
   updateRelationship: <Alias extends keyof RelatedNodesToAssociateI>(
-    data: AnyObject,
+    data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
     params: {
       alias: Alias;
       where?: UpdateRelationshipWhereClause<
@@ -328,7 +329,7 @@ export interface NeogmaInstanceMethodsI<
   save: (configuration?: CreateDataParamsI) => Promise<Instance>;
   validate: () => Promise<void>;
   updateRelationship: <Alias extends keyof RelatedNodesToAssociateI>(
-    data: AnyObject,
+    data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
     params: {
       alias: Alias;
       where?: InstanceUpdateRelationshipWhereClause<

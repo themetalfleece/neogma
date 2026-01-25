@@ -408,298 +408,372 @@ describe('findRelationships type safety', () => {
  * for source, target, and relationship where parameters.
  */
 describe('findRelationships where type safety', () => {
-  it('accepts valid where parameters for source, target, relationship', async () => {
+  it('accepts valid where parameters for source, target, relationship', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
+
+    // Type-check tests - verify valid parameters compile correctly
+    // Use wrapper to check types without executing database queries
+    const _typeCheck = (_fn: () => void) => {};
 
     // Valid: correct property names and types for all entities
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: { id: 'user-id', name: 'John' },
-        target: { id: 'order-id', name: 'Order1' },
-        relationship: { rating: 5 },
-      },
-    });
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: { id: 'user-id', name: 'John' },
+          target: { id: 'order-id', name: 'Order1' },
+          relationship: { rating: 5 },
+        },
+      }),
+    );
 
     // Valid: using operators with correct types
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: { id: { [Op.eq]: 'user-id' } },
-        target: { name: { [Op.contains]: 'Order' } },
-        relationship: { rating: { [Op.gte]: 3 } },
-      },
-    });
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: { id: { [Op.eq]: 'user-id' } },
+          target: { name: { [Op.contains]: 'Order' } },
+          relationship: { rating: { [Op.gte]: 3 } },
+        },
+      }),
+    );
 
     // Valid: partial where (only source)
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: { source: { id: 'user-id' } },
-    });
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'user-id' } },
+      }),
+    );
 
     // Valid: partial where (only target)
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: { target: { name: 'Order1' } },
-    });
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: { target: { name: 'Order1' } },
+      }),
+    );
 
     // Valid: partial where (only relationship)
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: { relationship: { rating: 5 } },
-    });
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: { relationship: { rating: 5 } },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects invalid property names in source where clause', async () => {
+  it('rejects invalid property names in source where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: {
-          id: 'valid',
-          // @ts-expect-error - 'nam' is not a valid source property (typo)
-          nam: 'John',
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: {
-          // @ts-expect-error - 'userId' is not a valid source property
-          userId: 'test',
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: {
+            id: 'valid',
+            // @ts-expect-error - 'nam' is not a valid source property (typo)
+            nam: 'John',
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: {
+            // @ts-expect-error - 'userId' is not a valid source property
+            userId: 'test',
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects invalid property names in target where clause', async () => {
+  it('rejects invalid property names in target where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          // @ts-expect-error - 'orderId' is not a valid target property
-          orderId: 'test',
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          id: 'valid',
-          // @ts-expect-error - 'nonExistent' is not a valid target property
-          nonExistent: 'value',
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            // @ts-expect-error - 'orderId' is not a valid target property
+            orderId: 'test',
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            id: 'valid',
+            // @ts-expect-error - 'nonExistent' is not a valid target property
+            nonExistent: 'value',
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects invalid property names in relationship where clause', async () => {
+  it('rejects invalid property names in relationship where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          // @ts-expect-error - 'score' is not a valid relationship property
-          score: 5,
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          rating: 5,
-          // @ts-expect-error - 'invalid' is not a valid relationship property
-          invalid: 'value',
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            // @ts-expect-error - 'score' is not a valid relationship property
+            score: 5,
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            rating: 5,
+            // @ts-expect-error - 'invalid' is not a valid relationship property
+            invalid: 'value',
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects wrong value types in source where clause', async () => {
+  it('rejects wrong value types in source where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: {
-          // @ts-expect-error - 'id' expects string, not number
-          id: 123,
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: {
-          // @ts-expect-error - 'name' expects string, not boolean
-          name: true,
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: {
+            // @ts-expect-error - 'id' expects string, not number
+            id: 123,
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: {
+            // @ts-expect-error - 'name' expects string, not boolean
+            name: true,
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects wrong value types in target where clause', async () => {
+  it('rejects wrong value types in target where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          // @ts-expect-error - 'id' expects string, not number
-          id: 456,
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          // @ts-expect-error - 'name' expects string, not object
-          name: { value: 'test' },
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            // @ts-expect-error - 'id' expects string, not number
+            id: 456,
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            // @ts-expect-error - 'name' expects string, not object
+            name: { value: 'test' },
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects wrong value types in relationship where clause', async () => {
+  it('rejects wrong value types in relationship where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          // @ts-expect-error - 'rating' expects number, not string
-          rating: 'high',
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          // @ts-expect-error - 'rating' expects number, not boolean
-          rating: true,
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            // @ts-expect-error - 'rating' expects number, not string
+            rating: 'high',
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            // @ts-expect-error - 'rating' expects number, not boolean
+            rating: true,
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects wrong value types in operators for all entities', async () => {
+  it('rejects wrong value types in operators for all entities', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
+
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
     // Source: wrong type in operator
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: {
-          // @ts-expect-error - Op.eq expects string for 'id', not number
-          id: { [Op.eq]: 123 },
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: {
+            // @ts-expect-error - Op.eq expects string for 'id', not number
+            id: { [Op.eq]: 123 },
+          },
         },
-      },
-    });
+      }),
+    );
 
     // Target: wrong type in operator
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          // @ts-expect-error - Op.in expects string[] for 'name', not number[]
-          name: { [Op.in]: [1, 2, 3] },
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            // @ts-expect-error - Op.in expects string[] for 'name', not number[]
+            name: { [Op.in]: [1, 2, 3] },
+          },
         },
-      },
-    });
+      }),
+    );
 
     // Relationship: wrong type in operator
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          // @ts-expect-error - Op.gte expects number for 'rating', not string
-          rating: { [Op.gte]: 'high' },
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            // @ts-expect-error - Op.gte expects number for 'rating', not string
+            rating: { [Op.gte]: 'high' },
+          },
         },
-      },
-    });
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects operators on invalid property names', async () => {
+  it('rejects operators on invalid property names', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        source: {
-          // @ts-expect-error - 'invalid' is not a valid source property
-          invalid: { [Op.eq]: 'value' },
-        },
-      },
-    });
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          // @ts-expect-error - 'typo' is not a valid target property
-          typo: { [Op.contains]: 'test' },
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: {
+            // @ts-expect-error - 'invalid' is not a valid source property
+            invalid: { [Op.eq]: 'value' },
+          },
         },
-      },
-    });
+      }),
+    );
 
-    await Users.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          // @ts-expect-error - 'score' is not a valid relationship property
-          score: { [Op.gt]: 5 },
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            // @ts-expect-error - 'typo' is not a valid target property
+            typo: { [Op.contains]: 'test' },
+          },
         },
-      },
-    });
+      }),
+    );
+
+    _typeCheck(() =>
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            // @ts-expect-error - 'score' is not a valid relationship property
+            score: { [Op.gt]: 5 },
+          },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
@@ -720,27 +794,34 @@ describe('findRelationships where type safety', () => {
       },
     });
 
+    // Type-only tests - use wrapper to avoid runtime execution
+    const _typeCheck = (_fn: () => void) => {};
+
     // Invalid property name in target
-    await user.findRelationships({
-      alias: 'Orders',
-      where: {
-        target: {
-          // @ts-expect-error - 'orderId' is not a valid target property
-          orderId: 'test',
+    _typeCheck(() =>
+      user.findRelationships({
+        alias: 'Orders',
+        where: {
+          target: {
+            // @ts-expect-error - 'orderId' is not a valid target property
+            orderId: 'test',
+          },
         },
-      },
-    });
+      }),
+    );
 
     // Wrong value type in relationship
-    await user.findRelationships({
-      alias: 'Orders',
-      where: {
-        relationship: {
-          // @ts-expect-error - 'rating' expects number, not string
-          rating: 'high',
+    _typeCheck(() =>
+      user.findRelationships({
+        alias: 'Orders',
+        where: {
+          relationship: {
+            // @ts-expect-error - 'rating' expects number, not string
+            rating: 'high',
+          },
         },
-      },
-    });
+      }),
+    );
 
     expect(true).toBe(true);
   });

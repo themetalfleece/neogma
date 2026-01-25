@@ -5,6 +5,7 @@ export type {
   InstanceUpdateRelationshipParams,
   InstanceUpdateRelationshipWhereClause,
   RelationshipCrudContext,
+  UpdateRelationshipData,
   UpdateRelationshipParams,
   UpdateRelationshipWhereClause,
 } from './updateRelationship.types';

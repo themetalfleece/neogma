@@ -6,6 +6,17 @@ export type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 export type { InstanceRelationshipContext } from '../relateTo/relateTo.types';
 
 /**
+ * Type-safe data for updating relationship properties.
+ * Allows partial updates to relationship properties.
+ * @typeParam RelatedNodesToAssociateI - The model's relationship definitions.
+ * @typeParam Alias - The relationship alias being updated.
+ */
+export type UpdateRelationshipData<
+  RelatedNodesToAssociateI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+> = Partial<RelatedNodesToAssociateI[Alias]['RelationshipProperties']>;
+
+/**
  * Type-safe where clause for updateRelationship static method.
  * Constrains property names for source, target, and relationship to their actual properties.
  */

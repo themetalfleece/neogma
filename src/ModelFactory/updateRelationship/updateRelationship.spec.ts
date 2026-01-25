@@ -380,243 +380,292 @@ describe('updateRelationship type safety', () => {
  */
 describe('updateRelationship where type safety', () => {
   describe('static method (source/target/relationship where)', () => {
-    it('accepts valid where parameters for source, target, relationship', async () => {
+    it('accepts valid where parameters for source, target, relationship', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
+      // Type-check tests - verify valid parameters compile correctly
+      // Use wrapper to check types without executing database queries
+      const _typeCheck = (_fn: () => void) => {};
+
       // Valid: correct property names and types for all entities
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            source: { id: 'user-id', name: 'John' },
-            target: { id: 'order-id', name: 'Order1' },
-            relationship: { rating: 3 },
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              source: { id: 'user-id', name: 'John' },
+              target: { id: 'order-id', name: 'Order1' },
+              relationship: { rating: 3 },
+            },
           },
-        },
+        ),
       );
 
       // Valid: using operators with correct types
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            source: { id: { [Op.eq]: 'user-id' } },
-            target: { name: { [Op.contains]: 'Order' } },
-            relationship: { rating: { [Op.gte]: 1 } },
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              source: { id: { [Op.eq]: 'user-id' } },
+              target: { name: { [Op.contains]: 'Order' } },
+              relationship: { rating: { [Op.gte]: 1 } },
+            },
           },
-        },
+        ),
       );
 
       // Valid: partial where (only source)
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: { source: { id: 'user-id' } },
-        },
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
       );
 
       expect(true).toBe(true);
     });
 
-    it('rejects invalid property names in source where clause', async () => {
+    it('rejects invalid property names in source where clause', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            source: {
-              id: 'valid',
-              // @ts-expect-error - 'nam' is not a valid source property (typo)
-              nam: 'John',
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              source: {
+                id: 'valid',
+                // @ts-expect-error - 'nam' is not a valid source property (typo)
+                nam: 'John',
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            source: {
-              // @ts-expect-error - 'userId' is not a valid source property
-              userId: 'test',
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              source: {
+                // @ts-expect-error - 'userId' is not a valid source property
+                userId: 'test',
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
     });
 
-    it('rejects invalid property names in target where clause', async () => {
+    it('rejects invalid property names in target where clause', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - 'orderId' is not a valid target property
-              orderId: 'test',
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - 'orderId' is not a valid target property
+                orderId: 'test',
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              id: 'valid',
-              // @ts-expect-error - 'nonExistent' is not a valid target property
-              nonExistent: 'value',
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                id: 'valid',
+                // @ts-expect-error - 'nonExistent' is not a valid target property
+                nonExistent: 'value',
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
     });
 
-    it('rejects invalid property names in relationship where clause', async () => {
+    it('rejects invalid property names in relationship where clause', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              // @ts-expect-error - 'score' is not a valid relationship property
-              score: 5,
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                // @ts-expect-error - 'score' is not a valid relationship property
+                score: 5,
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              rating: 3,
-              // @ts-expect-error - 'invalid' is not a valid relationship property
-              invalid: 'value',
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                rating: 3,
+                // @ts-expect-error - 'invalid' is not a valid relationship property
+                invalid: 'value',
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
     });
 
-    it('rejects wrong value types in source and target', async () => {
+    it('rejects wrong value types in source and target', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            source: {
-              // @ts-expect-error - 'id' expects string, not number
-              id: 123,
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              source: {
+                // @ts-expect-error - 'id' expects string, not number
+                id: 123,
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - 'name' expects string, not boolean
-              name: true,
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - 'name' expects string, not boolean
+                name: true,
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              // @ts-expect-error - 'rating' expects number, not string
-              rating: 'high',
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                // @ts-expect-error - 'rating' expects number, not string
+                rating: 'high',
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
     });
 
-    it('rejects wrong value types in operators', async () => {
+    it('rejects wrong value types in operators', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            source: {
-              // @ts-expect-error - Op.eq expects string for 'id', not number
-              id: { [Op.eq]: 123 },
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              source: {
+                // @ts-expect-error - Op.eq expects string for 'id', not number
+                id: { [Op.eq]: 123 },
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - Op.in expects string[] for 'name', not number[]
-              name: { [Op.in]: [1, 2, 3] },
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - Op.in expects string[] for 'name', not number[]
+                name: { [Op.in]: [1, 2, 3] },
+              },
             },
           },
-        },
+        ),
       );
 
-      await Users.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              // @ts-expect-error - Op.gte expects number for 'rating', not string
-              rating: { [Op.gte]: 'high' },
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                // @ts-expect-error - Op.gte expects number for 'rating', not string
+                rating: { [Op.gte]: 'high' },
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
@@ -631,28 +680,36 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
+      // Type-check tests - verify valid parameters compile correctly
+      // Use wrapper to check types without executing database queries
+      const _typeCheck = (_fn: () => void) => {};
+
       // Valid: correct property names and types
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: { id: 'order-id', name: 'Order1' },
-            relationship: { rating: 3 },
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: { id: 'order-id', name: 'Order1' },
+              relationship: { rating: 3 },
+            },
           },
-        },
+        ),
       );
 
       // Valid: using operators with correct types
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: { id: { [Op.eq]: 'order-id' } },
-            relationship: { rating: { [Op.gte]: 1 } },
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: { id: { [Op.eq]: 'order-id' } },
+              relationship: { rating: { [Op.gte]: 1 } },
+            },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
@@ -665,31 +722,38 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - 'orderId' is not a valid target property
-              orderId: 'test',
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - 'orderId' is not a valid target property
+                orderId: 'test',
+              },
             },
           },
-        },
+        ),
       );
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              id: 'valid',
-              // @ts-expect-error - 'nonExistent' is not a valid target property
-              nonExistent: 'value',
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                id: 'valid',
+                // @ts-expect-error - 'nonExistent' is not a valid target property
+                nonExistent: 'value',
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
@@ -702,30 +766,37 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - 'id' expects string, not number
-              id: 456,
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - 'id' expects string, not number
+                id: 456,
+              },
             },
           },
-        },
+        ),
       );
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              // @ts-expect-error - 'rating' expects number, not string
-              rating: 'high',
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                // @ts-expect-error - 'rating' expects number, not string
+                rating: 'high',
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
@@ -738,30 +809,37 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - Op.eq expects string for 'id', not number
-              id: { [Op.eq]: 123 },
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - Op.eq expects string for 'id', not number
+                id: { [Op.eq]: 123 },
+              },
             },
           },
-        },
+        ),
       );
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              // @ts-expect-error - Op.gte expects number for 'rating', not string
-              rating: { [Op.gte]: 'high' },
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                // @ts-expect-error - Op.gte expects number for 'rating', not string
+                rating: { [Op.gte]: 'high' },
+              },
             },
           },
-        },
+        ),
       );
 
       expect(true).toBe(true);
@@ -774,30 +852,289 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            target: {
-              // @ts-expect-error - 'invalid' is not a valid target property
-              invalid: { [Op.eq]: 'value' },
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              target: {
+                // @ts-expect-error - 'invalid' is not a valid target property
+                invalid: { [Op.eq]: 'value' },
+              },
             },
           },
-        },
+        ),
       );
 
-      await user.updateRelationship(
-        { rating: 5 },
-        {
-          alias: 'Orders',
-          where: {
-            relationship: {
-              // @ts-expect-error - 'score' is not a valid relationship property
-              score: { [Op.gt]: 5 },
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: {
+              relationship: {
+                // @ts-expect-error - 'score' is not a valid relationship property
+                score: { [Op.gt]: 5 },
+              },
             },
           },
-        },
+        ),
+      );
+
+      expect(true).toBe(true);
+    });
+  });
+});
+
+/**
+ * Data parameter type safety tests.
+ * These tests verify that property names and value types are validated at compile time
+ * for the data parameter that updates relationship properties.
+ */
+describe('updateRelationship data type safety', () => {
+  describe('static method data parameter', () => {
+    it('accepts valid relationship property names and types', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      // Type-check tests - verify valid parameters compile correctly
+      // Use wrapper to check types without executing database queries
+      const _typeCheck = (_fn: () => void) => {};
+
+      // Valid: correct property name and type
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      // Valid: partial update with only some properties
+      _typeCheck(() =>
+        Users.updateRelationship(
+          { rating: 3 },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects invalid relationship property names', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          {
+            // @ts-expect-error - 'score' is not a valid relationship property
+            score: 5,
+          },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          {
+            rating: 5,
+            // @ts-expect-error - 'invalid' is not a valid relationship property
+            invalid: 'value',
+          },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          {
+            // @ts-expect-error - 'nonExistent' is not a valid relationship property
+            nonExistent: 123,
+          },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects wrong value types for relationship properties', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      // These type tests verify TypeScript errors at compile time
+      // We use a function wrapper to check types without executing
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          {
+            // @ts-expect-error - 'rating' expects number, not string
+            rating: 'high',
+          },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          {
+            // @ts-expect-error - 'rating' expects number, not boolean
+            rating: true,
+          },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      _typeCheck(() =>
+        Users.updateRelationship(
+          {
+            // @ts-expect-error - 'rating' expects number, not object
+            rating: { value: 5 },
+          },
+          {
+            alias: 'Orders',
+            where: { source: { id: 'user-id' } },
+          },
+        ),
+      );
+
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('instance method data parameter', () => {
+    it('accepts valid relationship property names and types', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: 'user-id', name: 'John' });
+
+      // Type-check tests - verify valid parameters compile correctly
+      // Use wrapper to check types without executing database queries
+      const _typeCheck = (_fn: () => void) => {};
+
+      // Valid: correct property name and type
+      _typeCheck(() =>
+        user.updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: { target: { id: 'order-id' } },
+          },
+        ),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects invalid relationship property names', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: 'user-id', name: 'John' });
+
+      // Type-only tests - use wrapper to avoid runtime execution
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          {
+            // @ts-expect-error - 'score' is not a valid relationship property
+            score: 5,
+          },
+          {
+            alias: 'Orders',
+            where: { target: { id: 'order-id' } },
+          },
+        ),
+      );
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          {
+            rating: 5,
+            // @ts-expect-error - 'invalid' is not a valid relationship property
+            invalid: 'value',
+          },
+          {
+            alias: 'Orders',
+            where: { target: { id: 'order-id' } },
+          },
+        ),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects wrong value types for relationship properties', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: 'user-id', name: 'John' });
+
+      // These type tests verify TypeScript errors at compile time
+      // We use a function wrapper to check types without executing
+      const _typeCheck = (_fn: () => void) => {};
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          {
+            // @ts-expect-error - 'rating' expects number, not string
+            rating: 'high',
+          },
+          {
+            alias: 'Orders',
+            where: { target: { id: 'order-id' } },
+          },
+        ),
+      );
+
+      _typeCheck(() =>
+        user.updateRelationship(
+          {
+            // @ts-expect-error - 'rating' expects number, not boolean
+            rating: true,
+          },
+          {
+            alias: 'Orders',
+            where: { target: { id: 'order-id' } },
+          },
+        ),
       );
 
       expect(true).toBe(true);
