@@ -4,6 +4,12 @@ import type { QueryBuilder } from '../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../QueryRunner';
 import type { CreateRelationshipParamsI } from '../QueryRunner';
 import type { ExtractPropertiesFromInstance, WhereParamsI } from '../Where';
+import type { DeleteRelationshipsWhereClause } from './deleteRelationships/deleteRelationships.types';
+import type {
+  FindRelationshipsWhereClause,
+  InstanceFindRelationshipsWhereClause,
+} from './findRelationships/findRelationships.types';
+import type { RelateToWhereClause } from './relateTo/relateTo.types';
 import type {
   RelatedNodesCreationParamI,
   RelationshipPropertiesI,
@@ -13,6 +19,10 @@ import type {
   GenericConfiguration,
   IValidationSchema,
 } from './shared.types';
+import type {
+  InstanceUpdateRelationshipWhereClause,
+  UpdateRelationshipWhereClause,
+} from './updateRelationship/updateRelationship.types';
 
 // ============ Relationship Types (defined here to avoid circular deps) ============
 
@@ -172,17 +182,11 @@ export interface NeogmaModelStaticsI<
     data: AnyObject,
     params: {
       alias: Alias;
-      where?: {
-        source?: WhereParamsI<Properties>;
-        target?: WhereParamsI<
-          ExtractPropertiesFromInstance<
-            RelatedNodesToAssociateI[Alias]['Instance']
-          >
-        >;
-        relationship?: WhereParamsI<
-          RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-        >;
-      };
+      where?: UpdateRelationshipWhereClause<
+        Properties,
+        RelatedNodesToAssociateI,
+        Alias
+      >;
       session?: GenericConfiguration['session'];
     },
   ) => Promise<QueryResult>;
@@ -240,14 +244,7 @@ export interface NeogmaModelStaticsI<
   ) => string;
   relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
-    where: {
-      source: WhereParamsI<Properties>;
-      target: WhereParamsI<
-        ExtractPropertiesFromInstance<
-          RelatedNodesToAssociateI[Alias]['Instance']
-        >
-      >;
-    };
+    where: RelateToWhereClause<Properties, RelatedNodesToAssociateI, Alias>;
     properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
     /** throws an error if the number of created relationships don't equal to this number */
     assertCreatedRelationships?: number;
@@ -255,17 +252,11 @@ export interface NeogmaModelStaticsI<
   }) => Promise<number>;
   findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
-    where?: {
-      source?: WhereParamsI<Properties>;
-      target?: WhereParamsI<
-        ExtractPropertiesFromInstance<
-          RelatedNodesToAssociateI[Alias]['Instance']
-        >
-      >;
-      relationship?: WhereParamsI<
-        RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-      >;
-    };
+    where?: FindRelationshipsWhereClause<
+      Properties,
+      RelatedNodesToAssociateI,
+      Alias
+    >;
     /** a limit to apply to the fetched relationships */
     limit?: number;
     /** skip the first n relationships */
@@ -311,17 +302,11 @@ export interface NeogmaModelStaticsI<
    */
   deleteRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
-    where: {
-      source?: WhereParamsI<Properties>;
-      target?: WhereParamsI<
-        ExtractPropertiesFromInstance<
-          RelatedNodesToAssociateI[Alias]['Instance']
-        >
-      >;
-      relationship?: WhereParamsI<
-        RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-      >;
-    };
+    where: DeleteRelationshipsWhereClause<
+      Properties,
+      RelatedNodesToAssociateI,
+      Alias
+    >;
     session?: GenericConfiguration['session'];
   }) => Promise<number>;
 }
@@ -346,16 +331,10 @@ export interface NeogmaInstanceMethodsI<
     data: AnyObject,
     params: {
       alias: Alias;
-      where?: {
-        target?: WhereParamsI<
-          ExtractPropertiesFromInstance<
-            RelatedNodesToAssociateI[Alias]['Instance']
-          >
-        >;
-        relationship?: WhereParamsI<
-          RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-        >;
-      };
+      where?: InstanceUpdateRelationshipWhereClause<
+        RelatedNodesToAssociateI,
+        Alias
+      >;
       session?: GenericConfiguration['session'];
     },
   ) => Promise<QueryResult>;
@@ -376,16 +355,10 @@ export interface NeogmaInstanceMethodsI<
   }) => Promise<number>;
   findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
-    where?: {
-      relationship?: WhereParamsI<
-        RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-      >;
-      target?: WhereParamsI<
-        ExtractPropertiesFromInstance<
-          RelatedNodesToAssociateI[Alias]['Instance']
-        >
-      >;
-    };
+    where?: InstanceFindRelationshipsWhereClause<
+      RelatedNodesToAssociateI,
+      Alias
+    >;
     /** a limit to apply to the fetched relationships */
     limit?: number;
     /** skip the first n relationships */

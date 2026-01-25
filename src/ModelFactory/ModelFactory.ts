@@ -1,9 +1,9 @@
 import clone from 'clone';
+import type { QueryResult } from 'neo4j-driver';
 
 import { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
 import { Neo4jSupportedProperties } from '../QueryRunner';
-import type { ExtractPropertiesFromInstance, WhereParamsI } from '../Where';
 // Import operations from new directories
 import {
   build as buildFn,
@@ -15,11 +15,18 @@ import { createOne as createOneFn } from './createOne';
 import { createRelationship as createRelationshipFn } from './createRelationship';
 import { DeleteContext, deleteNodes, InstanceDeleteContext } from './delete';
 import { deleteInstance } from './delete';
-import { deleteRelationships as deleteRelationshipsFn } from './deleteRelationships';
+import {
+  deleteRelationships as deleteRelationshipsFn,
+  DeleteRelationshipsWhereClause,
+} from './deleteRelationships';
 import { FindContext, findMany as findManyFn } from './findMany';
 import { findOne as findOneFn } from './findOne';
-import { findRelationships as findRelationshipsFn } from './findRelationships';
-import { instanceFindRelationships } from './findRelationships';
+import {
+  findRelationships as findRelationshipsFn,
+  FindRelationshipsWhereClause,
+  instanceFindRelationships,
+  InstanceFindRelationshipsParams,
+} from './findRelationships';
 import { getDataValues as getDataValuesFn } from './getDataValues';
 import type {
   NeogmaInstance,
@@ -30,8 +37,10 @@ import type {
   StrictNeogmaInstance,
 } from './model.types';
 import {
+  InstanceRelateToParams,
   InstanceRelationshipContext,
   relateTo as relateToFn,
+  RelateToWhereClause,
   RelationshipCrudContext,
 } from './relateTo';
 import { instanceRelateTo } from './relateTo';
@@ -50,8 +59,11 @@ import type {
   IValidationSchema,
 } from './shared.types';
 import { update as updateFn, UpdateContext } from './update';
-import { updateRelationship as updateRelationshipFn } from './updateRelationship';
-import { instanceUpdateRelationship } from './updateRelationship';
+import {
+  instanceUpdateRelationship,
+  InstanceUpdateRelationshipParams,
+  updateRelationship as updateRelationshipFn,
+} from './updateRelationship';
 import {
   assertPrimaryKeyField,
   getLabelFromRelationshipModel,
@@ -432,14 +444,7 @@ export const ModelFactory = <
       Alias extends keyof RelatedNodesToAssociateI,
     >(params: {
       alias: Alias;
-      where: {
-        source: WhereParamsI<Properties>;
-        target: WhereParamsI<
-          ExtractPropertiesFromInstance<
-            RelatedNodesToAssociateI[Alias]['Instance']
-          >
-        >;
-      };
+      where: RelateToWhereClause<Properties, RelatedNodesToAssociateI, Alias>;
       properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
       assertCreatedRelationships?: number;
       session?: GenericConfiguration['session'];
@@ -470,17 +475,11 @@ export const ModelFactory = <
       Alias extends keyof RelatedNodesToAssociateI,
     >(params: {
       alias: Alias;
-      where?: {
-        source?: WhereParamsI<Properties>;
-        target?: WhereParamsI<
-          ExtractPropertiesFromInstance<
-            RelatedNodesToAssociateI[Alias]['Instance']
-          >
-        >;
-        relationship?: WhereParamsI<
-          RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-        >;
-      };
+      where?: FindRelationshipsWhereClause<
+        Properties,
+        RelatedNodesToAssociateI,
+        Alias
+      >;
       limit?: number;
       skip?: number;
       minHops?: number;
@@ -542,17 +541,11 @@ export const ModelFactory = <
       Alias extends keyof RelatedNodesToAssociateI,
     >(params: {
       alias: Alias;
-      where: {
-        source?: WhereParamsI<Properties>;
-        target?: WhereParamsI<
-          ExtractPropertiesFromInstance<
-            RelatedNodesToAssociateI[Alias]['Instance']
-          >
-        >;
-        relationship?: WhereParamsI<
-          RelatedNodesToAssociateI[Alias]['RelationshipProperties']
-        >;
-      };
+      where: DeleteRelationshipsWhereClause<
+        Properties,
+        RelatedNodesToAssociateI,
+        Alias
+      >;
       session?: GenericConfiguration['session'];
     }): Promise<number> {
       const ctx: RelationshipCrudContext<
@@ -667,17 +660,7 @@ export const ModelFactory = <
 
     public async relateTo<Alias extends keyof RelatedNodesToAssociateI>(
       this: Instance,
-      params: {
-        alias: Alias;
-        where: WhereParamsI<
-          ExtractPropertiesFromInstance<
-            RelatedNodesToAssociateI[Alias]['Instance']
-          >
-        >;
-        properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
-        assertCreatedRelationships?: number;
-        session?: GenericConfiguration['session'];
-      },
+      params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias>,
     ): Promise<number> {
       const ctx: InstanceRelationshipContext<
         Properties,
@@ -700,7 +683,11 @@ export const ModelFactory = <
       Alias extends keyof RelatedNodesToAssociateI,
     >(
       this: Instance,
-      params: Parameters<InstanceMethodsI['findRelationships']>[0],
+      params: InstanceFindRelationshipsParams<
+        Properties,
+        RelatedNodesToAssociateI,
+        Alias
+      >,
     ): Promise<
       Array<{
         source: Instance;
@@ -725,11 +712,13 @@ export const ModelFactory = <
       return instanceFindRelationships(this, ctx, params);
     }
 
-    public async updateRelationship(
+    public async updateRelationship<
+      Alias extends keyof RelatedNodesToAssociateI,
+    >(
       this: Instance,
-      data: Parameters<InstanceMethodsI['updateRelationship']>[0],
-      params: Parameters<InstanceMethodsI['updateRelationship']>[1],
-    ): ReturnType<InstanceMethodsI['updateRelationship']> {
+      data: AnyObject,
+      params: InstanceUpdateRelationshipParams<RelatedNodesToAssociateI, Alias>,
+    ): Promise<QueryResult> {
       const ctx: InstanceRelationshipContext<
         Properties,
         RelatedNodesToAssociateI,
