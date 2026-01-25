@@ -16,6 +16,7 @@ import type {
 import type {
   InstanceRelateToParams,
   RelateToParams,
+  RelateToWhereClause,
 } from '../ModelFactory/relateTo/relateTo.types';
 import type { UpdateParams } from '../ModelFactory/update/update.types';
 import type {
@@ -1163,6 +1164,52 @@ describe('UpdateRelationshipParams type safety', () => {
 
       expect(params.alias).toBe('Orders');
     });
+  });
+});
+
+// ============ RelateToWhereClause Type Tests ============
+
+describe('RelateToWhereClause type safety', () => {
+  it('accepts valid source and target properties', () => {
+    const where: RelateToWhereClause<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      source: { id: '123', name: 'John' },
+      target: { id: '456', orderNumber: 'ORD-789' },
+    };
+
+    expect(where.source.id).toBe('123');
+    expect(where.target.id).toBe('456');
+  });
+
+  it('rejects invalid source property names', () => {
+    const _where: RelateToWhereClause<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      // @ts-expect-error - 'userName' is not valid
+      source: { userName: 'John' },
+      target: { id: '456' },
+    };
+
+    void _where;
+  });
+
+  it('rejects invalid target property names', () => {
+    const _where: RelateToWhereClause<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      source: { id: '123' },
+      // @ts-expect-error - 'orderId' is not valid
+      target: { orderId: '456' },
+    };
+
+    void _where;
   });
 });
 

@@ -41,6 +41,24 @@ export interface RelationshipCrudContext<
 }
 
 /**
+ * Type-safe where clause for relateTo static method.
+ * Constrains property names for source and target to their actual properties.
+ * @typeParam SourceProperties - The source model's property types.
+ * @typeParam RelatedNodesToAssociateI - The model's relationship definitions.
+ * @typeParam Alias - The relationship alias being created.
+ */
+export type RelateToWhereClause<
+  SourceProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+> = {
+  source: WhereParamsI<SourceProperties>;
+  target: WhereParamsI<
+    ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
+  >;
+};
+
+/**
  * Parameters for the static relateTo method.
  * @typeParam SourceProperties - The source model's property types.
  * @typeParam RelatedNodesToAssociateI - The model's relationship definitions.
@@ -53,12 +71,7 @@ export interface RelateToParams<
 > extends GenericConfiguration {
   alias: Alias;
   /** Where clause with type-safe property validation for source and target. */
-  where: {
-    source: WhereParamsI<SourceProperties>;
-    target: WhereParamsI<
-      ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
-    >;
-  };
+  where: RelateToWhereClause<SourceProperties, RelatedNodesToAssociateI, Alias>;
   properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
   assertCreatedRelationships?: number;
 }
