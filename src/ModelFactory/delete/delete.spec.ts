@@ -222,31 +222,37 @@ describe('delete where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Valid: correct property names and value types (using detach to handle any relationships)
-    await Users.delete({ where: { id: 'test-id' }, detach: true });
+    const testId = uuid();
+    const testName = uuid();
 
-    await Users.delete({ where: { name: 'John' }, detach: true });
+    // Valid: correct property names and value types (using detach to handle any relationships)
+    await Users.delete({ where: { id: testId }, detach: true });
+
+    await Users.delete({ where: { id: testId, name: testName }, detach: true });
 
     await Users.delete({
-      where: { id: 'test-id', name: 'John' },
+      where: { id: testId, name: testName },
       detach: true,
     });
 
     // Valid: using operators with correct types
-    await Users.delete({ where: { id: { [Op.eq]: 'test-id' } }, detach: true });
+    await Users.delete({ where: { id: { [Op.eq]: testId } }, detach: true });
 
     await Users.delete({
-      where: { id: { [Op.in]: ['id1', 'id2'] } },
+      where: { id: { [Op.in]: [testId, uuid()] } },
       detach: true,
     });
 
     await Users.delete({
-      where: { name: { [Op.contains]: 'John' } },
+      where: { id: testId, name: { [Op.contains]: testName } },
       detach: true,
     });
 
     // Valid: numeric property with comparison operators
-    await Users.delete({ where: { age: { [Op.gte]: 18 } }, detach: true });
+    await Users.delete({
+      where: { id: testId, age: { [Op.gte]: 18 } },
+      detach: true,
+    });
 
     expect(true).toBe(true);
   });
@@ -256,9 +262,11 @@ describe('delete where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
+    const testId = uuid();
+
     await Users.delete({
       where: {
-        id: 'valid',
+        id: testId,
         // @ts-expect-error - 'nam' is not a valid property (typo)
         nam: 'John',
       },
@@ -267,6 +275,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - 'userId' is not a valid property
         userId: 'test',
       },
@@ -275,6 +284,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - 'nonExistent' is not a valid property
         nonExistent: 'value',
       },
@@ -289,8 +299,11 @@ describe('delete where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
+    const testId = uuid();
+
     await Users.delete({
       where: {
+        name: testId,
         // @ts-expect-error - 'id' expects string, not number
         id: 123,
       },
@@ -299,6 +312,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - 'name' expects string, not boolean
         name: true,
       },
@@ -307,6 +321,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - 'age' expects number, not string
         age: 'twenty-five',
       },
@@ -321,8 +336,11 @@ describe('delete where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
+    const testId = uuid();
+
     await Users.delete({
       where: {
+        name: testId,
         // @ts-expect-error - Op.eq expects string for 'id', not number
         id: { [Op.eq]: 123 },
       },
@@ -331,6 +349,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        name: testId,
         // @ts-expect-error - Op.in expects string[] for 'id', not number[]
         id: { [Op.in]: [1, 2, 3] },
       },
@@ -339,6 +358,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - Op.gte expects number for 'age', not string
         age: { [Op.gte]: 'eighteen' },
       },
@@ -347,6 +367,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - Op.contains expects string for 'name', not number
         name: { [Op.contains]: 42 },
       },
@@ -361,8 +382,11 @@ describe('delete where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
+    const testId = uuid();
+
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - 'invalid' is not a valid property
         invalid: { [Op.eq]: 'value' },
       },
@@ -371,6 +395,7 @@ describe('delete where type safety', () => {
 
     await Users.delete({
       where: {
+        id: testId,
         // @ts-expect-error - 'typo' is not a valid property
         typo: { [Op.in]: ['a', 'b'] },
       },

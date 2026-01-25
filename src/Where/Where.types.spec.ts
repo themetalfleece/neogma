@@ -1,5 +1,5 @@
 /**
- * Type safety tests for TypedWhereParamsI and related types.
+ * Type safety tests for WhereParamsI and related types.
  * These tests verify that the type system catches property name typos
  * and value type mismatches at compile time.
  */
@@ -12,9 +12,8 @@ import {
   ExtractPropertiesFromInstance,
   Op,
   TypedRelationshipWhereI,
-  TypedWhereParamsI,
-  TypedWhereValueI,
   WhereParamsI,
+  WhereValuesI,
 } from '.';
 
 // ============ Test Types Setup ============
@@ -58,17 +57,17 @@ interface UserRelatedNodesI {
   >;
 }
 
-// ============ TypedWhereValueI Tests ============
+// ============ WhereValuesI Tests ============
 
-describe('TypedWhereValueI type safety', () => {
+describe('WhereValuesI type safety', () => {
   describe('string property', () => {
     it('accepts valid string values and operators', () => {
-      const direct: TypedWhereValueI<string> = 'John';
-      const array: TypedWhereValueI<string> = ['John', 'Jane'];
-      const opEq: TypedWhereValueI<string> = { [Op.eq]: 'John' };
-      const opIn: TypedWhereValueI<string> = { [Op.in]: ['John', 'Jane'] };
-      const opNe: TypedWhereValueI<string> = { [Op.ne]: 'Admin' };
-      const opContains: TypedWhereValueI<string> = { [Op.contains]: 'ohn' };
+      const direct: WhereValuesI<string> = 'John';
+      const array: WhereValuesI<string> = ['John', 'Jane'];
+      const opEq: WhereValuesI<string> = { [Op.eq]: 'John' };
+      const opIn: WhereValuesI<string> = { [Op.in]: ['John', 'Jane'] };
+      const opNe: WhereValuesI<string> = { [Op.ne]: 'Admin' };
+      const opContains: WhereValuesI<string> = { [Op.contains]: 'ohn' };
 
       expect(direct).toBe('John');
       expect(array).toEqual(['John', 'Jane']);
@@ -80,15 +79,15 @@ describe('TypedWhereValueI type safety', () => {
 
     it('rejects wrong value types', () => {
       // @ts-expect-error - number is not assignable to string
-      const _direct: TypedWhereValueI<string> = 123;
+      const _direct: WhereValuesI<string> = 123;
       // @ts-expect-error - boolean is not assignable to string
-      const _bool: TypedWhereValueI<string> = true;
+      const _bool: WhereValuesI<string> = true;
       // @ts-expect-error - Op.eq expects string, not number
-      const _opEq: TypedWhereValueI<string> = { [Op.eq]: 123 };
+      const _opEq: WhereValuesI<string> = { [Op.eq]: 123 };
       // @ts-expect-error - Op.in expects string[], not number[]
-      const _opIn: TypedWhereValueI<string> = { [Op.in]: [1, 2, 3] };
+      const _opIn: WhereValuesI<string> = { [Op.in]: [1, 2, 3] };
       // @ts-expect-error - Op.ne expects string, not boolean
-      const _opNe: TypedWhereValueI<string> = { [Op.ne]: false };
+      const _opNe: WhereValuesI<string> = { [Op.ne]: false };
 
       void _direct;
       void _bool;
@@ -100,14 +99,14 @@ describe('TypedWhereValueI type safety', () => {
 
   describe('number property', () => {
     it('accepts valid number values and operators', () => {
-      const direct: TypedWhereValueI<number> = 25;
-      const array: TypedWhereValueI<number> = [18, 25, 30];
-      const opEq: TypedWhereValueI<number> = { [Op.eq]: 25 };
-      const opIn: TypedWhereValueI<number> = { [Op.in]: [1, 2, 3] };
-      const opGt: TypedWhereValueI<number> = { [Op.gt]: 18 };
-      const opGte: TypedWhereValueI<number> = { [Op.gte]: 21 };
-      const opLt: TypedWhereValueI<number> = { [Op.lt]: 65 };
-      const opLte: TypedWhereValueI<number> = { [Op.lte]: 100 };
+      const direct: WhereValuesI<number> = 25;
+      const array: WhereValuesI<number> = [18, 25, 30];
+      const opEq: WhereValuesI<number> = { [Op.eq]: 25 };
+      const opIn: WhereValuesI<number> = { [Op.in]: [1, 2, 3] };
+      const opGt: WhereValuesI<number> = { [Op.gt]: 18 };
+      const opGte: WhereValuesI<number> = { [Op.gte]: 21 };
+      const opLt: WhereValuesI<number> = { [Op.lt]: 65 };
+      const opLte: WhereValuesI<number> = { [Op.lte]: 100 };
 
       expect(direct).toBe(25);
       expect(array).toEqual([18, 25, 30]);
@@ -121,13 +120,13 @@ describe('TypedWhereValueI type safety', () => {
 
     it('rejects wrong value types', () => {
       // @ts-expect-error - string is not assignable to number
-      const _direct: TypedWhereValueI<number> = 'twenty-five';
+      const _direct: WhereValuesI<number> = 'twenty-five';
       // @ts-expect-error - boolean is not assignable to number
-      const _bool: TypedWhereValueI<number> = true;
+      const _bool: WhereValuesI<number> = true;
       // @ts-expect-error - Op.gt expects number, not string
-      const _opGt: TypedWhereValueI<number> = { [Op.gt]: '18' };
+      const _opGt: WhereValuesI<number> = { [Op.gt]: '18' };
       // @ts-expect-error - Op.in expects number[], not string[]
-      const _opIn: TypedWhereValueI<number> = { [Op.in]: ['a', 'b'] };
+      const _opIn: WhereValuesI<number> = { [Op.in]: ['a', 'b'] };
 
       void _direct;
       void _bool;
@@ -138,9 +137,9 @@ describe('TypedWhereValueI type safety', () => {
 
   describe('boolean property', () => {
     it('accepts valid boolean values and operators', () => {
-      const direct: TypedWhereValueI<boolean> = true;
-      const opEq: TypedWhereValueI<boolean> = { [Op.eq]: false };
-      const opNe: TypedWhereValueI<boolean> = { [Op.ne]: true };
+      const direct: WhereValuesI<boolean> = true;
+      const opEq: WhereValuesI<boolean> = { [Op.eq]: false };
+      const opNe: WhereValuesI<boolean> = { [Op.ne]: true };
 
       expect(direct).toBe(true);
       expect(opEq).toBeDefined();
@@ -149,11 +148,11 @@ describe('TypedWhereValueI type safety', () => {
 
     it('rejects wrong value types', () => {
       // @ts-expect-error - string is not assignable to boolean
-      const _string: TypedWhereValueI<boolean> = 'true';
+      const _string: WhereValuesI<boolean> = 'true';
       // @ts-expect-error - number is not assignable to boolean
-      const _number: TypedWhereValueI<boolean> = 1;
+      const _number: WhereValuesI<boolean> = 1;
       // @ts-expect-error - Op.eq expects boolean, not string
-      const _opEq: TypedWhereValueI<boolean> = { [Op.eq]: 'true' };
+      const _opEq: WhereValuesI<boolean> = { [Op.eq]: 'true' };
 
       void _string;
       void _number;
@@ -162,12 +161,12 @@ describe('TypedWhereValueI type safety', () => {
   });
 });
 
-// ============ TypedWhereParamsI Tests ============
+// ============ WhereParamsI Tests ============
 
-describe('TypedWhereParamsI type safety', () => {
+describe('WhereParamsI type safety', () => {
   describe('property name validation', () => {
     it('accepts valid property names', () => {
-      const where: TypedWhereParamsI<UserProperties> = {
+      const where: WhereParamsI<UserProperties> = {
         id: '123',
         name: 'John',
         email: 'john@example.com',
@@ -180,8 +179,8 @@ describe('TypedWhereParamsI type safety', () => {
     });
 
     it('accepts partial properties and empty object', () => {
-      const partial: TypedWhereParamsI<UserProperties> = { name: 'John' };
-      const empty: TypedWhereParamsI<UserProperties> = {};
+      const partial: WhereParamsI<UserProperties> = { name: 'John' };
+      const empty: WhereParamsI<UserProperties> = {};
 
       expect(partial.name).toBe('John');
       expect(empty).toEqual({});
@@ -189,16 +188,16 @@ describe('TypedWhereParamsI type safety', () => {
 
     it('rejects invalid property names (typos, wrong names, wrong case)', () => {
       // @ts-expect-error - 'nam' is a typo, should be 'name'
-      const _typo1: TypedWhereParamsI<UserProperties> = { nam: 'John' };
+      const _typo1: WhereParamsI<UserProperties> = { nam: 'John' };
       // @ts-expect-error - 'naem' is a typo
-      const _typo2: TypedWhereParamsI<UserProperties> = { naem: 'John' };
-      const _wrong1: TypedWhereParamsI<UserProperties> = {
+      const _typo2: WhereParamsI<UserProperties> = { naem: 'John' };
+      const _wrong1: WhereParamsI<UserProperties> = {
         // @ts-expect-error - 'emailAddress' is wrong, should be 'email'
         emailAddress: 'test@example.com',
       };
       // @ts-expect-error - 'ID' is wrong case, should be 'id'
-      const _case1: TypedWhereParamsI<UserProperties> = { ID: '123' };
-      const _nonExistent: TypedWhereParamsI<UserProperties> = {
+      const _case1: WhereParamsI<UserProperties> = { ID: '123' };
+      const _nonExistent: WhereParamsI<UserProperties> = {
         // @ts-expect-error - 'nonExistent' does not exist
         nonExistent: 'value',
       };
@@ -213,7 +212,7 @@ describe('TypedWhereParamsI type safety', () => {
 
   describe('value type validation', () => {
     it('accepts correct value types for each property', () => {
-      const where: TypedWhereParamsI<UserProperties> = {
+      const where: WhereParamsI<UserProperties> = {
         id: '123', // string
         name: 'John', // string
         age: 25, // number
@@ -226,19 +225,19 @@ describe('TypedWhereParamsI type safety', () => {
     });
 
     it('rejects wrong value types for properties', () => {
-      const _where1: TypedWhereParamsI<UserProperties> = {
+      const _where1: WhereParamsI<UserProperties> = {
         // @ts-expect-error - name expects string, not number
         name: 12345,
       };
-      const _where2: TypedWhereParamsI<UserProperties> = {
+      const _where2: WhereParamsI<UserProperties> = {
         // @ts-expect-error - age expects number, not string
         age: 'twenty-five',
       };
-      const _where3: TypedWhereParamsI<UserProperties> = {
+      const _where3: WhereParamsI<UserProperties> = {
         // @ts-expect-error - isActive expects boolean, not string
         isActive: 'yes',
       };
-      const _where4: TypedWhereParamsI<UserProperties> = {
+      const _where4: WhereParamsI<UserProperties> = {
         // @ts-expect-error - email expects string, not boolean
         email: true,
       };
@@ -252,7 +251,7 @@ describe('TypedWhereParamsI type safety', () => {
 
   describe('operator value type validation', () => {
     it('accepts operators with correct value types', () => {
-      const where: TypedWhereParamsI<UserProperties> = {
+      const where: WhereParamsI<UserProperties> = {
         name: { [Op.eq]: 'John' },
         age: { [Op.gte]: 18, [Op.lte]: 65 },
         email: { [Op.in]: ['a@test.com', 'b@test.com'] },
@@ -266,19 +265,19 @@ describe('TypedWhereParamsI type safety', () => {
     });
 
     it('rejects operators with wrong value types', () => {
-      const _where1: TypedWhereParamsI<UserProperties> = {
+      const _where1: WhereParamsI<UserProperties> = {
         // @ts-expect-error - Op.eq for name expects string, not number
         name: { [Op.eq]: 123 },
       };
-      const _where2: TypedWhereParamsI<UserProperties> = {
+      const _where2: WhereParamsI<UserProperties> = {
         // @ts-expect-error - Op.gt for age expects number, not string
         age: { [Op.gt]: '18' },
       };
-      const _where3: TypedWhereParamsI<UserProperties> = {
+      const _where3: WhereParamsI<UserProperties> = {
         // @ts-expect-error - Op.in for email expects string[], not number[]
         email: { [Op.in]: [1, 2, 3] },
       };
-      const _where4: TypedWhereParamsI<UserProperties> = {
+      const _where4: WhereParamsI<UserProperties> = {
         // @ts-expect-error - Op.eq for isActive expects boolean, not string
         isActive: { [Op.eq]: 'true' },
       };
@@ -290,7 +289,7 @@ describe('TypedWhereParamsI type safety', () => {
     });
 
     it('rejects operators on invalid property names', () => {
-      const _where: TypedWhereParamsI<UserProperties> = {
+      const _where: WhereParamsI<UserProperties> = {
         // @ts-expect-error - 'ages' is not a valid property
         ages: { [Op.gt]: 18 },
       };
@@ -301,7 +300,7 @@ describe('TypedWhereParamsI type safety', () => {
 
   describe('mixed valid and invalid', () => {
     it('rejects object with one invalid property among valid ones', () => {
-      const _where: TypedWhereParamsI<UserProperties> = {
+      const _where: WhereParamsI<UserProperties> = {
         name: 'John', // valid
         age: 25, // valid
         // @ts-expect-error - 'invalidProp' is not valid
@@ -312,7 +311,7 @@ describe('TypedWhereParamsI type safety', () => {
     });
 
     it('rejects object with valid property name but wrong value type', () => {
-      const _where: TypedWhereParamsI<UserProperties> = {
+      const _where: WhereParamsI<UserProperties> = {
         name: 'John', // valid
         // @ts-expect-error - age has correct name but wrong type
         age: 'not-a-number',
@@ -632,8 +631,8 @@ describe('ExtractPropertiesFromInstance type safety', () => {
 // ============ Assignability Tests ============
 
 describe('type assignability', () => {
-  it('TypedWhereParamsI is assignable to WhereParamsI', () => {
-    const typed: TypedWhereParamsI<UserProperties> = {
+  it('WhereParamsI is assignable to WhereParamsI', () => {
+    const typed: WhereParamsI<UserProperties> = {
       name: 'John',
       age: 25,
     };
@@ -649,8 +648,8 @@ describe('type assignability', () => {
       anyProp: 'allowed', // WhereParamsI allows any string key
     };
 
-    // When assigning to TypedWhereParamsI, only known properties are type-checked
-    const typed: TypedWhereParamsI<UserProperties> = untyped;
+    // When assigning to WhereParamsI, only known properties are type-checked
+    const typed: WhereParamsI<UserProperties> = untyped;
 
     expect(typed.name).toBe('John');
   });
@@ -661,7 +660,7 @@ describe('type assignability', () => {
 describe('real-world usage patterns', () => {
   describe('findMany simulation', () => {
     type FindManyParams = {
-      where?: TypedWhereParamsI<UserProperties>;
+      where?: WhereParamsI<UserProperties>;
       limit?: number;
     };
 
@@ -761,7 +760,7 @@ describe('real-world usage patterns', () => {
     type FindRelationshipsParams = {
       alias: 'Group';
       where?: {
-        target?: TypedWhereParamsI<{ groupName: string; id: string }>;
+        target?: WhereParamsI<{ groupName: string; id: string }>;
       };
     };
 

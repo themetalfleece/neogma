@@ -61,8 +61,13 @@ export type WhereTypes = {
   };
 };
 
-/** the type for the accepted values for an attribute */
-export type WhereValuesI =
+// ============ Where Value Types ============
+
+/**
+ * Permissive where value type that accepts any Neo4j supported type.
+ * Used internally and as fallback when no type parameter is provided.
+ */
+type PermissiveWhereValue =
   | Neo4jSupportedTypes
   | WhereTypes['Eq']
   | WhereTypes['In']
@@ -76,51 +81,33 @@ export type WhereValuesI =
   | Literal;
 
 /**
- * an object to be used for a query identifier
- * Its keys are the identifier attributes for the where, and the values are the values for that attribute.
- * Undefined values are ignored during query building.
- */
-export interface WhereParamsI {
-  /** the attribute and values for an identifier */
-  [attribute: string]: WhereValuesI | undefined;
-}
-
-/**
- * an object with the query identifiers as keys and the attributes+types as value
- */
-export interface WhereParamsByIdentifierI {
-  /** the identifiers to use */
-  [identifier: string]: WhereParamsI;
-}
-
-// ============ Type-Safe Where Parameters ============
-
-/**
  * Type-safe where value that constrains the value to match the property type.
- * Uses conditional type to fall back to WhereValuesI for unknown types,
- * ensuring compatibility in generic contexts.
+ * When T is unknown (default), falls back to permissive behavior accepting any Neo4j type.
+ * When T is a specific type, validates that values match that type.
  *
- * @typeParam T - The property type to validate against
+ * @typeParam T - The property type to validate against. Defaults to unknown for permissive behavior.
  *
  * @example
  * ```typescript
- * // For a string property, only string values are allowed:
- * type NameValue = TypedWhereValueI<string>;
- * const valid: NameValue = 'John';           // OK
- * const validOp: NameValue = { [Op.eq]: 'John' }; // OK
- * const invalid: NameValue = 123;            // Error!
+ * // Without type parameter - permissive, accepts any value
+ * const permissive: WhereValuesI = 'any string';
+ * const permissive2: WhereValuesI = 123;
+ * const permissive3: WhereValuesI = { [Op.gt]: 5 };
  *
- * // For a number property, only number values are allowed:
- * type AgeValue = TypedWhereValueI<number>;
- * const validAge: AgeValue = 25;             // OK
- * const validAgeOp: AgeValue = { [Op.gt]: 18 }; // OK
- * const invalidAge: AgeValue = 'twenty-five'; // Error!
+ * // With type parameter - strict type checking
+ * const strict: WhereValuesI<string> = 'John';           // OK
+ * const strictOp: WhereValuesI<string> = { [Op.eq]: 'John' }; // OK
+ * const invalid: WhereValuesI<string> = 123;             // Error!
+ *
+ * // For a number property
+ * const numValue: WhereValuesI<number> = 25;             // OK
+ * const numOp: WhereValuesI<number> = { [Op.gt]: 18 };   // OK
+ * const numInvalid: WhereValuesI<number> = 'twenty-five'; // Error!
  * ```
  */
-export type TypedWhereValueI<T> =
-  // Use NonNullable to handle optional properties (T | undefined)
+export type WhereValuesI<T = unknown> =
   NonNullable<T> extends Neo4jSingleTypes
-    ?
+    ? // Strict: T is a specific Neo4j type
         | NonNullable<T>
         | Array<NonNullable<T>>
         | { [Op.eq]: NonNullable<T> | Literal }
@@ -133,32 +120,52 @@ export type TypedWhereValueI<T> =
         | { [Op.lte]: NonNullable<T> | Literal }
         | { [Op.ne]: NonNullable<T> | Literal }
         | Literal
-    : WhereValuesI; // Fallback for unknown/generic types
+    : // Permissive: T is unknown or not a Neo4j single type
+      PermissiveWhereValue;
+
+// ============ Where Params Types ============
 
 /**
- * Type-safe where parameters that constrain keys to actual model properties
- * and values to match the property types.
- * This ensures that typos in property names AND incorrect value types are caught at compile time.
+ * Type-safe where parameters that constrain keys to model properties and values to match property types.
+ * When Properties is not provided or is a generic Record type, falls back to permissive behavior.
+ * When Properties has specific keys, validates both property names and value types.
  *
- * @typeParam Properties - The type of the model properties to filter by
+ * @typeParam Properties - The type of the model properties to filter by.
+ *                         Defaults to Record<string, unknown> for permissive behavior.
  *
  * @example
  * ```typescript
+ * // Without type parameter - permissive, accepts any key/value
+ * const permissive: WhereParamsI = { anyKey: 'anyValue', num: 123 };
+ *
+ * // With type parameter - strict type checking
  * type UserProps = { id: string; name: string; age: number };
  *
  * // Valid: correct property names and matching value types
- * const where: TypedWhereParamsI<UserProps> = { name: 'John', age: 25 };
+ * const where: WhereParamsI<UserProps> = { name: 'John', age: 25 };
  *
  * // Invalid: 'nam' is not a valid property - TypeScript error
- * const invalid1: TypedWhereParamsI<UserProps> = { nam: 'John' }; // Error!
+ * const invalid1: WhereParamsI<UserProps> = { nam: 'John' }; // Error!
  *
  * // Invalid: age expects number, not string - TypeScript error
- * const invalid2: TypedWhereParamsI<UserProps> = { age: 'twenty-five' }; // Error!
+ * const invalid2: WhereParamsI<UserProps> = { age: 'twenty-five' }; // Error!
  * ```
  */
-export type TypedWhereParamsI<Properties> = {
-  [K in keyof Properties]?: TypedWhereValueI<Properties[K]>;
-};
+export type WhereParamsI<Properties = Record<string, unknown>> =
+  // Check if Properties has an index signature (permissive) vs specific keys (strict)
+  string extends keyof Properties
+    ? // Permissive: allow any string key with any where value
+      { [key: string]: WhereValuesI | undefined }
+    : // Strict: map specific keys to typed values
+      { [K in keyof Properties]?: WhereValuesI<Properties[K]> };
+
+/**
+ * an object with the query identifiers as keys and the attributes+types as value
+ */
+export interface WhereParamsByIdentifierI {
+  /** the identifiers to use */
+  [identifier: string]: WhereParamsI;
+}
 
 /**
  * Helper type to extract properties from a NeogmaInstance or plain object.
@@ -196,9 +203,9 @@ export type TypedRelationshipWhereI<
   TargetProperties,
   RelationshipProperties,
 > = {
-  source?: TypedWhereParamsI<SourceProperties>;
-  target?: TypedWhereParamsI<ExtractPropertiesFromInstance<TargetProperties>>;
-  relationship?: TypedWhereParamsI<RelationshipProperties>;
+  source?: WhereParamsI<SourceProperties>;
+  target?: WhereParamsI<ExtractPropertiesFromInstance<TargetProperties>>;
+  relationship?: WhereParamsI<RelationshipProperties>;
 };
 
 // ============ Operator Utilities ============

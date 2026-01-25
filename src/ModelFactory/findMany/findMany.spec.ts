@@ -75,9 +75,11 @@ describe('findMany', () => {
         },
       },
       plain: true,
+      order: [['name', 'ASC']],
     });
 
     expect(users).toHaveLength(2);
+    // With ORDER BY name ASC, user1 comes first (alphabetically)
     expect(users[0]).toEqual(user1Data);
     expect(users[1]).toEqual(user2Data);
     expect(users).toEqual([user1Data, user2Data]);

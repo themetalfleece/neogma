@@ -1,8 +1,5 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import type {
-  ExtractPropertiesFromInstance,
-  TypedWhereParamsI,
-} from '../../Where';
+import type { ExtractPropertiesFromInstance, WhereParamsI } from '../../Where';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 // Re-export RelationshipCrudContext from relateTo since they share the same context
@@ -18,11 +15,11 @@ export type FindRelationshipsWhereClause<
   RelatedNodesToAssociateI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
 > = {
-  source?: TypedWhereParamsI<SourceProperties>;
-  target?: TypedWhereParamsI<
+  source?: WhereParamsI<SourceProperties>;
+  target?: WhereParamsI<
     ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
   >;
-  relationship?: TypedWhereParamsI<
+  relationship?: WhereParamsI<
     RelatedNodesToAssociateI[Alias]['RelationshipProperties']
   >;
 };
@@ -75,10 +72,10 @@ export type InstanceFindRelationshipsWhereClause<
   RelatedNodesToAssociateI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
 > = {
-  target?: TypedWhereParamsI<
+  target?: WhereParamsI<
     ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
   >;
-  relationship?: TypedWhereParamsI<
+  relationship?: WhereParamsI<
     RelatedNodesToAssociateI[Alias]['RelationshipProperties']
   >;
 };
