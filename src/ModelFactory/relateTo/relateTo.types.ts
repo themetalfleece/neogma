@@ -1,6 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { QueryRunner } from '../../QueryRunner';
-import type { WhereParamsI } from '../../Where';
+import type { ExtractPropertiesFromInstance, WhereParamsI } from '../../Where';
 import type {
   NeogmaInstance,
   NeogmaModel,
@@ -40,14 +40,24 @@ export interface RelationshipCrudContext<
   }) => NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
 }
 
+/**
+ * Parameters for the static relateTo method.
+ * @typeParam SourceProperties - The source model's property types.
+ * @typeParam RelatedNodesToAssociateI - The model's relationship definitions.
+ * @typeParam Alias - The relationship alias being created.
+ */
 export interface RelateToParams<
+  SourceProperties,
   RelatedNodesToAssociateI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
 > extends GenericConfiguration {
   alias: Alias;
+  /** Where clause with type-safe property validation for source and target. */
   where: {
-    source: WhereParamsI;
-    target: WhereParamsI;
+    source: WhereParamsI<SourceProperties>;
+    target: WhereParamsI<
+      ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
+    >;
   };
   properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
   assertCreatedRelationships?: number;
@@ -67,12 +77,20 @@ export interface InstanceRelationshipContext<
   ) => string;
 }
 
+/**
+ * Parameters for the instance relateTo method.
+ * @typeParam RelatedNodesToAssociateI - The model's relationship definitions.
+ * @typeParam Alias - The relationship alias being created.
+ */
 export interface InstanceRelateToParams<
   RelatedNodesToAssociateI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
 > extends GenericConfiguration {
   alias: Alias;
-  where: WhereParamsI;
+  /** Where clause with type-safe property validation for target. */
+  where: WhereParamsI<
+    ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
+  >;
   properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
   assertCreatedRelationships?: number;
 }

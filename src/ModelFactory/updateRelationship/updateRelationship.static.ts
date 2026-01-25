@@ -14,10 +14,11 @@ export async function updateRelationship<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
 >(
   ctx: RelationshipCrudContext<Properties, RelatedNodesToAssociateI, MethodsI>,
   data: AnyObject,
-  params: UpdateRelationshipParams<RelatedNodesToAssociateI>,
+  params: UpdateRelationshipParams<Properties, RelatedNodesToAssociateI, Alias>,
 ): Promise<QueryResult> {
   const relationship = ctx.getRelationshipConfiguration(params.alias);
 

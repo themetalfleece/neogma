@@ -15,7 +15,7 @@ export async function relateTo<
   Alias extends keyof RelatedNodesToAssociateI,
 >(
   ctx: RelationshipCrudContext<Properties, RelatedNodesToAssociateI, MethodsI>,
-  params: RelateToParams<RelatedNodesToAssociateI, Alias>,
+  params: RelateToParams<Properties, RelatedNodesToAssociateI, Alias>,
 ): Promise<number> {
   const relationship = ctx.getRelationshipConfiguration(params.alias);
 

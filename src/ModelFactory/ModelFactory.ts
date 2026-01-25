@@ -433,8 +433,12 @@ export const ModelFactory = <
     >(params: {
       alias: Alias;
       where: {
-        source: WhereParamsI;
-        target: WhereParamsI;
+        source: WhereParamsI<Properties>;
+        target: WhereParamsI<
+          ExtractPropertiesFromInstance<
+            RelatedNodesToAssociateI[Alias]['Instance']
+          >
+        >;
       };
       properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
       assertCreatedRelationships?: number;
@@ -539,9 +543,15 @@ export const ModelFactory = <
     >(params: {
       alias: Alias;
       where: {
-        source?: WhereParamsI;
-        target?: WhereParamsI;
-        relationship?: WhereParamsI;
+        source?: WhereParamsI<Properties>;
+        target?: WhereParamsI<
+          ExtractPropertiesFromInstance<
+            RelatedNodesToAssociateI[Alias]['Instance']
+          >
+        >;
+        relationship?: WhereParamsI<
+          RelatedNodesToAssociateI[Alias]['RelationshipProperties']
+        >;
       };
       session?: GenericConfiguration['session'];
     }): Promise<number> {
@@ -659,7 +669,11 @@ export const ModelFactory = <
       this: Instance,
       params: {
         alias: Alias;
-        where: WhereParamsI;
+        where: WhereParamsI<
+          ExtractPropertiesFromInstance<
+            RelatedNodesToAssociateI[Alias]['Instance']
+          >
+        >;
         properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
         assertCreatedRelationships?: number;
         session?: GenericConfiguration['session'];

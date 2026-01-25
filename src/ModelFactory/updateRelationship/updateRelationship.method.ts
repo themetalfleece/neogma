@@ -14,6 +14,7 @@ export async function instanceUpdateRelationship<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
 >(
   instance: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
   ctx: InstanceRelationshipContext<
@@ -22,7 +23,7 @@ export async function instanceUpdateRelationship<
     MethodsI
   >,
   data: AnyObject,
-  params: InstanceUpdateRelationshipParams<RelatedNodesToAssociateI>,
+  params: InstanceUpdateRelationshipParams<RelatedNodesToAssociateI, Alias>,
 ): Promise<QueryResult> {
   const primaryKeyField = ctx.assertPrimaryKeyField(
     ctx.primaryKeyField,

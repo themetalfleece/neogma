@@ -4,10 +4,11 @@ import type { DeleteContext, DeleteParams } from './delete.types';
 /**
  * Deletes nodes matching the query.
  * Returns the count of deleted nodes.
+ * @typeParam Properties - The model's property types for type-safe where clause validation.
  */
-export async function deleteNodes(
+export async function deleteNodes<Properties = Record<string, unknown>>(
   ctx: DeleteContext,
-  configuration?: DeleteParams,
+  configuration?: DeleteParams<Properties>,
 ): Promise<number> {
   const detach = configuration?.detach;
   const whereParams = configuration?.where;

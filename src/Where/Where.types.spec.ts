@@ -8,6 +8,22 @@ import type {
   NeogmaInstance,
   NeogmaModel,
 } from '../ModelFactory';
+import type { DeleteParams } from '../ModelFactory/delete/delete.types';
+import type {
+  DeleteRelationshipsParams,
+  DeleteRelationshipsWhereClause,
+} from '../ModelFactory/deleteRelationships/deleteRelationships.types';
+import type {
+  InstanceRelateToParams,
+  RelateToParams,
+} from '../ModelFactory/relateTo/relateTo.types';
+import type { UpdateParams } from '../ModelFactory/update/update.types';
+import type {
+  InstanceUpdateRelationshipParams,
+  InstanceUpdateRelationshipWhereClause,
+  UpdateRelationshipParams,
+  UpdateRelationshipWhereClause,
+} from '../ModelFactory/updateRelationship/updateRelationship.types';
 import {
   ExtractPropertiesFromInstance,
   Op,
@@ -786,5 +802,661 @@ describe('real-world usage patterns', () => {
 
       expect(validParams.where?.target?.groupName).toBe('Administrators');
     });
+  });
+});
+
+// ============ DeleteParams Type Tests ============
+
+describe('DeleteParams type safety', () => {
+  describe('where property validation', () => {
+    it('accepts valid property names with correct types', () => {
+      const params: DeleteParams<UserProperties> = {
+        where: {
+          id: '123',
+          name: 'John',
+          age: { [Op.gte]: 18 },
+          isActive: true,
+        },
+      };
+
+      expect(params.where?.id).toBe('123');
+    });
+
+    it('accepts detach option with typed where', () => {
+      const params: DeleteParams<UserProperties> = {
+        detach: true,
+        where: { name: 'John' },
+      };
+
+      expect(params.detach).toBe(true);
+    });
+
+    it('rejects invalid property names', () => {
+      const _params: DeleteParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - 'userName' is not a valid UserProperties field
+          userName: 'John',
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong value types for properties', () => {
+      const _params1: DeleteParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - name expects string, not number
+          name: 12345,
+        },
+      };
+      const _params2: DeleteParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - age expects number, not string
+          age: 'twenty-five',
+        },
+      };
+
+      void _params1;
+      void _params2;
+    });
+
+    it('rejects wrong operator value types', () => {
+      const _params: DeleteParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - Op.gte for age expects number, not string
+          age: { [Op.gte]: '18' },
+        },
+      };
+
+      void _params;
+    });
+  });
+});
+
+// ============ UpdateParams Type Tests ============
+
+describe('UpdateParams type safety', () => {
+  describe('where property validation', () => {
+    it('accepts valid property names with correct types', () => {
+      const params: UpdateParams<UserProperties> = {
+        where: {
+          id: '123',
+          name: { [Op.eq]: 'John' },
+          isActive: true,
+        },
+        return: true,
+      };
+
+      expect(params.where?.id).toBe('123');
+      expect(params.return).toBe(true);
+    });
+
+    it('rejects invalid property names', () => {
+      const _params: UpdateParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - 'emailAddress' is not a valid property
+          emailAddress: 'test@example.com',
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong value types', () => {
+      const _params: UpdateParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - isActive expects boolean, not string
+          isActive: 'yes',
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong operator value types', () => {
+      const _params: UpdateParams<UserProperties> = {
+        where: {
+          // @ts-expect-error - Op.in for email expects string[], not number[]
+          email: { [Op.in]: [1, 2, 3] },
+        },
+      };
+
+      void _params;
+    });
+  });
+});
+
+// ============ DeleteRelationshipsParams Type Tests ============
+
+describe('DeleteRelationshipsParams type safety', () => {
+  describe('DeleteRelationshipsWhereClause', () => {
+    it('accepts valid properties for source, target, and relationship', () => {
+      const where: DeleteRelationshipsWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        source: { id: '123', name: 'John' },
+        target: { orderNumber: 'ORD-456', total: { [Op.gt]: 100 } },
+        relationship: { rating: 5 },
+      };
+
+      expect(where.source?.id).toBe('123');
+      expect(where.target?.orderNumber).toBe('ORD-456');
+      expect(where.relationship?.rating).toBe(5);
+    });
+
+    it('rejects invalid source property names', () => {
+      const _where: DeleteRelationshipsWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - 'userName' is not valid
+        source: { userName: 'John' },
+      };
+
+      void _where;
+    });
+
+    it('rejects invalid target property names', () => {
+      const _where: DeleteRelationshipsWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - 'orderId' is not valid
+        target: { orderId: '456' },
+      };
+
+      void _where;
+    });
+
+    it('rejects invalid relationship property names', () => {
+      const _where: DeleteRelationshipsWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - 'score' is not valid
+        relationship: { score: 10 },
+      };
+
+      void _where;
+    });
+
+    it('rejects wrong value types', () => {
+      const _where: DeleteRelationshipsWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - total expects number, not string
+        target: { total: 'expensive' },
+      };
+
+      void _where;
+    });
+  });
+
+  describe('full DeleteRelationshipsParams', () => {
+    it('accepts valid params with alias and where', () => {
+      const params: DeleteRelationshipsParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { name: 'John' },
+          target: { status: 'pending' },
+        },
+      };
+
+      expect(params.alias).toBe('Orders');
+      expect(params.where.source?.name).toBe('John');
+    });
+
+    it('rejects wrong alias type', () => {
+      const _params: DeleteRelationshipsParams<
+        UserProperties,
+        UserRelatedNodesI,
+        // @ts-expect-error - 'InvalidAlias' is not a valid alias
+        'InvalidAlias'
+      > = {
+        alias: 'InvalidAlias',
+        where: {},
+      };
+
+      void _params;
+    });
+  });
+});
+
+// ============ UpdateRelationshipParams Type Tests ============
+
+describe('UpdateRelationshipParams type safety', () => {
+  describe('UpdateRelationshipWhereClause', () => {
+    it('accepts valid properties for source, target, and relationship', () => {
+      const where: UpdateRelationshipWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        source: { id: '123', age: { [Op.gte]: 18 } },
+        target: { orderNumber: 'ORD-456' },
+        relationship: { rating: { [Op.gte]: 4 } },
+      };
+
+      expect(where.source?.id).toBe('123');
+    });
+
+    it('rejects invalid property names', () => {
+      const _where: UpdateRelationshipWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - 'firstName' is not valid
+        source: { firstName: 'John' },
+      };
+
+      void _where;
+    });
+
+    it('rejects wrong value types with operators', () => {
+      const _where: UpdateRelationshipWhereClause<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - Op.gte for rating expects number
+        relationship: { rating: { [Op.gte]: '4' } },
+      };
+
+      void _where;
+    });
+  });
+
+  describe('full UpdateRelationshipParams', () => {
+    it('accepts valid params with alias and where', () => {
+      const params: UpdateRelationshipParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { name: 'John' },
+          target: { total: { [Op.gt]: 100 } },
+          relationship: { rating: 5 },
+        },
+      };
+
+      expect(params.alias).toBe('Orders');
+    });
+
+    it('accepts params without where (optional)', () => {
+      const params: UpdateRelationshipParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+      };
+
+      expect(params.alias).toBe('Orders');
+      expect(params.where).toBeUndefined();
+    });
+  });
+
+  describe('InstanceUpdateRelationshipWhereClause', () => {
+    it('accepts valid target and relationship properties (no source)', () => {
+      const where: InstanceUpdateRelationshipWhereClause<
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        target: { orderNumber: 'ORD-123', status: 'completed' },
+        relationship: { rating: { [Op.gte]: 4 } },
+      };
+
+      expect(where.target?.orderNumber).toBe('ORD-123');
+    });
+
+    it('rejects invalid target property names', () => {
+      const _where: InstanceUpdateRelationshipWhereClause<
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - 'orderId' is not valid
+        target: { orderId: '456' },
+      };
+
+      void _where;
+    });
+
+    it('rejects wrong value types', () => {
+      const _where: InstanceUpdateRelationshipWhereClause<
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        // @ts-expect-error - rating expects number, not string
+        relationship: { rating: 'five' },
+      };
+
+      void _where;
+    });
+  });
+
+  describe('InstanceUpdateRelationshipParams', () => {
+    it('accepts valid params with alias and where', () => {
+      const params: InstanceUpdateRelationshipParams<
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          target: { orderNumber: 'ORD-123' },
+          relationship: { rating: 5 },
+        },
+      };
+
+      expect(params.alias).toBe('Orders');
+    });
+  });
+});
+
+// ============ RelateToParams Type Tests ============
+
+describe('RelateToParams type safety', () => {
+  describe('where clause validation', () => {
+    it('accepts valid source and target properties', () => {
+      const params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { id: '123', name: 'John' },
+          target: { id: '456', orderNumber: 'ORD-789' },
+        },
+      };
+
+      expect(params.where.source.id).toBe('123');
+      expect(params.where.target.id).toBe('456');
+    });
+
+    it('accepts operators in where clause', () => {
+      const params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { age: { [Op.gte]: 18 } },
+          target: { total: { [Op.gt]: 100 } },
+        },
+      };
+
+      expect(params.where.source.age).toBeDefined();
+    });
+
+    it('accepts properties and assertCreatedRelationships', () => {
+      const params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { id: '123' },
+          target: { id: '456' },
+        },
+        properties: { Rating: 5 },
+        assertCreatedRelationships: 1,
+      };
+
+      expect(params.properties?.Rating).toBe(5);
+      expect(params.assertCreatedRelationships).toBe(1);
+    });
+
+    it('rejects invalid source property names', () => {
+      const _params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          // @ts-expect-error - 'userName' is not valid
+          source: { userName: 'John' },
+          target: { id: '456' },
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects invalid target property names', () => {
+      const _params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { id: '123' },
+          // @ts-expect-error - 'orderId' is not valid
+          target: { orderId: '456' },
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong value types for source', () => {
+      const _params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          // @ts-expect-error - age expects number, not string
+          source: { age: 'twenty-five' },
+          target: { id: '456' },
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong value types for target', () => {
+      const _params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { id: '123' },
+          // @ts-expect-error - total expects number, not string
+          target: { total: 'expensive' },
+        },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong operator value types', () => {
+      const _params: RelateToParams<
+        UserProperties,
+        UserRelatedNodesI,
+        'Orders'
+      > = {
+        alias: 'Orders',
+        where: {
+          source: { id: '123' },
+          // @ts-expect-error - Op.gt for total expects number
+          target: { total: { [Op.gt]: '100' } },
+        },
+      };
+
+      void _params;
+    });
+  });
+});
+
+// ============ InstanceRelateToParams Type Tests ============
+
+describe('InstanceRelateToParams type safety', () => {
+  describe('where clause validation (target only)', () => {
+    it('accepts valid target properties', () => {
+      const params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        where: { id: '456', orderNumber: 'ORD-789' },
+      };
+
+      expect(params.where.id).toBe('456');
+    });
+
+    it('accepts operators in where clause', () => {
+      const params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        where: { total: { [Op.gte]: 100 }, status: 'pending' },
+      };
+
+      expect(params.where.status).toBe('pending');
+    });
+
+    it('accepts properties and assertCreatedRelationships', () => {
+      const params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        where: { id: '456' },
+        properties: { Rating: 5 },
+        assertCreatedRelationships: 1,
+      };
+
+      expect(params.properties?.Rating).toBe(5);
+    });
+
+    it('rejects invalid target property names', () => {
+      const _params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        // @ts-expect-error - 'orderId' is not valid
+        where: { orderId: '456' },
+      };
+
+      void _params;
+    });
+
+    it('rejects source properties (not allowed on instance method)', () => {
+      const _params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        // @ts-expect-error - 'name' is a User property, not Order property
+        where: { name: 'John' },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong value types', () => {
+      const _params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        // @ts-expect-error - total expects number, not string
+        where: { total: 'expensive' },
+      };
+
+      void _params;
+    });
+
+    it('rejects wrong operator value types', () => {
+      const _params: InstanceRelateToParams<UserRelatedNodesI, 'Orders'> = {
+        alias: 'Orders',
+        // @ts-expect-error - Op.in for status expects string[], not number[]
+        where: { status: { [Op.in]: [1, 2, 3] } },
+      };
+
+      void _params;
+    });
+  });
+});
+
+// ============ Cross-operation Type Consistency Tests ============
+
+describe('cross-operation type consistency', () => {
+  it('uses consistent types across delete and update operations', () => {
+    const deleteParams: DeleteParams<UserProperties> = {
+      where: { name: 'John', age: { [Op.gte]: 18 } },
+    };
+    const updateParams: UpdateParams<UserProperties> = {
+      where: { name: 'John', age: { [Op.gte]: 18 } },
+    };
+
+    // Same where clause works for both
+    expect(deleteParams.where?.name).toBe(updateParams.where?.name);
+  });
+
+  it('uses consistent relationship types across operations', () => {
+    const deleteRelParams: DeleteRelationshipsParams<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      alias: 'Orders',
+      where: {
+        source: { name: 'John' },
+        target: { orderNumber: 'ORD-123' },
+        relationship: { rating: 5 },
+      },
+    };
+
+    const updateRelParams: UpdateRelationshipParams<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      alias: 'Orders',
+      where: {
+        source: { name: 'John' },
+        target: { orderNumber: 'ORD-123' },
+        relationship: { rating: 5 },
+      },
+    };
+
+    expect(deleteRelParams.alias).toBe(updateRelParams.alias);
+    expect(deleteRelParams.where.source?.name).toBe(
+      updateRelParams.where?.source?.name,
+    );
+  });
+
+  it('relateTo and deleteRelationships have compatible where types', () => {
+    const relateParams: RelateToParams<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      alias: 'Orders',
+      where: {
+        source: { name: 'John' },
+        target: { orderNumber: 'ORD-123' },
+      },
+    };
+
+    const deleteParams: DeleteRelationshipsParams<
+      UserProperties,
+      UserRelatedNodesI,
+      'Orders'
+    > = {
+      alias: 'Orders',
+      where: {
+        source: { name: 'John' },
+        target: { orderNumber: 'ORD-123' },
+      },
+    };
+
+    expect(relateParams.alias).toBe(deleteParams.alias);
   });
 });

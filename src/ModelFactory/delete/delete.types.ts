@@ -10,9 +10,16 @@ export interface DeleteContext {
   getLabel: () => string;
 }
 
-export interface DeleteParams extends GenericConfiguration {
+/**
+ * Parameters for the static delete method.
+ * @typeParam Properties - The model's property types for type-safe where clause validation.
+ */
+export interface DeleteParams<
+  Properties = Record<string, unknown>,
+> extends GenericConfiguration {
   detach?: boolean;
-  where: WhereParamsI;
+  /** Where clause with type-safe property name and value validation. */
+  where: WhereParamsI<Properties>;
 }
 
 // Instance delete context
