@@ -8,6 +8,7 @@ import {
   Op,
   operators,
   WhereParamsByIdentifierI,
+  WhereParamsI,
   WhereValuesI,
 } from './Where.types';
 
@@ -315,5 +316,68 @@ export class Where {
           [Op.in]: value,
         }
       : value;
+  }
+
+  /**
+   * Splits where parameters into eq-only and non-eq operator groups.
+   * Eq-only params can use Neo4j's bracket syntax `{ prop: $val }`,
+   * while non-eq params require a WHERE clause `WHERE n.prop > $val`.
+   *
+   * @param params - The where parameters to split
+   * @returns Object with eqParams (for bracket syntax) and nonEqParams (for WHERE clause)
+   *
+   * @example
+   * ```typescript
+   * const { eqParams, nonEqParams } = Where.splitByOperator({
+   *   name: 'John',           // goes to eqParams
+   *   age: { [Op.gte]: 18 },  // goes to nonEqParams
+   * });
+   * ```
+   */
+  public static splitByOperator(params: WhereParamsI): {
+    eqParams: WhereParamsI;
+    nonEqParams: WhereParamsI;
+  } {
+    const eqParams: WhereParamsI = {};
+    const nonEqParams: WhereParamsI = {};
+
+    for (const property in params) {
+      const value = params[property];
+
+      // Check if value is a direct Neo4j supported type (implicit eq)
+      if (isNeo4jSupportedTypes(value)) {
+        eqParams[property] = value;
+        continue;
+      }
+
+      // Check if value is an operator object
+      if (value !== null && typeof value === 'object') {
+        const symbols = Object.getOwnPropertySymbols(value);
+        let hasNonEqOperator = false;
+        let hasEqOperator = false;
+
+        for (const symbol of symbols) {
+          const operator = symbol.description as (typeof operators)[number];
+          if (operator && isOperator[operator]?.(value)) {
+            if (operator === 'eq') {
+              hasEqOperator = true;
+            } else {
+              hasNonEqOperator = true;
+            }
+          }
+        }
+
+        // If has any non-eq operators, put entire property in nonEqParams
+        // This handles cases like { [Op.gte]: 18, [Op.lte]: 65 } or { [Op.eq]: 'a', [Op.ne]: 'b' }
+        if (hasNonEqOperator) {
+          nonEqParams[property] = value;
+        } else if (hasEqOperator) {
+          // Only eq operator - can use bracket syntax
+          eqParams[property] = value;
+        }
+      }
+    }
+
+    return { eqParams, nonEqParams };
   }
 }

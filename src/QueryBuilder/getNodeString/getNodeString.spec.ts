@@ -1,4 +1,5 @@
 import { BindParam } from '../../BindParam';
+import { Op } from '../../Where';
 import { ModelA, neogma } from '../testHelpers';
 import { getNodeString } from './getNodeString';
 
@@ -19,19 +20,22 @@ describe('getNodeString', () => {
     it('returns the string as-is when node is a string', () => {
       const deps = createDeps();
       const result = getNodeString('(n:Label)', deps);
-      expect(result).toBe('(n:Label)');
+      expect(result.statement).toBe('(n:Label)');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('handles empty string', () => {
       const deps = createDeps();
       const result = getNodeString('', deps);
-      expect(result).toBe('');
+      expect(result.statement).toBe('');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('handles complex string patterns', () => {
       const deps = createDeps();
       const result = getNodeString('(n:Label {prop: $value})', deps);
-      expect(result).toBe('(n:Label {prop: $value})');
+      expect(result.statement).toBe('(n:Label {prop: $value})');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -39,13 +43,15 @@ describe('getNodeString', () => {
     it('generates node string with label only', () => {
       const deps = createDeps();
       const result = getNodeString({ label: 'MyLabel' }, deps);
-      expect(result).toBe('(:MyLabel)');
+      expect(result.statement).toBe('(:MyLabel)');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates node string with identifier and label', () => {
       const deps = createDeps();
       const result = getNodeString({ identifier: 'n', label: 'MyLabel' }, deps);
-      expect(result).toBe('(n:MyLabel)');
+      expect(result.statement).toBe('(n:MyLabel)');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -53,13 +59,15 @@ describe('getNodeString', () => {
     it('generates node string with model', () => {
       const deps = createDeps();
       const result = getNodeString({ model: ModelA }, deps);
-      expect(result).toBe('(:`ModelA`)');
+      expect(result.statement).toBe('(:`ModelA`)');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates node string with identifier and model', () => {
       const deps = createDeps();
       const result = getNodeString({ identifier: 'a', model: ModelA }, deps);
-      expect(result).toBe('(a:`ModelA`)');
+      expect(result.statement).toBe('(a:`ModelA`)');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -70,7 +78,8 @@ describe('getNodeString', () => {
         { identifier: 'n', where: { id: '123' } },
         deps,
       );
-      expect(result).toBe('(n { id: $id })');
+      expect(result.statement).toBe('(n { id: $id })');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ id: '123' });
     });
 
@@ -80,7 +89,8 @@ describe('getNodeString', () => {
         { label: 'MyLabel', where: { name: 'test' } },
         deps,
       );
-      expect(result).toBe('(:MyLabel { name: $name })');
+      expect(result.statement).toBe('(:MyLabel { name: $name })');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ name: 'test' });
     });
 
@@ -94,7 +104,8 @@ describe('getNodeString', () => {
         },
         deps,
       );
-      expect(result).toBe('(n:Person { name: $name, age: $age })');
+      expect(result.statement).toBe('(n:Person { name: $name, age: $age })');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ name: 'John', age: 30 });
     });
   });
@@ -106,7 +117,8 @@ describe('getNodeString', () => {
         { identifier: 'n', properties: { name: 'test' } },
         deps,
       );
-      expect(result).toBe('(n { name: $name })');
+      expect(result.statement).toBe('(n { name: $name })');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ name: 'test' });
     });
 
@@ -120,7 +132,8 @@ describe('getNodeString', () => {
         },
         deps,
       );
-      expect(result).toContain('(n:Person {');
+      expect(result.statement).toContain('(n:Person {');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({
         name: 'John',
         age: 25,
@@ -133,13 +146,74 @@ describe('getNodeString', () => {
     it('generates empty node statement for empty object', () => {
       const deps = createDeps();
       const result = getNodeString({}, deps);
-      expect(result).toBe('()');
+      expect(result.statement).toBe('()');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates node with only identifier', () => {
       const deps = createDeps();
       const result = getNodeString({ identifier: 'n' }, deps);
-      expect(result).toBe('(n)');
+      expect(result.statement).toBe('(n)');
+      expect(result.standaloneWhere).toBeNull();
+    });
+  });
+
+  describe('non-eq operators', () => {
+    it('returns standaloneWhere for non-eq operators', () => {
+      const deps = createDeps();
+      const result = getNodeString(
+        { identifier: 'n', label: 'Node', where: { age: { [Op.gt]: 18 } } },
+        deps,
+      );
+      expect(result.statement).toBe('(n:Node)');
+      expect(result.standaloneWhere).not.toBeNull();
+      expect(result.standaloneWhere?.getStatement('text')).toBe('n.age > $age');
+    });
+
+    it('splits eq and non-eq operators', () => {
+      const deps = createDeps();
+      const result = getNodeString(
+        {
+          identifier: 'n',
+          label: 'Node',
+          where: { name: 'John', age: { [Op.gte]: 18 } },
+        },
+        deps,
+      );
+      expect(result.statement).toBe('(n:Node { name: $name })');
+      expect(result.standaloneWhere).not.toBeNull();
+      expect(result.standaloneWhere?.getStatement('text')).toBe(
+        'n.age >= $age',
+      );
+      expect(deps.bindParam.get()).toEqual({ name: 'John', age: 18 });
+    });
+
+    it('generates unique identifier for non-eq without identifier', () => {
+      const deps = createDeps();
+      const result = getNodeString(
+        { label: 'Node', where: { age: { [Op.gt]: 18 } } },
+        deps,
+      );
+      // Should generate identifier __n
+      expect(result.statement).toBe('(__n:Node)');
+      expect(result.standaloneWhere).not.toBeNull();
+      expect(result.standaloneWhere?.getStatement('text')).toBe(
+        '__n.age > $age',
+      );
+    });
+
+    it('uses shared BindParam for auto-generated identifier', () => {
+      const deps = createDeps();
+      const result = getNodeString(
+        { label: 'Node', where: { age: { [Op.gt]: 18 } } },
+        deps,
+      );
+
+      // The age value should be in the shared bindParam
+      expect(deps.bindParam.get()).toEqual({ age: 18 });
+
+      // The generated identifier should use the bindParam's getUniqueName
+      expect(result.statement).toBe('(__n:Node)');
     });
   });
 

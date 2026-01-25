@@ -63,6 +63,71 @@ console.log(queryBuilder.getStatement()); // MATCH (n:`MyModelLabel`)
 console.log(queryBuilder.getBindParam().get()); // { }
 ```
 
+### Using Operators in Where
+
+All Where operators (`Op.gt`, `Op.gte`, `Op.lt`, `Op.lte`, `Op.ne`, `Op.in`, `Op._in`, `Op.contains`) are supported in the `where` parameter. The QueryBuilder automatically separates equality checks (which use Neo4j's bracket syntax) from other operators (which use a WHERE clause).
+
+```js
+const queryBuilder = new QueryBuilder().match({
+    identifier: 'u',
+    label: 'User',
+    where: {
+        status: 'active',           // Goes to bracket syntax: { status: $status }
+        age: { [Op.gte]: 18 },      // Goes to WHERE clause: WHERE u.age >= $age
+    },
+});
+
+// Result: MATCH (u:User { status: $status }) WHERE u.age >= $age
+console.log(queryBuilder.getStatement());
+// { status: 'active', age: 18 }
+console.log(queryBuilder.getBindParam().get());
+```
+
+The same applies to relationships in `related` patterns:
+
+```js
+const queryBuilder = new QueryBuilder().match({
+    related: [
+        { identifier: 'u', label: 'User' },
+        {
+            direction: 'out',
+            name: 'FOLLOWS',
+            identifier: 'r',
+            where: { since: { [Op.gte]: 2020 } },
+        },
+        { identifier: 'p', label: 'Post' },
+    ],
+});
+
+// Result: MATCH (u:User)-[r:FOLLOWS]->(p:Post) WHERE r.since >= $since
+console.log(queryBuilder.getStatement());
+```
+
+> **Note:** When using non-equality operators, the WHERE clause needs to reference the node or relationship. If no identifier is provided, one is automatically generated (e.g., `__n` for nodes, `__r` for relationships). See [Where Parameters](../Where-Parameters.md) for more details on operators.
+
+### Using a Custom BindParam
+
+You can pass a custom `BindParam` instance to the QueryBuilder constructor. This is useful when you want to share bind parameters across multiple queries or control parameter naming:
+
+```js
+import { BindParam } from 'neogma';
+
+const bindParam = new BindParam();
+
+const queryBuilder = new QueryBuilder(bindParam).match({
+    label: 'Node',
+    where: { age: { [Op.gt]: 18 } },
+});
+
+// The auto-generated identifier uses the shared BindParam
+// Result: MATCH (__n:Node) WHERE __n.age > $age
+console.log(queryBuilder.getStatement());
+
+// Access bind parameters from either reference
+console.log(bindParam.get()); // { age: 18 }
+console.log(queryBuilder.getBindParam().get()); // { age: 18 }
+```
+
 ## Match multiple nodes
 By using the `multiple` attribute and an array of nodes, multiple nodes can be matched. 
 

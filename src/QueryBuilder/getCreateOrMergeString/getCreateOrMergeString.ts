@@ -28,7 +28,9 @@ export const getCreateOrMergeString = (
   if (isCreateMultiple(create)) {
     return [
       createOrMerge,
-      create.multiple.map((element) => getNodeString(element, deps)).join(', '),
+      create.multiple
+        .map((element) => getNodeString(element, deps).statement)
+        .join(', '),
     ].join(' ');
   }
 
@@ -45,10 +47,10 @@ export const getCreateOrMergeString = (
             'even argument of related is not a relationship',
           );
         }
-        parts.push(getRelationshipString(element, deps));
+        parts.push(getRelationshipString(element, deps).statement);
       } else {
         // odd, parse as node
-        parts.push(getNodeString(element, deps));
+        parts.push(getNodeString(element, deps).statement);
       }
     }
 
@@ -66,7 +68,7 @@ export const getCreateOrMergeString = (
           properties: create.properties,
         },
         deps,
-      ),
+      ).statement,
     ].join(' ');
   }
   if (isNodeWithModel(create)) {
@@ -79,7 +81,7 @@ export const getCreateOrMergeString = (
           properties: create.properties,
         },
         deps,
-      ),
+      ).statement,
     ].join(' ');
   }
 

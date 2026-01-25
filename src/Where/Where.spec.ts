@@ -372,4 +372,159 @@ describe('Where', () => {
       });
     });
   });
+
+  describe('splitByOperator', () => {
+    it('puts direct values in eqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: 'John',
+        age: 25,
+        active: true,
+      });
+
+      expect(eqParams).toEqual({ name: 'John', age: 25, active: true });
+      expect(nonEqParams).toEqual({});
+    });
+
+    it('puts Op.eq values in eqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: { [Op.eq]: 'John' },
+      });
+
+      expect(eqParams).toEqual({ name: { [Op.eq]: 'John' } });
+      expect(nonEqParams).toEqual({});
+    });
+
+    it('puts Op.gt in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        age: { [Op.gt]: 18 },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ age: { [Op.gt]: 18 } });
+    });
+
+    it('puts Op.gte in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        age: { [Op.gte]: 18 },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ age: { [Op.gte]: 18 } });
+    });
+
+    it('puts Op.lt in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        age: { [Op.lt]: 65 },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ age: { [Op.lt]: 65 } });
+    });
+
+    it('puts Op.lte in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        age: { [Op.lte]: 65 },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ age: { [Op.lte]: 65 } });
+    });
+
+    it('puts Op.ne in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        status: { [Op.ne]: 'deleted' },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ status: { [Op.ne]: 'deleted' } });
+    });
+
+    it('puts Op.in in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        status: { [Op.in]: ['active', 'pending'] },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({
+        status: { [Op.in]: ['active', 'pending'] },
+      });
+    });
+
+    it('puts Op._in in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        tags: { [Op._in]: 'important' },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ tags: { [Op._in]: 'important' } });
+    });
+
+    it('puts Op.contains in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: { [Op.contains]: 'foo' },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ name: { [Op.contains]: 'foo' } });
+    });
+
+    it('handles mixed eq and non-eq properties', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: 'John',
+        age: { [Op.gte]: 18 },
+        status: 'active',
+      });
+
+      expect(eqParams).toEqual({ name: 'John', status: 'active' });
+      expect(nonEqParams).toEqual({ age: { [Op.gte]: 18 } });
+    });
+
+    it('puts property with multiple non-eq operators in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        age: { [Op.gte]: 18, [Op.lte]: 65 },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ age: { [Op.gte]: 18, [Op.lte]: 65 } });
+    });
+
+    it('puts property with mixed eq and non-eq operators in nonEqParams', () => {
+      // When a property has both eq AND non-eq, it goes to nonEqParams
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        status: { [Op.eq]: 'active', [Op.ne]: 'banned' },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({
+        status: { [Op.eq]: 'active', [Op.ne]: 'banned' },
+      });
+    });
+
+    it('handles complex mixed params', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: 'John',
+        email: { [Op.eq]: 'john@example.com' },
+        age: { [Op.gte]: 18, [Op.lte]: 65 },
+        status: { [Op.in]: ['active', 'pending'] },
+        role: 'admin',
+      });
+
+      expect(eqParams).toEqual({
+        name: 'John',
+        email: { [Op.eq]: 'john@example.com' },
+        role: 'admin',
+      });
+      expect(nonEqParams).toEqual({
+        age: { [Op.gte]: 18, [Op.lte]: 65 },
+        status: { [Op.in]: ['active', 'pending'] },
+      });
+    });
+
+    it('returns empty objects for empty input', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({});
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({});
+    });
+  });
 });

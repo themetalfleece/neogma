@@ -1,4 +1,5 @@
 import { BindParam } from '../../BindParam';
+import { Op } from '../../Where';
 import { neogma } from '../testHelpers';
 import { getRelationshipString } from './getRelationshipString';
 
@@ -19,19 +20,22 @@ describe('getRelationshipString', () => {
     it('returns the string as-is when relationship is a string', () => {
       const deps = createDeps();
       const result = getRelationshipString('-[:KNOWS]->', deps);
-      expect(result).toBe('-[:KNOWS]->');
+      expect(result.statement).toBe('-[:KNOWS]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('handles empty string', () => {
       const deps = createDeps();
       const result = getRelationshipString('', deps);
-      expect(result).toBe('');
+      expect(result.statement).toBe('');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('handles complex string patterns', () => {
       const deps = createDeps();
       const result = getRelationshipString('-[r:KNOWS {since: 2020}]->', deps);
-      expect(result).toBe('-[r:KNOWS {since: 2020}]->');
+      expect(result.statement).toBe('-[r:KNOWS {since: 2020}]->');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -42,7 +46,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', name: 'KNOWS' },
         deps,
       );
-      expect(result).toBe('-[:KNOWS]->');
+      expect(result.statement).toBe('-[:KNOWS]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates outgoing relationship with identifier and name', () => {
@@ -51,7 +56,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', identifier: 'r', name: 'KNOWS' },
         deps,
       );
-      expect(result).toBe('-[r:KNOWS]->');
+      expect(result.statement).toBe('-[r:KNOWS]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates outgoing relationship with identifier only', () => {
@@ -60,7 +66,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', identifier: 'r' },
         deps,
       );
-      expect(result).toBe('-[r]->');
+      expect(result.statement).toBe('-[r]->');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -71,7 +78,8 @@ describe('getRelationshipString', () => {
         { direction: 'in', name: 'KNOWS' },
         deps,
       );
-      expect(result).toBe('<-[:KNOWS]-');
+      expect(result.statement).toBe('<-[:KNOWS]-');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates incoming relationship with identifier and name', () => {
@@ -80,7 +88,8 @@ describe('getRelationshipString', () => {
         { direction: 'in', identifier: 'r', name: 'CREATED_BY' },
         deps,
       );
-      expect(result).toBe('<-[r:CREATED_BY]-');
+      expect(result.statement).toBe('<-[r:CREATED_BY]-');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -91,7 +100,8 @@ describe('getRelationshipString', () => {
         { direction: 'none', name: 'RELATED_TO' },
         deps,
       );
-      expect(result).toBe('-[:RELATED_TO]-');
+      expect(result.statement).toBe('-[:RELATED_TO]-');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates undirected relationship with identifier', () => {
@@ -100,7 +110,8 @@ describe('getRelationshipString', () => {
         { direction: 'none', identifier: 'rel' },
         deps,
       );
-      expect(result).toBe('-[rel]-');
+      expect(result.statement).toBe('-[rel]-');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -111,7 +122,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', name: 'KNOWS', minHops: 2 },
         deps,
       );
-      expect(result).toBe('-[:KNOWS*2..]->');
+      expect(result.statement).toBe('-[:KNOWS*2..]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates relationship with maxHops only', () => {
@@ -120,7 +132,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', name: 'KNOWS', maxHops: 5 },
         deps,
       );
-      expect(result).toBe('-[:KNOWS*..5]->');
+      expect(result.statement).toBe('-[:KNOWS*..5]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates relationship with both minHops and maxHops', () => {
@@ -129,7 +142,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', name: 'KNOWS', minHops: 1, maxHops: 3 },
         deps,
       );
-      expect(result).toBe('-[:KNOWS*1..3]->');
+      expect(result.statement).toBe('-[:KNOWS*1..3]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates relationship with equal minHops and maxHops', () => {
@@ -138,7 +152,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', name: 'KNOWS', minHops: 2, maxHops: 2 },
         deps,
       );
-      expect(result).toBe('-[:KNOWS*2]->');
+      expect(result.statement).toBe('-[:KNOWS*2]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates relationship with Infinity maxHops', () => {
@@ -147,7 +162,8 @@ describe('getRelationshipString', () => {
         { direction: 'out', name: 'KNOWS', maxHops: Infinity },
         deps,
       );
-      expect(result).toBe('-[:KNOWS*]->');
+      expect(result.statement).toBe('-[:KNOWS*]->');
+      expect(result.standaloneWhere).toBeNull();
     });
   });
 
@@ -163,7 +179,8 @@ describe('getRelationshipString', () => {
         },
         deps,
       );
-      expect(result).toBe('-[r:KNOWS { since: $since }]->');
+      expect(result.statement).toBe('-[r:KNOWS { since: $since }]->');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ since: 2020 });
     });
 
@@ -177,7 +194,8 @@ describe('getRelationshipString', () => {
         },
         deps,
       );
-      expect(result).toContain('[:WORKS_AT {');
+      expect(result.statement).toContain('[:WORKS_AT {');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ role: 'Developer', active: true });
     });
   });
@@ -193,7 +211,8 @@ describe('getRelationshipString', () => {
         },
         deps,
       );
-      expect(result).toContain('[:KNOWS {');
+      expect(result.statement).toContain('[:KNOWS {');
+      expect(result.standaloneWhere).toBeNull();
       expect(deps.bindParam.get()).toEqual({ since: 2020 });
     });
   });
@@ -202,13 +221,90 @@ describe('getRelationshipString', () => {
     it('generates minimal relationship for direction only', () => {
       const deps = createDeps();
       const result = getRelationshipString({ direction: 'out' }, deps);
-      expect(result).toBe('-[]->');
+      expect(result.statement).toBe('-[]->');
+      expect(result.standaloneWhere).toBeNull();
     });
 
     it('generates minimal incoming relationship', () => {
       const deps = createDeps();
       const result = getRelationshipString({ direction: 'in' }, deps);
-      expect(result).toBe('<-[]-');
+      expect(result.statement).toBe('<-[]-');
+      expect(result.standaloneWhere).toBeNull();
+    });
+  });
+
+  describe('non-eq operators', () => {
+    it('returns standaloneWhere for non-eq operators', () => {
+      const deps = createDeps();
+      const result = getRelationshipString(
+        {
+          direction: 'out',
+          name: 'KNOWS',
+          identifier: 'r',
+          where: { since: { [Op.gte]: 2020 } },
+        },
+        deps,
+      );
+      expect(result.statement).toBe('-[r:KNOWS]->');
+      expect(result.standaloneWhere).not.toBeNull();
+      expect(result.standaloneWhere?.getStatement('text')).toBe(
+        'r.since >= $since',
+      );
+    });
+
+    it('splits eq and non-eq operators', () => {
+      const deps = createDeps();
+      const result = getRelationshipString(
+        {
+          direction: 'out',
+          name: 'KNOWS',
+          identifier: 'r',
+          where: { type: 'friend', since: { [Op.gte]: 2020 } },
+        },
+        deps,
+      );
+      expect(result.statement).toBe('-[r:KNOWS { type: $type }]->');
+      expect(result.standaloneWhere).not.toBeNull();
+      expect(result.standaloneWhere?.getStatement('text')).toBe(
+        'r.since >= $since',
+      );
+      expect(deps.bindParam.get()).toEqual({ type: 'friend', since: 2020 });
+    });
+
+    it('generates unique identifier for non-eq without identifier', () => {
+      const deps = createDeps();
+      const result = getRelationshipString(
+        {
+          direction: 'out',
+          name: 'KNOWS',
+          where: { since: { [Op.gte]: 2020 } },
+        },
+        deps,
+      );
+      // Should generate identifier __r
+      expect(result.statement).toBe('-[__r:KNOWS]->');
+      expect(result.standaloneWhere).not.toBeNull();
+      expect(result.standaloneWhere?.getStatement('text')).toBe(
+        '__r.since >= $since',
+      );
+    });
+
+    it('uses shared BindParam for auto-generated identifier', () => {
+      const deps = createDeps();
+      const result = getRelationshipString(
+        {
+          direction: 'out',
+          name: 'KNOWS',
+          where: { since: { [Op.gte]: 2020 } },
+        },
+        deps,
+      );
+
+      // The since value should be in the shared bindParam
+      expect(deps.bindParam.get()).toEqual({ since: 2020 });
+
+      // The generated identifier should use the bindParam's getUniqueName
+      expect(result.statement).toBe('-[__r:KNOWS]->');
     });
   });
 

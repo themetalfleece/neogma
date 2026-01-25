@@ -1,6 +1,9 @@
 import { NeogmaConstraintError } from '../../Errors';
+import { Where } from '../../Where';
 import { getNodeString } from '../getNodeString';
+import { GetNodeStringResult } from '../getNodeString/getNodeString.types';
 import { getRelationshipString } from '../getRelationshipString';
+import { GetRelationshipStringResult } from '../getRelationshipString/getRelationshipString.types';
 import {
   isMatchLiteral,
   isMatchMultiple,
@@ -12,6 +15,30 @@ import {
   GetMatchStringMatch,
 } from './getMatchString.types';
 
+/**
+ * Appends WHERE clause from standalone Where instances to the match statement.
+ * Combines multiple Where statements using AND.
+ */
+const appendWhereClause = (
+  matchPart: string,
+  standaloneWheres: Where[],
+): string => {
+  if (standaloneWheres.length === 0) {
+    return matchPart;
+  }
+
+  // Combine all WHERE statements with AND
+  const whereStatements = standaloneWheres
+    .map((w) => w.getStatement('text'))
+    .filter((s) => s.length > 0);
+
+  if (whereStatements.length === 0) {
+    return matchPart;
+  }
+
+  return `${matchPart} WHERE ${whereStatements.join(' AND ')}`;
+};
+
 /** Returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
 export const getMatchString = (
   match: GetMatchStringMatch,
@@ -21,49 +48,81 @@ export const getMatchString = (
     return `MATCH ${match}`;
   }
 
+  const statements: string[] = [];
+  const standaloneWheres: Where[] = [];
+
+  /**
+   * Collects the statement and standalone WHERE clause from a result.
+   * Uses closure to access statements and standaloneWheres arrays.
+   */
+  const collectResult = (
+    result: GetNodeStringResult | GetRelationshipStringResult,
+  ): void => {
+    statements.push(result.statement);
+    if (result.standaloneWhere) {
+      standaloneWheres.push(result.standaloneWhere);
+    }
+  };
+
   if (isMatchMultiple(match)) {
-    return [
+    for (const element of match.multiple) {
+      collectResult(getNodeString(element, deps));
+    }
+
+    const matchPart = [
       match.optional ? 'OPTIONAL' : '',
       'MATCH',
-      match.multiple.map((element) => getNodeString(element, deps)).join(', '),
+      statements.join(', '),
     ].join(' ');
+
+    return appendWhereClause(matchPart, standaloneWheres);
   }
 
   if (isMatchRelated(match)) {
     // every even element is a node, every odd element is a relationship
-    const parts: string[] = [];
-
     for (let index = 0; index < match.related.length; index++) {
       const element = match.related[index];
       if (index % 2) {
-        // even, parse as relationship
+        // odd index = relationship
         if (!isRelationship(element)) {
           throw new NeogmaConstraintError(
-            'even argument of related is not a relationship',
+            'odd argument of related is not a relationship',
           );
         }
-        parts.push(getRelationshipString(element, deps));
+        collectResult(getRelationshipString(element, deps));
       } else {
-        // odd, parse as node
-        parts.push(getNodeString(element, deps));
+        // even index = node
+        collectResult(getNodeString(element, deps));
       }
     }
 
-    return [match.optional ? 'OPTIONAL' : '', 'MATCH', parts.join('')].join(
-      ' ',
-    );
+    const matchPart = [
+      match.optional ? 'OPTIONAL' : '',
+      'MATCH',
+      statements.join(''),
+    ].join(' ');
+
+    return appendWhereClause(matchPart, standaloneWheres);
   }
 
   if (isMatchLiteral(match)) {
-    return [
+    collectResult(getNodeString(match.literal, deps));
+
+    const matchPart = [
       match.optional ? 'OPTIONAL' : '',
-      `MATCH ${getNodeString(match.literal, deps)}`,
+      `MATCH ${statements[0]}`,
     ].join(' ');
+
+    return appendWhereClause(matchPart, standaloneWheres);
   }
 
   // else, is a node
-  return [
+  collectResult(getNodeString(match, deps));
+
+  const matchPart = [
     match.optional ? 'OPTIONAL' : '',
-    `MATCH ${getNodeString(match, deps)}`,
+    `MATCH ${statements[0]}`,
   ].join(' ');
+
+  return appendWhereClause(matchPart, standaloneWheres);
 };
