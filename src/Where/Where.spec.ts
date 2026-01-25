@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+import { typeCheck } from '../ModelFactory/testHelpers';
 import { trimWhitespace } from '../utils/string';
-import { Op, Where } from '.';
+import { Op, Where, WhereValuesI } from '.';
 
 describe('Where', () => {
   describe('contructor', () => {
@@ -369,6 +370,345 @@ describe('Where', () => {
         const where = new Where({ node: { a: 1 } });
         const result = where.addParams({ node: { b: 2 } });
         expect(result).toBe(where);
+      });
+    });
+
+    describe('WhereValuesI array type safety', () => {
+      it('accepts direct array value', () => {
+        const value: WhereValuesI<string[]> = ['a', 'b', 'c'];
+        expect(value).toEqual(['a', 'b', 'c']);
+      });
+
+      it('accepts Op.eq with array', () => {
+        const value: WhereValuesI<string[]> = { [Op.eq]: ['a', 'b'] };
+        expect(Op.eq in value).toBe(true);
+      });
+
+      it('accepts Op.ne with array', () => {
+        const value: WhereValuesI<string[]> = { [Op.ne]: ['a', 'b'] };
+        expect(Op.ne in value).toBe(true);
+      });
+
+      it('accepts Op._in with element type (element IN array)', () => {
+        // Check if 'a' is in the array property
+        const value: WhereValuesI<string[]> = { [Op._in]: 'a' };
+        expect(Op._in in value).toBe(true);
+      });
+
+      it('accepts Op.in with array of arrays', () => {
+        // Check if the array equals one of several arrays
+        const value: WhereValuesI<string[]> = {
+          [Op.in]: [
+            ['a', 'b'],
+            ['c', 'd'],
+          ],
+        };
+        expect(Op.in in value).toBe(true);
+      });
+
+      it('rejects Op.contains for arrays (type check only)', () => {
+        // Op.contains is for string substring matching, NOT array membership
+        typeCheck(() => {
+          // @ts-expect-error - Op.contains is not valid for array types
+          const _value: WhereValuesI<string[]> = { [Op.contains]: 'a' };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects Op.gt for arrays (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.gt is not valid for array types
+          const _value: WhereValuesI<string[]> = { [Op.gt]: ['a'] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects Op.gte for arrays (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.gte is not valid for array types
+          const _value: WhereValuesI<string[]> = { [Op.gte]: ['a'] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects Op.lt for arrays (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.lt is not valid for array types
+          const _value: WhereValuesI<string[]> = { [Op.lt]: ['a'] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects Op.lte for arrays (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.lte is not valid for array types
+          const _value: WhereValuesI<string[]> = { [Op.lte]: ['a'] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong element type for Op._in (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op._in expects string, not number
+          const _value: WhereValuesI<string[]> = { [Op._in]: 123 };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong array element type for Op.eq (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.eq expects string[], not number[]
+          const _value: WhereValuesI<string[]> = { [Op.eq]: [1, 2, 3] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('accepts number[] array type', () => {
+        const value: WhereValuesI<number[]> = [1, 2, 3];
+        expect(value).toEqual([1, 2, 3]);
+
+        const valueWithOp: WhereValuesI<number[]> = { [Op._in]: 42 };
+        expect(Op._in in valueWithOp).toBe(true);
+      });
+
+      it('rejects mixing element types (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - number[] cannot contain strings
+          const _value: WhereValuesI<number[]> = { [Op.eq]: ['a', 'b'] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('accepts empty array', () => {
+        const value: WhereValuesI<string[]> = [];
+        expect(value).toEqual([]);
+      });
+
+      it('accepts boolean[] array type', () => {
+        const value: WhereValuesI<boolean[]> = [true, false, true];
+        expect(value).toEqual([true, false, true]);
+
+        const valueWithOp: WhereValuesI<boolean[]> = { [Op._in]: true };
+        expect(Op._in in valueWithOp).toBe(true);
+      });
+
+      it('accepts optional array type (string[] | undefined)', () => {
+        // Optional arrays should behave the same as required arrays
+        const value: WhereValuesI<string[] | undefined> = ['a', 'b'];
+        expect(value).toEqual(['a', 'b']);
+
+        const valueWithOp: WhereValuesI<string[] | undefined> = {
+          [Op._in]: 'element',
+        };
+        expect(Op._in in valueWithOp).toBe(true);
+      });
+
+      it('rejects single element when array is expected (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - expects string[], not string
+          const _value: WhereValuesI<string[]> = 'single';
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong nested array type for Op.in (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.in expects string[][], not number[][]
+          const _value: WhereValuesI<string[]> = {
+            [Op.in]: [
+              [1, 2],
+              [3, 4],
+            ],
+          };
+        });
+        expect(true).toBe(true);
+      });
+    });
+
+    describe('WhereValuesI scalar type safety', () => {
+      it('accepts direct string value', () => {
+        const value: WhereValuesI<string> = 'hello';
+        expect(value).toBe('hello');
+      });
+
+      it('accepts direct number value', () => {
+        const value: WhereValuesI<number> = 42;
+        expect(value).toBe(42);
+      });
+
+      it('accepts direct boolean value', () => {
+        const value: WhereValuesI<boolean> = true;
+        expect(value).toBe(true);
+      });
+
+      it('accepts array of values for IN operator (implicit)', () => {
+        // Direct array means property IN [values]
+        const value: WhereValuesI<string> = ['a', 'b', 'c'];
+        expect(value).toEqual(['a', 'b', 'c']);
+      });
+
+      it('accepts Op.eq with matching type', () => {
+        const strValue: WhereValuesI<string> = { [Op.eq]: 'test' };
+        expect(Op.eq in strValue).toBe(true);
+
+        const numValue: WhereValuesI<number> = { [Op.eq]: 123 };
+        expect(Op.eq in numValue).toBe(true);
+      });
+
+      it('accepts Op.ne with matching type', () => {
+        const value: WhereValuesI<string> = { [Op.ne]: 'excluded' };
+        expect(Op.ne in value).toBe(true);
+      });
+
+      it('accepts Op.in with array of matching type', () => {
+        const value: WhereValuesI<string> = { [Op.in]: ['a', 'b', 'c'] };
+        expect(Op.in in value).toBe(true);
+      });
+
+      it('accepts Op._in with matching type', () => {
+        const value: WhereValuesI<string> = { [Op._in]: 'element' };
+        expect(Op._in in value).toBe(true);
+      });
+
+      it('accepts Op.contains with string', () => {
+        const value: WhereValuesI<string> = { [Op.contains]: 'substring' };
+        expect(Op.contains in value).toBe(true);
+      });
+
+      it('accepts Op.gt with number', () => {
+        const value: WhereValuesI<number> = { [Op.gt]: 10 };
+        expect(Op.gt in value).toBe(true);
+      });
+
+      it('accepts Op.gte with number', () => {
+        const value: WhereValuesI<number> = { [Op.gte]: 10 };
+        expect(Op.gte in value).toBe(true);
+      });
+
+      it('accepts Op.lt with number', () => {
+        const value: WhereValuesI<number> = { [Op.lt]: 100 };
+        expect(Op.lt in value).toBe(true);
+      });
+
+      it('accepts Op.lte with number', () => {
+        const value: WhereValuesI<number> = { [Op.lte]: 100 };
+        expect(Op.lte in value).toBe(true);
+      });
+
+      it('rejects wrong type for Op.eq (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.eq expects string, not number
+          const _value: WhereValuesI<string> = { [Op.eq]: 123 };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op.ne (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.ne expects number, not string
+          const _value: WhereValuesI<number> = { [Op.ne]: 'wrong' };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong array element type for Op.in (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.in expects string[], not number[]
+          const _value: WhereValuesI<string> = { [Op.in]: [1, 2, 3] };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op._in (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op._in expects string, not boolean
+          const _value: WhereValuesI<string> = { [Op._in]: true };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op.contains (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.contains expects string, not number
+          const _value: WhereValuesI<string> = { [Op.contains]: 123 };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op.gt (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.gt expects number, not string
+          const _value: WhereValuesI<number> = { [Op.gt]: 'ten' };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op.gte (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.gte expects number, not boolean
+          const _value: WhereValuesI<number> = { [Op.gte]: true };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op.lt (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.lt expects number, not string
+          const _value: WhereValuesI<number> = { [Op.lt]: 'hundred' };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects wrong type for Op.lte (type check only)', () => {
+        typeCheck(() => {
+          // @ts-expect-error - Op.lte expects number, not object
+          const _value: WhereValuesI<number> = { [Op.lte]: { value: 100 } };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('accepts optional scalar type (number | undefined)', () => {
+        const value: WhereValuesI<number | undefined> = 42;
+        expect(value).toBe(42);
+
+        const valueWithOp: WhereValuesI<number | undefined> = { [Op.gte]: 10 };
+        expect(Op.gte in valueWithOp).toBe(true);
+      });
+    });
+
+    describe('WhereValuesI permissive mode (no type parameter)', () => {
+      it('accepts string values', () => {
+        const value: WhereValuesI = 'any string';
+        expect(value).toBe('any string');
+      });
+
+      it('accepts number values', () => {
+        const value: WhereValuesI = 42;
+        expect(value).toBe(42);
+      });
+
+      it('accepts boolean values', () => {
+        const value: WhereValuesI = true;
+        expect(value).toBe(true);
+      });
+
+      it('accepts array values', () => {
+        const value: WhereValuesI = [1, 2, 3];
+        expect(value).toEqual([1, 2, 3]);
+      });
+
+      it('accepts any operator with any value', () => {
+        const eqValue: WhereValuesI = { [Op.eq]: 'anything' };
+        expect(Op.eq in eqValue).toBe(true);
+
+        const gtValue: WhereValuesI = { [Op.gt]: 100 };
+        expect(Op.gt in gtValue).toBe(true);
+
+        const inValue: WhereValuesI = { [Op.in]: ['a', 'b'] };
+        expect(Op.in in inValue).toBe(true);
+
+        const containsValue: WhereValuesI = { [Op.contains]: 'sub' };
+        expect(Op.contains in containsValue).toBe(true);
       });
     });
   });

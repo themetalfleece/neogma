@@ -7,6 +7,8 @@ Neogma provides some basic functionality for matching, filtering, limiting and o
 ## Finding Many Nodes
 
 ```js
+import { Op } from 'neogma';
+
 /* --> finds Users Nodes and returns an array of Users Instances */
 const users = await Users.findMany({
     /* --> the where param for matching the Nodes */

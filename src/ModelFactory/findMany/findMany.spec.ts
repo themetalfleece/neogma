@@ -6,6 +6,7 @@ import {
   createOrdersModel,
   createUsersModel,
   getNeogma,
+  typeCheck,
 } from '../testHelpers';
 
 beforeAll(async () => {
@@ -262,119 +263,143 @@ describe('findMany where type safety', () => {
     expect(true).toBe(true);
   });
 
-  it('rejects invalid property names in where clause', async () => {
+  it('rejects invalid property names in where clause', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findMany({
-      where: {
-        id: 'valid',
-        // @ts-expect-error - 'nam' is not a valid property (typo)
-        nam: 'John',
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          id: 'valid',
+          // @ts-expect-error - 'nam' is not a valid property (typo)
+          nam: 'John',
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'userId' is not a valid property
-        userId: 'test',
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'userId' is not a valid property
+          userId: 'test',
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'nonExistent' is not a valid property
-        nonExistent: 'value',
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'nonExistent' is not a valid property
+          nonExistent: 'value',
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects wrong value types for properties', async () => {
+  it('rejects wrong value types for properties', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'id' expects string, not number
-        id: 123,
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'id' expects string, not number
+          id: 123,
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'name' expects string, not boolean
-        name: true,
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'name' expects string, not boolean
+          name: true,
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'id' expects string, not object without operator
-        id: { value: 'test' },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'id' expects string, not object without operator
+          id: { value: 'test' },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects wrong value types in operators', async () => {
+  it('rejects wrong value types in operators', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - Op.eq expects string for 'id', not number
-        id: { [Op.eq]: 123 },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - Op.eq expects string for 'id', not number
+          id: { [Op.eq]: 123 },
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - Op.in expects string[] for 'id', not number[]
-        id: { [Op.in]: [1, 2, 3] },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - Op.in expects string[] for 'id', not number[]
+          id: { [Op.in]: [1, 2, 3] },
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - Op.contains expects string for 'name', not number
-        name: { [Op.contains]: 42 },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - Op.contains expects string for 'name', not number
+          name: { [Op.contains]: 42 },
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - Op.ne expects string for 'id', not boolean
-        id: { [Op.ne]: false },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - Op.ne expects string for 'id', not boolean
+          id: { [Op.ne]: false },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });
 
-  it('rejects operators on invalid property names', async () => {
+  it('rejects operators on invalid property names', () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'invalid' is not a valid property
-        invalid: { [Op.eq]: 'value' },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'invalid' is not a valid property
+          invalid: { [Op.eq]: 'value' },
+        },
+      }),
+    );
 
-    await Users.findMany({
-      where: {
-        // @ts-expect-error - 'typo' is not a valid property
-        typo: { [Op.in]: ['a', 'b'] },
-      },
-    });
+    typeCheck(() =>
+      Users.findMany({
+        where: {
+          // @ts-expect-error - 'typo' is not a valid property
+          typo: { [Op.in]: ['a', 'b'] },
+        },
+      }),
+    );
 
     expect(true).toBe(true);
   });

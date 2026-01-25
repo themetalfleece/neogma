@@ -11,6 +11,7 @@ import {
   ModelFactory,
   ModelRelatedNodesI,
   NeogmaInstance,
+  typeCheck,
   UsersRelatedNodesI,
 } from '../testHelpers';
 
@@ -415,132 +416,148 @@ describe('relateTo where type safety', () => {
       expect(true).toBe(true);
     });
 
-    it('rejects invalid property names in source where clause', async () => {
+    it('rejects invalid property names in source where clause', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: {
-            id: 'valid',
-            // @ts-expect-error - 'nam' is not a valid source property (typo)
-            nam: 'John',
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              id: 'valid',
+              // @ts-expect-error - 'nam' is not a valid source property (typo)
+              nam: 'John',
+            },
+            target: { id: 'order-id' },
           },
-          target: { id: 'order-id' },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: {
-            // @ts-expect-error - 'userId' is not a valid source property
-            userId: 'test',
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              // @ts-expect-error - 'userId' is not a valid source property
+              userId: 'test',
+            },
+            target: { id: 'order-id' },
           },
-          target: { id: 'order-id' },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
 
-    it('rejects invalid property names in target where clause', async () => {
+    it('rejects invalid property names in target where clause', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: { id: 'user-id' },
-          target: {
-            // @ts-expect-error - 'orderId' is not a valid target property
-            orderId: 'test',
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              // @ts-expect-error - 'orderId' is not a valid target property
+              orderId: 'test',
+            },
           },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: { id: 'user-id' },
-          target: {
-            id: 'valid',
-            // @ts-expect-error - 'nonExistent' is not a valid target property
-            nonExistent: 'value',
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              id: 'valid',
+              // @ts-expect-error - 'nonExistent' is not a valid target property
+              nonExistent: 'value',
+            },
           },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
 
-    it('rejects wrong value types in source and target', async () => {
+    it('rejects wrong value types in source and target', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: {
-            // @ts-expect-error - 'id' expects string, not number
-            id: 123,
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              // @ts-expect-error - 'id' expects string, not number
+              id: 123,
+            },
+            target: { id: 'order-id' },
           },
-          target: { id: 'order-id' },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: { id: 'user-id' },
-          target: {
-            // @ts-expect-error - 'name' expects string, not boolean
-            name: true,
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              // @ts-expect-error - 'name' expects string, not boolean
+              name: true,
+            },
           },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
 
-    it('rejects wrong value types in operators', async () => {
+    it('rejects wrong value types in operators', () => {
       const neogma = getNeogma();
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: {
-            // @ts-expect-error - Op.eq expects string for 'id', not number
-            id: { [Op.eq]: 123 },
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              // @ts-expect-error - Op.eq expects string for 'id', not number
+              id: { [Op.eq]: 123 },
+            },
+            target: { id: 'order-id' },
           },
-          target: { id: 'order-id' },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await Users.relateTo({
-        alias: 'Orders',
-        where: {
-          source: { id: 'user-id' },
-          target: {
-            // @ts-expect-error - Op.in expects string[] for 'name', not number[]
-            name: { [Op.in]: [1, 2, 3] },
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              // @ts-expect-error - Op.in expects string[] for 'name', not number[]
+              name: { [Op.in]: [1, 2, 3] },
+            },
           },
-        },
-        properties: { Rating: 5 },
-      });
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
@@ -584,24 +601,28 @@ describe('relateTo where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          id: 'valid',
-          // @ts-expect-error - 'orderId' is not a valid target property
-          orderId: 'test',
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            id: 'valid',
+            // @ts-expect-error - 'orderId' is not a valid target property
+            orderId: 'test',
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - 'nonExistent' is not a valid target property
-          nonExistent: 'value',
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'nonExistent' is not a valid target property
+            nonExistent: 'value',
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
@@ -613,23 +634,27 @@ describe('relateTo where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - 'id' expects string, not number
-          id: 123,
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'id' expects string, not number
+            id: 123,
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - 'name' expects string, not boolean
-          name: false,
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'name' expects string, not boolean
+            name: false,
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
@@ -641,23 +666,27 @@ describe('relateTo where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - Op.eq expects string for 'id', not number
-          id: { [Op.eq]: 456 },
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - Op.eq expects string for 'id', not number
+            id: { [Op.eq]: 456 },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - Op.contains expects string for 'name', not number
-          name: { [Op.contains]: 123 },
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - Op.contains expects string for 'name', not number
+            name: { [Op.contains]: 123 },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });
@@ -669,23 +698,27 @@ describe('relateTo where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - 'invalid' is not a valid target property
-          invalid: { [Op.eq]: 'value' },
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'invalid' is not a valid target property
+            invalid: { [Op.eq]: 'value' },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
-      await user.relateTo({
-        alias: 'Orders',
-        where: {
-          // @ts-expect-error - 'typo' is not a valid target property
-          typo: { [Op.in]: ['a', 'b'] },
-        },
-        properties: { Rating: 5 },
-      });
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'typo' is not a valid target property
+            typo: { [Op.in]: ['a', 'b'] },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
 
       expect(true).toBe(true);
     });

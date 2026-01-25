@@ -6,6 +6,7 @@ import {
   createOrdersModel,
   createUsersModel,
   getNeogma,
+  typeCheck,
   UsersRelatedNodesI,
 } from '../testHelpers';
 
@@ -414,11 +415,9 @@ describe('findRelationships where type safety', () => {
     const Users = createUsersModel(Orders, neogma);
 
     // Type-check tests - verify valid parameters compile correctly
-    // Use wrapper to check types without executing database queries
-    const _typeCheck = (_fn: () => void) => {};
 
     // Valid: correct property names and types for all entities
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -430,7 +429,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Valid: using operators with correct types
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -442,7 +441,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Valid: partial where (only source)
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: { source: { id: 'user-id' } },
@@ -450,7 +449,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Valid: partial where (only target)
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: { target: { name: 'Order1' } },
@@ -458,7 +457,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Valid: partial where (only relationship)
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: { relationship: { rating: 5 } },
@@ -473,10 +472,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -489,7 +487,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -509,10 +507,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -524,7 +521,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -545,10 +542,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -560,7 +556,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -581,10 +577,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -596,7 +591,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -616,10 +611,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -631,7 +625,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -651,10 +645,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -666,7 +659,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -686,11 +679,10 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
     // Source: wrong type in operator
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -703,7 +695,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Target: wrong type in operator
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -716,7 +708,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Relationship: wrong type in operator
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -736,10 +728,9 @@ describe('findRelationships where type safety', () => {
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -751,7 +742,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -763,7 +754,7 @@ describe('findRelationships where type safety', () => {
       }),
     );
 
-    _typeCheck(() =>
+    typeCheck(() =>
       Users.findRelationships({
         alias: 'Orders',
         where: {
@@ -794,11 +785,10 @@ describe('findRelationships where type safety', () => {
       },
     });
 
-    // Type-only tests - use wrapper to avoid runtime execution
-    const _typeCheck = (_fn: () => void) => {};
+    // Type-only tests - verify TypeScript catches invalid types
 
     // Invalid property name in target
-    _typeCheck(() =>
+    typeCheck(() =>
       user.findRelationships({
         alias: 'Orders',
         where: {
@@ -811,7 +801,7 @@ describe('findRelationships where type safety', () => {
     );
 
     // Wrong value type in relationship
-    _typeCheck(() =>
+    typeCheck(() =>
       user.findRelationships({
         alias: 'Orders',
         where: {

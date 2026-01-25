@@ -33,13 +33,13 @@ export const Op = {
 
 export type WhereTypes = {
   Eq: {
-    [Op.eq]: Neo4jSingleTypes | Literal;
+    [Op.eq]: Neo4jSupportedTypes | Literal;
   };
   Ne: {
-    [Op.ne]: Neo4jSingleTypes | Literal;
+    [Op.ne]: Neo4jSupportedTypes | Literal;
   };
   In: {
-    [Op.in]: Neo4jSingleTypes[] | Literal;
+    [Op.in]: Neo4jSingleTypes[] | Neo4jSingleTypes[][] | Literal;
   };
   _In: {
     [Op._in]: Neo4jSingleTypes | Literal;
@@ -65,7 +65,7 @@ export type WhereTypes = {
 
 /**
  * Permissive where value type that accepts any Neo4j supported type.
- * Used internally and as fallback when no type parameter is provided.
+ * Used as fallback when no type parameter is provided or type is unknown.
  */
 type PermissiveWhereValue =
   | Neo4jSupportedTypes
@@ -81,47 +81,86 @@ type PermissiveWhereValue =
   | Literal;
 
 /**
- * Type-safe where value that constrains the value to match the property type.
- * When T is unknown (default), falls back to permissive behavior accepting any Neo4j type.
- * When T is a specific type, validates that values match that type.
+ * Type-safe where value for scalar (non-array) Neo4j types.
+ * Supports all comparison operators: eq, ne, in, _in, contains, gt, gte, lt, lte.
  *
- * @typeParam T - The property type to validate against. Defaults to unknown for permissive behavior.
+ * @typeParam T - A scalar Neo4j type (string, number, boolean, etc.)
+ */
+type ScalarWhereValue<T extends Neo4jSingleTypes> =
+  | T // Direct value: property = value
+  | T[] // Array for IN: property IN [values]
+  | { [Op.eq]: T | Literal } // Equality: property = value
+  | { [Op.ne]: T | Literal } // Not equal: property <> value
+  | { [Op.in]: T[] | Literal } // In list: property IN [values]
+  | { [Op._in]: T | Literal } // Value in property: value IN property
+  | { [Op.contains]: T | Literal } // Contains (strings): property CONTAINS value
+  | { [Op.gt]: T | Literal } // Greater than: property > value
+  | { [Op.gte]: T | Literal } // Greater or equal: property >= value
+  | { [Op.lt]: T | Literal } // Less than: property < value
+  | { [Op.lte]: T | Literal } // Less or equal: property <= value
+  | Literal; // Raw Cypher literal
+
+/**
+ * Type-safe where value for array-typed Neo4j properties.
+ * Supports a subset of operators that make sense for arrays in Cypher.
+ *
+ * Note: Op.contains is NOT included because Cypher's CONTAINS is for
+ * substring matching in strings, not for checking array membership.
+ * Use Op._in instead (generates `element IN arrayProperty`).
+ *
+ * @typeParam T - The full array type (e.g., string[])
+ * @typeParam E - The element type of the array (e.g., string)
+ */
+type ArrayWhereValue<
+  T extends Neo4jSingleTypes[],
+  E extends Neo4jSingleTypes,
+> =
+  | T // Direct value: property = [values]
+  | { [Op.eq]: T | Literal } // Exact match: property = [values]
+  | { [Op.ne]: T | Literal } // Not equal: property <> [values]
+  | { [Op._in]: E | Literal } // Element in array: element IN property
+  | { [Op.in]: T[] | Literal } // Array in list: property IN [[a,b], [c,d]]
+  | Literal; // Raw Cypher literal
+
+/**
+ * Type-safe where value that constrains the value to match the property type.
+ *
+ * **Behavior by type:**
+ * - `unknown` (default): Permissive - accepts any Neo4j type and all operators
+ * - Scalar types (`string`, `number`, `boolean`): Strict - validates value types for all operators
+ * - Array types (`string[]`, `number[]`): Strict - validates element types, limited operators
+ *
+ * **Array operator notes:**
+ * - Use `Op._in` to check if an element exists in an array property (`'a' IN tags`)
+ * - `Op.contains` is NOT available for arrays (it's for string substring matching)
+ * - `Op.eq`/`Op.ne` compare entire arrays
+ * - `Op.in` checks if the array equals one of several arrays
+ *
+ * @typeParam T - The property type to validate against. Defaults to unknown.
  *
  * @example
  * ```typescript
- * // Without type parameter - permissive, accepts any value
- * const permissive: WhereValuesI = 'any string';
- * const permissive2: WhereValuesI = 123;
- * const permissive3: WhereValuesI = { [Op.gt]: 5 };
+ * // Permissive (no type parameter)
+ * const any: WhereValuesI = 'string';
+ * const any2: WhereValuesI = { [Op.gt]: 5 };
  *
- * // With type parameter - strict type checking
- * const strict: WhereValuesI<string> = 'John';           // OK
- * const strictOp: WhereValuesI<string> = { [Op.eq]: 'John' }; // OK
- * const invalid: WhereValuesI<string> = 123;             // Error!
+ * // Scalar types - all operators available
+ * const str: WhereValuesI<string> = 'John';
+ * const strOp: WhereValuesI<string> = { [Op.contains]: 'Jo' };
+ * const num: WhereValuesI<number> = { [Op.gte]: 18 };
  *
- * // For a number property
- * const numValue: WhereValuesI<number> = 25;             // OK
- * const numOp: WhereValuesI<number> = { [Op.gt]: 18 };   // OK
- * const numInvalid: WhereValuesI<number> = 'twenty-five'; // Error!
+ * // Array types - limited operators
+ * const arr: WhereValuesI<string[]> = ['a', 'b'];
+ * const arrIn: WhereValuesI<string[]> = { [Op._in]: 'a' }; // 'a' IN property
+ * const arrEq: WhereValuesI<string[]> = { [Op.eq]: ['a', 'b'] }; // exact match
  * ```
  */
 export type WhereValuesI<T = unknown> =
   NonNullable<T> extends Neo4jSingleTypes
-    ? // Strict: T is a specific Neo4j type
-        | NonNullable<T>
-        | Array<NonNullable<T>>
-        | { [Op.eq]: NonNullable<T> | Literal }
-        | { [Op.in]: Array<NonNullable<T>> | Literal }
-        | { [Op._in]: NonNullable<T> | Literal }
-        | { [Op.contains]: NonNullable<T> | Literal }
-        | { [Op.gt]: NonNullable<T> | Literal }
-        | { [Op.gte]: NonNullable<T> | Literal }
-        | { [Op.lt]: NonNullable<T> | Literal }
-        | { [Op.lte]: NonNullable<T> | Literal }
-        | { [Op.ne]: NonNullable<T> | Literal }
-        | Literal
-    : // Permissive: T is unknown or not a Neo4j single type
-      PermissiveWhereValue;
+    ? ScalarWhereValue<NonNullable<T>>
+    : NonNullable<T> extends Array<infer E extends Neo4jSingleTypes>
+      ? ArrayWhereValue<NonNullable<T>, E>
+      : PermissiveWhereValue;
 
 // ============ Where Params Types ============
 

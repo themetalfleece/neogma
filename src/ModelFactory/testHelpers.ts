@@ -188,5 +188,29 @@ export function createUsersModel(
   );
 }
 
+// ============ Type Testing Utilities ============
+
+/**
+ * A no-op function for compile-time type checking in tests.
+ * Accepts a function that returns void but doesn't execute it.
+ * This allows testing TypeScript type errors with @ts-expect-error
+ * without actually running the code at runtime.
+ *
+ * @example
+ * ```typescript
+ * // Verify that invalid types cause TypeScript errors
+ * typeCheck(() =>
+ *   Users.findMany({
+ *     where: {
+ *       // @ts-expect-error - 'age' expects number, not string
+ *       age: 'invalid',
+ *     },
+ *   }),
+ * );
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const typeCheck = (_fn: () => void): void => {};
+
 // Re-export for convenience
 export { ModelFactory, ModelRelatedNodesI, NeogmaInstance, NeogmaModel };

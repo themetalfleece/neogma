@@ -7,7 +7,9 @@ An instance of the `Where` class can be used to easily create a statement and a 
 When using TypeScript with Models, where parameters are type-checked to ensure both property names AND value types match your model's schema. This catches typos and type mismatches at compile time rather than runtime.
 
 ```typescript
-// With a User model having properties: { id: string, name: string, age: number }
+import { Op } from 'neogma';
+
+// Assuming Users is a Model with properties: { id: string, name: string, age: number }
 
 // Valid - correct property names and matching value types
 await Users.findMany({
@@ -35,7 +37,9 @@ await Users.findMany({
 For `findRelationships`, `relateTo`, and similar methods, the type system validates property names for source, target, and relationship separately:
 
 ```typescript
-// With Users having Orders relationship
+import { Op } from 'neogma';
+
+// Assuming Users is a Model with an 'Orders' relationship
 await Users.findRelationships({
     alias: 'Orders',
     where: {

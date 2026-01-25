@@ -62,8 +62,8 @@ import { update as updateFn, UpdateContext } from './update';
 import {
   instanceUpdateRelationship,
   InstanceUpdateRelationshipParams,
-  UpdateRelationshipData,
   updateRelationship as updateRelationshipFn,
+  UpdateRelationshipData,
 } from './updateRelationship';
 import {
   assertPrimaryKeyField,

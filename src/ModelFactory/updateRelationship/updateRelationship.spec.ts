@@ -6,6 +6,7 @@ import {
   createOrdersModel,
   createUsersModel,
   getNeogma,
+  typeCheck,
   UsersRelatedNodesI,
 } from '../testHelpers';
 
@@ -386,11 +387,9 @@ describe('updateRelationship where type safety', () => {
       const Users = createUsersModel(Orders, neogma);
 
       // Type-check tests - verify valid parameters compile correctly
-      // Use wrapper to check types without executing database queries
-      const _typeCheck = (_fn: () => void) => {};
 
       // Valid: correct property names and types for all entities
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -405,7 +404,7 @@ describe('updateRelationship where type safety', () => {
       );
 
       // Valid: using operators with correct types
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -420,7 +419,7 @@ describe('updateRelationship where type safety', () => {
       );
 
       // Valid: partial where (only source)
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -438,10 +437,9 @@ describe('updateRelationship where type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -457,7 +455,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -480,10 +478,9 @@ describe('updateRelationship where type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -498,7 +495,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -522,10 +519,9 @@ describe('updateRelationship where type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -540,7 +536,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -564,10 +560,9 @@ describe('updateRelationship where type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -582,7 +577,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -597,7 +592,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -620,10 +615,9 @@ describe('updateRelationship where type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -638,7 +632,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -653,7 +647,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -681,11 +675,9 @@ describe('updateRelationship where type safety', () => {
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
       // Type-check tests - verify valid parameters compile correctly
-      // Use wrapper to check types without executing database queries
-      const _typeCheck = (_fn: () => void) => {};
 
       // Valid: correct property names and types
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -699,7 +691,7 @@ describe('updateRelationship where type safety', () => {
       );
 
       // Valid: using operators with correct types
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -722,10 +714,9 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -740,7 +731,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -766,10 +757,9 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -784,7 +774,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -809,10 +799,9 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -827,7 +816,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -852,10 +841,9 @@ describe('updateRelationship where type safety', () => {
 
       const user = await Users.createOne({ id: uuid(), name: uuid() });
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -870,7 +858,7 @@ describe('updateRelationship where type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -903,11 +891,9 @@ describe('updateRelationship data type safety', () => {
       const Users = createUsersModel(Orders, neogma);
 
       // Type-check tests - verify valid parameters compile correctly
-      // Use wrapper to check types without executing database queries
-      const _typeCheck = (_fn: () => void) => {};
 
       // Valid: correct property name and type
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 5 },
           {
@@ -918,7 +904,7 @@ describe('updateRelationship data type safety', () => {
       );
 
       // Valid: partial update with only some properties
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           { rating: 3 },
           {
@@ -936,10 +922,9 @@ describe('updateRelationship data type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           {
             // @ts-expect-error - 'score' is not a valid relationship property
@@ -952,7 +937,7 @@ describe('updateRelationship data type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           {
             rating: 5,
@@ -966,7 +951,7 @@ describe('updateRelationship data type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           {
             // @ts-expect-error - 'nonExistent' is not a valid relationship property
@@ -987,11 +972,9 @@ describe('updateRelationship data type safety', () => {
       const Orders = createOrdersModel(neogma);
       const Users = createUsersModel(Orders, neogma);
 
-      // These type tests verify TypeScript errors at compile time
-      // We use a function wrapper to check types without executing
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           {
             // @ts-expect-error - 'rating' expects number, not string
@@ -1004,7 +987,7 @@ describe('updateRelationship data type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           {
             // @ts-expect-error - 'rating' expects number, not boolean
@@ -1017,7 +1000,7 @@ describe('updateRelationship data type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         Users.updateRelationship(
           {
             // @ts-expect-error - 'rating' expects number, not object
@@ -1043,11 +1026,9 @@ describe('updateRelationship data type safety', () => {
       const user = await Users.createOne({ id: 'user-id', name: 'John' });
 
       // Type-check tests - verify valid parameters compile correctly
-      // Use wrapper to check types without executing database queries
-      const _typeCheck = (_fn: () => void) => {};
 
       // Valid: correct property name and type
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           { rating: 5 },
           {
@@ -1067,10 +1048,9 @@ describe('updateRelationship data type safety', () => {
 
       const user = await Users.createOne({ id: 'user-id', name: 'John' });
 
-      // Type-only tests - use wrapper to avoid runtime execution
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           {
             // @ts-expect-error - 'score' is not a valid relationship property
@@ -1083,7 +1063,7 @@ describe('updateRelationship data type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           {
             rating: 5,
@@ -1107,11 +1087,9 @@ describe('updateRelationship data type safety', () => {
 
       const user = await Users.createOne({ id: 'user-id', name: 'John' });
 
-      // These type tests verify TypeScript errors at compile time
-      // We use a function wrapper to check types without executing
-      const _typeCheck = (_fn: () => void) => {};
+      // Type-only tests - verify TypeScript catches invalid types
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           {
             // @ts-expect-error - 'rating' expects number, not string
@@ -1124,7 +1102,7 @@ describe('updateRelationship data type safety', () => {
         ),
       );
 
-      _typeCheck(() =>
+      typeCheck(() =>
         user.updateRelationship(
           {
             // @ts-expect-error - 'rating' expects number, not boolean
