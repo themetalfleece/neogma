@@ -81,24 +81,42 @@ type PermissiveWhereValue =
   | Literal;
 
 /**
- * Type-safe where value for scalar (non-array) Neo4j types.
- * Supports all comparison operators: eq, ne, in, _in, contains, gt, gte, lt, lte.
- *
- * @typeParam T - A scalar Neo4j type (string, number, boolean, etc.)
+ * Base operators available for all scalar Neo4j types.
+ * @internal
  */
-type ScalarWhereValue<T extends Neo4jSingleTypes> =
+type BaseScalarOperators<T extends Neo4jSingleTypes> =
   | T // Direct value: property = value
   | T[] // Array for IN: property IN [values]
   | { [Op.eq]: T | Literal } // Equality: property = value
   | { [Op.ne]: T | Literal } // Not equal: property <> value
   | { [Op.in]: T[] | Literal } // In list: property IN [values]
   | { [Op._in]: T | Literal } // Value in property: value IN property
-  | { [Op.contains]: T | Literal } // Contains (strings): property CONTAINS value
   | { [Op.gt]: T | Literal } // Greater than: property > value
   | { [Op.gte]: T | Literal } // Greater or equal: property >= value
   | { [Op.lt]: T | Literal } // Less than: property < value
   | { [Op.lte]: T | Literal } // Less or equal: property <= value
   | Literal; // Raw Cypher literal
+
+/**
+ * Operators available only for string types.
+ * Extends base operators with string-specific operations like CONTAINS.
+ * @internal
+ */
+type StringScalarOperators =
+  | BaseScalarOperators<string>
+  | { [Op.contains]: string | Literal }; // Contains: property CONTAINS value
+
+/**
+ * Type-safe where value for scalar (non-array) Neo4j types.
+ * Supports comparison operators with type-appropriate constraints:
+ * - All types: eq, ne, in, _in, gt, gte, lt, lte
+ * - String only: contains (for substring matching)
+ *
+ * @typeParam T - A scalar Neo4j type (string, number, boolean, etc.)
+ */
+type ScalarWhereValue<T extends Neo4jSingleTypes> = T extends string
+  ? StringScalarOperators
+  : BaseScalarOperators<T>;
 
 /**
  * Type-safe where value for array-typed Neo4j properties.
@@ -249,6 +267,16 @@ export type TypedRelationshipWhereI<
 
 // ============ Operator Utilities ============
 
+/**
+ * List of all supported operator names.
+ * Useful for iteration or validation.
+ *
+ * @example
+ * ```typescript
+ * operators.forEach(op => console.log(op));
+ * // 'eq', 'in', '_in', 'contains', 'gt', 'gte', 'lt', 'lte', 'ne'
+ * ```
+ */
 export const operators = [
   'eq',
   'in',
@@ -261,6 +289,20 @@ export const operators = [
   'ne',
 ] as const;
 
+/**
+ * Type guard functions to check if a where value uses a specific operator.
+ * Each function narrows the type to the corresponding operator type.
+ *
+ * @example
+ * ```typescript
+ * const value: WhereValuesI = { [Op.gt]: 10 };
+ *
+ * if (isOperator.gt(value)) {
+ *   // value is now typed as WhereTypes['Gt']
+ *   console.log(value[Op.gt]); // 10
+ * }
+ * ```
+ */
 export const isOperator = {
   eq: (value: WhereValuesI): value is WhereTypes['Eq'] =>
     typeof value === 'object' && value !== null && Op.eq in value,
@@ -281,3 +323,30 @@ export const isOperator = {
   ne: (value: WhereValuesI): value is WhereTypes['Ne'] =>
     typeof value === 'object' && value !== null && Op.ne in value,
 } as const;
+
+/**
+ * Checks if a where value uses any operator (as opposed to being a direct value).
+ *
+ * @param value - The where value to check
+ * @returns true if the value contains any Op symbol
+ *
+ * @example
+ * ```typescript
+ * isAnyOperator({ [Op.gt]: 10 }); // true
+ * isAnyOperator('direct value');  // false
+ * isAnyOperator([1, 2, 3]);       // false (array is direct IN value)
+ * ```
+ */
+export const isAnyOperator = (value: WhereValuesI): boolean =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  (Op.eq in value ||
+    Op.in in value ||
+    Op._in in value ||
+    Op.contains in value ||
+    Op.gt in value ||
+    Op.gte in value ||
+    Op.lt in value ||
+    Op.lte in value ||
+    Op.ne in value);

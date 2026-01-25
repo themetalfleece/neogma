@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { typeCheck } from '../ModelFactory/testHelpers';
 import { trimWhitespace } from '../utils/string';
-import { Op, Where, WhereValuesI } from '.';
+import { isAnyOperator, Op, Where, WhereValuesI } from '.';
 
 describe('Where', () => {
   describe('contructor', () => {
@@ -675,6 +675,24 @@ describe('Where', () => {
         const valueWithOp: WhereValuesI<number | undefined> = { [Op.gte]: 10 };
         expect(Op.gte in valueWithOp).toBe(true);
       });
+
+      it('rejects Op.contains for number types (type check only)', () => {
+        // Op.contains is for string substring matching only
+        typeCheck(() => {
+          // @ts-expect-error - Op.contains is only valid for string types
+          const _value: WhereValuesI<number> = { [Op.contains]: 5 };
+        });
+        expect(true).toBe(true);
+      });
+
+      it('rejects Op.contains for boolean types (type check only)', () => {
+        // Op.contains is for string substring matching only
+        typeCheck(() => {
+          // @ts-expect-error - Op.contains is only valid for string types
+          const _value: WhereValuesI<boolean> = { [Op.contains]: true };
+        });
+        expect(true).toBe(true);
+      });
     });
 
     describe('WhereValuesI permissive mode (no type parameter)', () => {
@@ -710,6 +728,70 @@ describe('Where', () => {
 
         const containsValue: WhereValuesI = { [Op.contains]: 'sub' };
         expect(Op.contains in containsValue).toBe(true);
+      });
+    });
+
+    describe('isAnyOperator helper', () => {
+      it('returns true for Op.eq', () => {
+        expect(isAnyOperator({ [Op.eq]: 'value' })).toBe(true);
+      });
+
+      it('returns true for Op.ne', () => {
+        expect(isAnyOperator({ [Op.ne]: 'value' })).toBe(true);
+      });
+
+      it('returns true for Op.in', () => {
+        expect(isAnyOperator({ [Op.in]: ['a', 'b'] })).toBe(true);
+      });
+
+      it('returns true for Op._in', () => {
+        expect(isAnyOperator({ [Op._in]: 'element' })).toBe(true);
+      });
+
+      it('returns true for Op.contains', () => {
+        expect(isAnyOperator({ [Op.contains]: 'sub' })).toBe(true);
+      });
+
+      it('returns true for Op.gt', () => {
+        expect(isAnyOperator({ [Op.gt]: 10 })).toBe(true);
+      });
+
+      it('returns true for Op.gte', () => {
+        expect(isAnyOperator({ [Op.gte]: 10 })).toBe(true);
+      });
+
+      it('returns true for Op.lt', () => {
+        expect(isAnyOperator({ [Op.lt]: 100 })).toBe(true);
+      });
+
+      it('returns true for Op.lte', () => {
+        expect(isAnyOperator({ [Op.lte]: 100 })).toBe(true);
+      });
+
+      it('returns false for direct string value', () => {
+        expect(isAnyOperator('direct value')).toBe(false);
+      });
+
+      it('returns false for direct number value', () => {
+        expect(isAnyOperator(42)).toBe(false);
+      });
+
+      it('returns false for direct boolean value', () => {
+        expect(isAnyOperator(true)).toBe(false);
+      });
+
+      it('returns false for array (direct IN value)', () => {
+        expect(isAnyOperator([1, 2, 3])).toBe(false);
+      });
+
+      it('returns false for null', () => {
+        expect(isAnyOperator(null as unknown as WhereValuesI)).toBe(false);
+      });
+
+      it('returns false for plain object without operators', () => {
+        expect(isAnyOperator({ foo: 'bar' } as unknown as WhereValuesI)).toBe(
+          false,
+        );
       });
     });
   });
