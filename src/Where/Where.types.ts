@@ -82,11 +82,16 @@ type PermissiveWhereValue =
 
 /**
  * Base operators available for all scalar Neo4j types.
+ *
+ * **Note on arrays:** A direct array value `T[]` is treated as equality at runtime
+ * (`property = [values]`), NOT as IN. For IN queries, use `{ [Op.in]: values }`
+ * or wrap with `Where.ensureIn(values)`.
+ *
  * @internal
  */
 type BaseScalarOperators<T extends Neo4jSingleTypes> =
   | T // Direct value: property = value
-  | T[] // Array for IN: property IN [values]
+  | T[] // Array value: property = [values] (equality, use Op.in for IN queries)
   | { [Op.eq]: T | Literal } // Equality: property = value
   | { [Op.ne]: T | Literal } // Not equal: property <> value
   | { [Op.in]: T[] | Literal } // In list: property IN [values]
@@ -334,7 +339,7 @@ export const isOperator = {
  * ```typescript
  * isAnyOperator({ [Op.gt]: 10 }); // true
  * isAnyOperator('direct value');  // false
- * isAnyOperator([1, 2, 3]);       // false (array is direct IN value)
+ * isAnyOperator([1, 2, 3]);       // false (array is a direct value, not an operator)
  * ```
  */
 export const isAnyOperator = (value: WhereValuesI): boolean =>

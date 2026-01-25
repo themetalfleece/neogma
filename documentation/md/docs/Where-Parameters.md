@@ -250,6 +250,22 @@ This ignores the identifier, and is only available for the "equals" operator. So
 
 While some of the operators can be used with plain objects, some others need to use the exported `Op` variable. It contains symbols for the operators.
 
+### Operator Reference
+
+| Operator      | Cypher                 | Description                    | Available For                        |
+| ------------- | ---------------------- | ------------------------------ | ------------------------------------ |
+| `Op.eq`       | `=`                    | Equality                       | All types                            |
+| `Op.ne`       | `<>`                   | Not equal                      | All types                            |
+| `Op.in`       | `property IN [values]` | Property is one of values      | All types                            |
+| `Op._in`      | `value IN property`    | Value exists in array property | All types (use for array membership) |
+| `Op.gt`       | `>`                    | Greater than                   | Scalar types only                    |
+| `Op.gte`      | `>=`                   | Greater than or equal          | Scalar types only                    |
+| `Op.lt`       | `<`                    | Less than                      | Scalar types only                    |
+| `Op.lte`      | `<=`                   | Less than or equal             | Scalar types only                    |
+| `Op.contains` | `CONTAINS`             | Substring matching             | **String only**                      |
+
+> **Type Safety Note**: When using TypeScript with typed models, operators are constrained to appropriate types. For example, `Op.contains` only accepts string values and is only valid for string properties.
+
 ### Equals
 A direct object value corresponds to equality.
 ```js
@@ -293,11 +309,14 @@ console.log(where.getStatement('object')); // { x: $x, y: $y }
 console.log(where.bindParam.get()); // { x: 5, y: 'bar' }
 ```
 
-### In
+### In (Property IN List)
+
+The `Op.in` operator checks if a property value is one of several values. This generates Cypher's `IN` clause.
+
 ```js
 const where = new Where({
     n: {
-        x: { 
+        x: {
             [Op.in]: [1, 2, 3],
         },
         y: 2
@@ -314,12 +333,32 @@ console.log(where.getStatement('text')); // n.x IN $x AND n.y = $y AND o.z IN $z
 console.log(where.bindParam.get()); // { x: [1, 2, 3], y: 2, z: [4, 5, 6] }
 ```
 
-In case the given param needs to be IN the properties, the `_in` operator can be used:
+> **Important - Direct Arrays vs Op.in**: A direct array value like `{ id: ['1', '2'] }` is treated as **equality** at runtime (`id = ['1', '2']`), NOT as an IN query. Always use `{ [Op.in]: ['1', '2'] }` explicitly when you want IN behavior.
+
+### _In (Element IN Array Property)
+
+The `Op._in` operator checks if a given value exists within an **array property**. This is the correct way to check array membership in Cypher (not `Op.contains`, which is for string substring matching).
+
+```js
+// Check if 'admin' is in the user's roles array
+const where = new Where({
+    n: {
+        roles: {
+            [Op._in]: 'admin',
+        },
+    },
+});
+
+console.log(where.getStatement('text')); // $roles IN n.roles
+console.log(where.bindParam.get()); // { roles: 'admin' }
+```
+
+This generates `$value IN property` which checks if the element exists in the array:
 
 ```js
 const where = new Where({
     n: {
-        x: { 
+        x: {
             [Op._in]: 1,
         },
         y: 2
@@ -336,6 +375,41 @@ console.log(where.getStatement('text')); // $x IN n.x AND n.y = $y AND $z IN o.z
 console.log(where.bindParam.get()); // { x: 1, y: 2, z: 2 }
 ```
 
+### Working with Array-Typed Properties
+
+When querying array-typed properties (like `string[]` or `number[]`), a limited set of operators is available:
+
+```typescript
+// Assuming Users has: { tags: string[], scores: number[] }
+
+// Check if an element exists in the array (use Op._in)
+await Users.findMany({
+    where: { tags: { [Op._in]: 'admin' } }  // generates: $tags IN u.tags
+});
+
+// Exact array match
+await Users.findMany({
+    where: { tags: { [Op.eq]: ['admin', 'user'] } }
+});
+
+// Array not equal
+await Users.findMany({
+    where: { tags: { [Op.ne]: ['guest'] } }
+});
+
+// TypeScript Error - Op.contains is for string substring matching, not array membership
+await Users.findMany({
+    where: { tags: { [Op.contains]: 'admin' } }  // Error!
+});
+
+// TypeScript Error - comparison operators don't apply to arrays
+await Users.findMany({
+    where: { scores: { [Op.gt]: [50] } }  // Error!
+});
+```
+
+> **Key Point**: To check if an element exists in an array property, use `Op._in` (which generates `value IN arrayProperty`), NOT `Op.contains` (which is for string substring matching).
+
 ### Comparison
 The following operators are available:
 
@@ -347,19 +421,35 @@ The following operators are available:
 | lt       | less than              | <          |
 | lte      | less than or equals    | <=         |
 
-### Contains
+### Contains (String Substring Matching)
+
+The `Op.contains` operator performs **substring matching on strings only**. It generates Cypher's `CONTAINS` clause, which checks if a string property contains a given substring.
+
+> **Important**: `Op.contains` is NOT for checking array membership. To check if an element exists in an array property, use `Op._in` instead (see below).
+
 ```js
 const where = new Where({
     n: {
-        x: {
+        // Finds nodes where n.name contains 'xyz'
+        name: {
             [Op.contains]: 'xyz',
         },
     },
 });
 
-console.log(where.getStatement('text')); // n.x CONTAINS $x
+console.log(where.getStatement('text')); // n.name CONTAINS $name
 // "object" statement not available
-console.log(where.bindParam.get()); // { x: 'xyz' }
+console.log(where.bindParam.get()); // { name: 'xyz' }
+```
+
+When using TypeScript, `Op.contains` is only available for string-typed properties:
+
+```typescript
+// Valid - string property
+await Users.findMany({ where: { name: { [Op.contains]: 'John' } } });
+
+// TypeScript Error - number property
+await Users.findMany({ where: { age: { [Op.contains]: 5 } } }); // Error!
 ```
 
 ## Using Operators in QueryBuilder Match

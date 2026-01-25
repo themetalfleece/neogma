@@ -542,8 +542,9 @@ describe('Where', () => {
         expect(value).toBe(true);
       });
 
-      it('accepts array of values for IN operator (implicit)', () => {
-        // Direct array means property IN [values]
+      it('accepts array of values (treated as equality at runtime)', () => {
+        // Note: Direct arrays are treated as equality (=) at runtime, NOT as IN.
+        // Use { [Op.in]: values } or Where.ensureIn() for IN queries.
         const value: WhereValuesI<string> = ['a', 'b', 'c'];
         expect(value).toEqual(['a', 'b', 'c']);
       });

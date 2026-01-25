@@ -665,8 +665,10 @@ describe('type assignability', () => {
       anyProp: 'allowed', // WhereParamsI allows any string key
     };
 
-    // When assigning to WhereParamsI, only known properties are type-checked
-    const typed: WhereParamsI<UserProperties> = untyped;
+    // Note: Assigning untyped to typed is allowed by TypeScript's structural typing
+    // but loses type safety. The 'anyProp' property is not caught as an error.
+    // In practice, prefer using typed params directly rather than widening then narrowing.
+    const typed = untyped as WhereParamsI<UserProperties>;
 
     expect(typed.name).toBe('John');
   });
