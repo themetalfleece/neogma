@@ -1,5 +1,9 @@
 export { AnyWhereI, Where } from './Where';
 export type {
+  ExtractPropertiesFromInstance,
+  TypedRelationshipWhereI,
+  TypedWhereParamsI,
+  TypedWhereValueI,
   WhereParamsByIdentifierI,
   WhereParamsI,
   WhereTypes,

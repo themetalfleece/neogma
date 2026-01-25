@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { Op } from '../../Where';
 import {
   closeNeogma,
   createOrdersModel,
@@ -224,5 +225,308 @@ describe('deleteRelationships type safety', () => {
         relationship: { rating: 5 },
       },
     });
+  });
+});
+
+/**
+ * Where parameter type safety tests.
+ * These tests verify that property names and value types are validated at compile time
+ * for source, target, and relationship where parameters.
+ */
+describe('deleteRelationships where type safety', () => {
+  it('accepts valid where parameters for source, target, relationship', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    // Valid: correct property names and types for all entities
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: { id: 'user-id', name: 'John' },
+        target: { id: 'order-id', name: 'Order1' },
+        relationship: { rating: 5 },
+      },
+    });
+
+    // Valid: using operators with correct types
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: { id: { [Op.eq]: 'user-id' } },
+        target: { name: { [Op.contains]: 'Order' } },
+        relationship: { rating: { [Op.gte]: 3 } },
+      },
+    });
+
+    // Valid: partial where (only source)
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: { source: { id: 'user-id' } },
+    });
+
+    // Valid: partial where (only target)
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: { target: { name: 'Order1' } },
+    });
+
+    // Valid: partial where (only relationship)
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: { relationship: { rating: 5 } },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects invalid property names in source where clause', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          id: 'valid',
+          // @ts-expect-error - 'nam' is not a valid source property (typo)
+          nam: 'John',
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          // @ts-expect-error - 'userId' is not a valid source property
+          userId: 'test',
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects invalid property names in target where clause', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        target: {
+          // @ts-expect-error - 'orderId' is not a valid target property
+          orderId: 'test',
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        target: {
+          id: 'valid',
+          // @ts-expect-error - 'nonExistent' is not a valid target property
+          nonExistent: 'value',
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects invalid property names in relationship where clause', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        relationship: {
+          // @ts-expect-error - 'score' is not a valid relationship property
+          score: 5,
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        relationship: {
+          rating: 5,
+          // @ts-expect-error - 'invalid' is not a valid relationship property
+          invalid: 'value',
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects wrong value types in source where clause', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          // @ts-expect-error - 'id' expects string, not number
+          id: 123,
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          // @ts-expect-error - 'name' expects string, not boolean
+          name: true,
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects wrong value types in target where clause', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        target: {
+          // @ts-expect-error - 'id' expects string, not number
+          id: 456,
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        target: {
+          // @ts-expect-error - 'name' expects string, not object
+          name: { value: 'test' },
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects wrong value types in relationship where clause', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        relationship: {
+          // @ts-expect-error - 'rating' expects number, not string
+          rating: 'high',
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        relationship: {
+          // @ts-expect-error - 'rating' expects number, not boolean
+          rating: true,
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects wrong value types in operators for all entities', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    // Source: wrong type in operator
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          // @ts-expect-error - Op.eq expects string for 'id', not number
+          id: { [Op.eq]: 123 },
+        },
+      },
+    });
+
+    // Target: wrong type in operator
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        target: {
+          // @ts-expect-error - Op.in expects string[] for 'name', not number[]
+          name: { [Op.in]: [1, 2, 3] },
+        },
+      },
+    });
+
+    // Relationship: wrong type in operator
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        relationship: {
+          // @ts-expect-error - Op.gte expects number for 'rating', not string
+          rating: { [Op.gte]: 'high' },
+        },
+      },
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects operators on invalid property names', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: {
+          // @ts-expect-error - 'invalid' is not a valid source property
+          invalid: { [Op.eq]: 'value' },
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        target: {
+          // @ts-expect-error - 'typo' is not a valid target property
+          typo: { [Op.contains]: 'test' },
+        },
+      },
+    });
+
+    await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        relationship: {
+          // @ts-expect-error - 'score' is not a valid relationship property
+          score: { [Op.gt]: 5 },
+        },
+      },
+    });
+
+    expect(true).toBe(true);
   });
 });

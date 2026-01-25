@@ -1,6 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { QueryRunner } from '../../QueryRunner';
-import type { WhereParamsI } from '../../Where';
+import type { TypedWhereParamsI } from '../../Where';
 import type { NeogmaInstance } from '../model.types';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
@@ -20,7 +20,7 @@ export interface FindContext<
 }
 
 export interface FindManyParams<Properties> extends GenericConfiguration {
-  where?: WhereParamsI;
+  where?: TypedWhereParamsI<Properties>;
   limit?: number;
   skip?: number;
   order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;

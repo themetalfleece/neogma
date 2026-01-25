@@ -2,6 +2,61 @@
 
 An instance of the `Where` class can be used to easily create a statement and a bind parameter to be used in a query.
 
+## Type-Safe Where Parameters
+
+When using TypeScript with Models, where parameters are type-checked to ensure both property names AND value types match your model's schema. This catches typos and type mismatches at compile time rather than runtime.
+
+```typescript
+// With a User model having properties: { id: string, name: string, age: number }
+
+// Valid - correct property names and matching value types
+await Users.findMany({
+    where: { name: 'John', age: 25 }
+});
+
+// TypeScript Error - 'nam' is not a valid property
+await Users.findMany({
+    where: { nam: 'John' }  // Error: 'nam' does not exist in type
+});
+
+// TypeScript Error - age expects number, not string
+await Users.findMany({
+    where: { age: 'twenty-five' }  // Error: string is not assignable to number
+});
+
+// TypeScript Error - operators also validate value types
+await Users.findMany({
+    where: { age: { [Op.gt]: '18' } }  // Error: Op.gt expects number, not string
+});
+```
+
+### Type-Safe Relationship Queries
+
+For `findRelationships`, `relateTo`, and similar methods, the type system validates property names for source, target, and relationship separately:
+
+```typescript
+// With Users having Orders relationship
+await Users.findRelationships({
+    alias: 'Orders',
+    where: {
+        source: { name: 'John' },           // User property
+        target: { orderNumber: 'ORD-123' }, // Order property
+        relationship: { rating: 5 },         // Relationship property
+    },
+});
+
+// TypeScript Error - wrong property names
+await Users.findRelationships({
+    alias: 'Orders',
+    where: {
+        source: { userName: 'John' },    // Error: should be 'name'
+        target: { grpName: 'Test' },     // Error: 'grpName' doesn't exist
+    },
+});
+```
+
+This type safety works with all where operators (`Op.eq`, `Op.in`, `Op.gt`, etc.) and validates both property names and value types at any nesting level.
+
 ## Creating a Where instance and getting its values
 
 Creating a `Where` instance with values for the identifier `n`

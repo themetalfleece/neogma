@@ -1,10 +1,31 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import type { WhereParamsI } from '../../Where';
+import type {
+  ExtractPropertiesFromInstance,
+  TypedWhereParamsI,
+} from '../../Where';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 // Re-export RelationshipCrudContext from relateTo since they share the same context
 export type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 export type { InstanceRelationshipContext } from '../relateTo/relateTo.types';
+
+/**
+ * Type-safe where clause for findRelationships static method.
+ * Constrains property names for source, target, and relationship to their actual properties.
+ */
+export type FindRelationshipsWhereClause<
+  SourceProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+> = {
+  source?: TypedWhereParamsI<SourceProperties>;
+  target?: TypedWhereParamsI<
+    ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
+  >;
+  relationship?: TypedWhereParamsI<
+    RelatedNodesToAssociateI[Alias]['RelationshipProperties']
+  >;
+};
 
 export interface FindRelationshipsParams<
   Properties extends Neo4jSupportedProperties,
@@ -12,11 +33,11 @@ export interface FindRelationshipsParams<
   Alias extends keyof RelatedNodesToAssociateI,
 > extends GenericConfiguration {
   alias: Alias;
-  where?: {
-    source?: WhereParamsI;
-    target?: WhereParamsI;
-    relationship?: WhereParamsI;
-  };
+  where?: FindRelationshipsWhereClause<
+    Properties,
+    RelatedNodesToAssociateI,
+    Alias
+  >;
   limit?: number;
   skip?: number;
   minHops?: number;
@@ -46,16 +67,29 @@ export interface FindRelationshipsParams<
   >;
 }
 
+/**
+ * Type-safe where clause for findRelationships instance method.
+ * Constrains property names for target and relationship to their actual properties.
+ */
+export type InstanceFindRelationshipsWhereClause<
+  RelatedNodesToAssociateI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+> = {
+  target?: TypedWhereParamsI<
+    ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
+  >;
+  relationship?: TypedWhereParamsI<
+    RelatedNodesToAssociateI[Alias]['RelationshipProperties']
+  >;
+};
+
 export interface InstanceFindRelationshipsParams<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
 > extends GenericConfiguration {
   alias: Alias;
-  where?: {
-    target: WhereParamsI;
-    relationship: WhereParamsI;
-  };
+  where?: InstanceFindRelationshipsWhereClause<RelatedNodesToAssociateI, Alias>;
   limit?: number;
   skip?: number;
   order?: Array<

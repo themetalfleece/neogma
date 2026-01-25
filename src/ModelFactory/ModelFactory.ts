@@ -3,7 +3,11 @@ import clone from 'clone';
 import { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
 import { Neo4jSupportedProperties } from '../QueryRunner';
-import type { WhereParamsI } from '../Where';
+import type {
+  ExtractPropertiesFromInstance,
+  TypedWhereParamsI,
+  WhereParamsI,
+} from '../Where';
 // Import operations from new directories
 import {
   build as buildFn,
@@ -467,9 +471,15 @@ export const ModelFactory = <
     >(params: {
       alias: Alias;
       where?: {
-        source?: WhereParamsI;
-        target?: WhereParamsI;
-        relationship?: WhereParamsI;
+        source?: TypedWhereParamsI<Properties>;
+        target?: TypedWhereParamsI<
+          ExtractPropertiesFromInstance<
+            RelatedNodesToAssociateI[Alias]['Instance']
+          >
+        >;
+        relationship?: TypedWhereParamsI<
+          RelatedNodesToAssociateI[Alias]['RelationshipProperties']
+        >;
       };
       limit?: number;
       skip?: number;

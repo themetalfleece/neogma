@@ -16,8 +16,12 @@ import {
 export type AnyWhereI = WhereParamsByIdentifierI | Where;
 
 const isNeo4jSupportedTypes = (
-  value: WhereValuesI,
+  value: WhereValuesI | undefined,
 ): value is Neo4jSupportedTypes => {
+  if (value === undefined) {
+    return false;
+  }
+
   const isSupportedSingleType = (value: WhereValuesI): boolean => {
     return (
       value instanceof Literal ||
