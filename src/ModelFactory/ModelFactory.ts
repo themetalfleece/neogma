@@ -15,17 +15,17 @@ import { createOne as createOneFn } from './createOne';
 import { createRelationship as createRelationshipFn } from './createRelationship';
 import { DeleteContext, deleteNodes, InstanceDeleteContext } from './delete';
 import { deleteInstance } from './delete';
-import {
-  deleteRelationships as deleteRelationshipsFn,
-  DeleteRelationshipsWhereClause,
-} from './deleteRelationships';
+import type { DeleteRelationshipsWhereClause } from './deleteRelationships';
+import { deleteRelationships as deleteRelationshipsFn } from './deleteRelationships';
 import { FindContext, findMany as findManyFn } from './findMany';
 import { findOne as findOneFn } from './findOne';
+import type {
+  FindRelationshipsWhereClause,
+  InstanceFindRelationshipsParams,
+} from './findRelationships';
 import {
   findRelationships as findRelationshipsFn,
-  FindRelationshipsWhereClause,
   instanceFindRelationships,
-  InstanceFindRelationshipsParams,
 } from './findRelationships';
 import { getDataValues as getDataValuesFn } from './getDataValues';
 import type {

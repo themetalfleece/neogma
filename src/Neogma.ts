@@ -72,7 +72,7 @@ export class Neogma {
 
       this.database = params.database;
     } catch (err) {
-      throw new NeogmaConnectivityError({ error: err });
+      throw new NeogmaConnectivityError(err);
     }
 
     this.queryRunner = new QueryRunner({
@@ -130,7 +130,7 @@ export class Neogma {
     try {
       await this.driver.verifyConnectivity();
     } catch (err) {
-      throw new NeogmaConnectivityError({ error: err });
+      throw new NeogmaConnectivityError(err);
     }
   };
 

@@ -17,7 +17,7 @@ export type AnyWhereI = WhereParamsByIdentifierI | Where;
 
 const isNeo4jSupportedTypes = (
   value: WhereValuesI | undefined,
-): value is Neo4jSupportedTypes => {
+): value is Neo4jSupportedTypes | Literal => {
   if (value === undefined) {
     return false;
   }
@@ -166,7 +166,7 @@ export class Where {
     identifier: string;
     property: string;
     operator: Where['identifierPropertyData'][0]['operator'];
-    value: Neo4jSupportedTypes;
+    value: Neo4jSupportedTypes | Literal;
   }) => {
     const bindParamName = this.bindParam.getUniqueNameAndAddWithLiteral(
       property,
