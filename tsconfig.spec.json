@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig",
   "compilerOptions": {
-    "noImplicitThis": true
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true
   },
   "exclude": ["node_modules"]
 }

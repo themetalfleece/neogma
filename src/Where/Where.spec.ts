@@ -116,7 +116,8 @@ describe('Where', () => {
       try {
         where.getStatement('object');
       } catch (error) {
-        expect(error.message).toEqual(
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toEqual(
           'The only operator which is supported for object mode is "eq"',
         );
       }
