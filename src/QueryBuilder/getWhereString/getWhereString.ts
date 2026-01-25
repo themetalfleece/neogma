@@ -1,5 +1,5 @@
 import { Where } from '../../Where';
-import {
+import type {
   GetWhereStringDeps,
   GetWhereStringWhere,
 } from './getWhereString.types';

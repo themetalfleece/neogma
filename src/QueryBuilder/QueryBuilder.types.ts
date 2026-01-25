@@ -1,6 +1,6 @@
-import { NeogmaModel } from '../ModelFactory';
-import { Neo4jSupportedProperties } from '../QueryRunner/QueryRunner.types';
-import { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
+import type { NeogmaModel } from '../ModelFactory';
+import type { Neo4jSupportedProperties } from '../QueryRunner/QueryRunner.types';
+import type { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
 
 /** returns the given type, while making the given properties required */
 type RequiredProperties<T, P extends keyof T> = T & {

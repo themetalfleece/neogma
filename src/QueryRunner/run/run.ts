@@ -1,9 +1,9 @@
 import { randomUUID } from 'crypto';
-import { Driver, QueryResult, SessionConfig } from 'neo4j-driver';
+import type { Driver, QueryResult, SessionConfig } from 'neo4j-driver';
 
 import { getRunnable } from '../../Sessions';
 import { trimWhitespace } from '../../utils/string';
-import { Runnable } from '../QueryRunner.types';
+import type { Runnable } from '../QueryRunner.types';
 
 export interface RunDeps {
   driver: Driver;

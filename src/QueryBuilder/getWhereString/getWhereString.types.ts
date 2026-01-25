@@ -1,5 +1,5 @@
-import { BindParam } from '../../BindParam';
-import { WhereI } from '../QueryBuilder.types';
+import type { BindParam } from '../../BindParam';
+import type { WhereI } from '../QueryBuilder.types';
 
 export type GetWhereStringWhere = WhereI['where'];
 

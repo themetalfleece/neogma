@@ -1,4 +1,4 @@
-import {
+import type {
   Date as Neo4jDate,
   DateTime as Neo4jDateTime,
   Duration as Neo4jDuration,
@@ -11,7 +11,7 @@ import {
   Transaction,
 } from 'neo4j-driver';
 
-import { Literal } from '../Literal';
+import type { Literal } from '../Literal';
 
 // ============ Neo4j Type Definitions ============
 

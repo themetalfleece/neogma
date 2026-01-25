@@ -1,6 +1,6 @@
-import { BindParam } from '../../BindParam';
+import type { BindParam } from '../../BindParam';
 import { Literal } from '../../Literal';
-import { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 
 /**
  * Returns an object with replacing its values with a bind param value.

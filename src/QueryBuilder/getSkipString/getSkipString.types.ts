@@ -1,5 +1,5 @@
-import { BindParam } from '../../BindParam';
-import { SkipI } from '../QueryBuilder.types';
+import type { BindParam } from '../../BindParam';
+import type { SkipI } from '../QueryBuilder.types';
 
 export type GetSkipStringSkip = SkipI['skip'];
 

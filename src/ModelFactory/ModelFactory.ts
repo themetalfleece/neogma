@@ -1,23 +1,26 @@
 import clone from 'clone';
 import type { QueryResult } from 'neo4j-driver';
 
-import { Neogma } from '../Neogma';
+import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
-import { Neo4jSupportedProperties } from '../QueryRunner';
+import type { Neo4jSupportedProperties } from '../QueryRunner';
 // Import operations from new directories
+import type { BuildContext } from './build';
 import {
   build as buildFn,
-  BuildContext,
   buildFromRecord as buildFromRecordFn,
 } from './build';
-import { CreateContext, createMany as createManyFn } from './createMany';
+import type { CreateContext } from './createMany';
+import { createMany as createManyFn } from './createMany';
 import { createOne as createOneFn } from './createOne';
 import { createRelationship as createRelationshipFn } from './createRelationship';
-import { DeleteContext, deleteNodes, InstanceDeleteContext } from './delete';
+import type { DeleteContext, InstanceDeleteContext } from './delete';
+import { deleteNodes } from './delete';
 import { deleteInstance } from './delete';
 import type { DeleteRelationshipsWhereClause } from './deleteRelationships';
 import { deleteRelationships as deleteRelationshipsFn } from './deleteRelationships';
-import { FindContext, findMany as findManyFn } from './findMany';
+import type { FindContext } from './findMany';
+import { findMany as findManyFn } from './findMany';
 import { findOne as findOneFn } from './findOne';
 import type {
   FindRelationshipsWhereClause,
@@ -36,41 +39,46 @@ import type {
   RelationshipsI,
   StrictNeogmaInstance,
 } from './model.types';
-import {
+import type {
   InstanceRelateToParams,
   InstanceRelationshipContext,
-  relateTo as relateToFn,
   RelateToWhereClause,
   RelationshipCrudContext,
 } from './relateTo';
+import { relateTo as relateToFn } from './relateTo';
 import { instanceRelateTo } from './relateTo';
+import type { RelationshipConfigContext } from './relationshipConfig';
 import {
   addRelationships as addRelationshipsFn,
   getRelationshipByAlias as getRelationshipByAliasFn,
   getRelationshipConfiguration as getRelationshipConfigurationFn,
   getRelationshipProperties as getRelationshipPropertiesFn,
-  RelationshipConfigContext,
   reverseRelationshipConfiguration as reverseRelationshipConfigurationFn,
 } from './relationshipConfig';
-import { save as saveFn, SaveContext } from './save';
+import type { SaveContext } from './save';
+import { save as saveFn } from './save';
 import type {
   AnyObject,
   GenericConfiguration,
   IValidationSchema,
 } from './shared.types';
-import { update as updateFn, UpdateContext } from './update';
+import type { UpdateContext } from './update';
+import { update as updateFn } from './update';
+import type {
+  InstanceUpdateRelationshipParams,
+  UpdateRelationshipData,
+} from './updateRelationship';
 import {
   instanceUpdateRelationship,
-  InstanceUpdateRelationshipParams,
   updateRelationship as updateRelationshipFn,
-  UpdateRelationshipData,
 } from './updateRelationship';
 import {
   assertPrimaryKeyField,
   getLabelFromRelationshipModel,
   getRelationshipModel,
 } from './utils';
-import { validate as validateFn, ValidateContext } from './validate';
+import type { ValidateContext } from './validate';
+import { validate as validateFn } from './validate';
 
 /**
  * Creates a Model class for interacting with Neo4j nodes of a specific type.

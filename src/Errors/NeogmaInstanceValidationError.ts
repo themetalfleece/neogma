@@ -1,4 +1,4 @@
-import { NeogmaModel } from '../ModelFactory';
+import type { NeogmaModel } from '../ModelFactory';
 import { NeogmaError } from './NeogmaError';
 
 export interface NeogmaInstanceValidationErrorData extends Record<

@@ -3,16 +3,18 @@ import { randomUUID as uuid } from 'crypto';
 import { QueryBuilder } from '../../QueryBuilder';
 import { QueryRunner } from '../../QueryRunner';
 import { Op } from '../../Where';
+import type {
+  ModelRelatedNodesI,
+  NeogmaInstance,
+  UsersRelatedNodesI,
+} from '../testHelpers';
 import {
   closeNeogma,
   createOrdersModel,
   createUsersModel,
   getNeogma,
   ModelFactory,
-  ModelRelatedNodesI,
-  NeogmaInstance,
   typeCheck,
-  UsersRelatedNodesI,
 } from '../testHelpers';
 
 const { getResultProperties } = QueryRunner;

@@ -1,8 +1,9 @@
-import { QueryResult } from 'neo4j-driver';
+import type { QueryResult } from 'neo4j-driver';
 
 import { QueryBuilder } from '../../QueryBuilder';
-import { AnyWhereI, Where } from '../../Where/Where';
-import { Runnable } from '../QueryRunner.types';
+import type { AnyWhereI } from '../../Where/Where';
+import { Where } from '../../Where/Where';
+import type { Runnable } from '../QueryRunner.types';
 
 export interface DeleteParams {
   label?: string;

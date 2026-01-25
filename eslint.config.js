@@ -37,6 +37,10 @@ module.exports = [
       'prettier/prettier': 'error',
       semi: ['error', 'always'],
       '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'error',

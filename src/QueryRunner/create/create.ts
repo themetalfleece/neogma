@@ -1,7 +1,7 @@
-import { QueryResult } from 'neo4j-driver';
+import type { QueryResult } from 'neo4j-driver';
 
 import { QueryBuilder } from '../../QueryBuilder';
-import { Runnable } from '../QueryRunner.types';
+import type { Runnable } from '../QueryRunner.types';
 
 export interface CreateParams<T> {
   /** the label of the nodes to create */

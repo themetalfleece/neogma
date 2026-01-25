@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { typeCheck } from '../ModelFactory/testHelpers';
 import { trimWhitespace } from '../utils/string';
-import { isAnyOperator, Op, Where, WhereValuesI } from '.';
+import type { WhereValuesI } from '.';
+import { isAnyOperator, Op, Where } from '.';
 
 describe('Where', () => {
   describe('contructor', () => {

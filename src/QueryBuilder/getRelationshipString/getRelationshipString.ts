@@ -1,11 +1,11 @@
 import { Where } from '../../Where';
 import { getRelationshipStatement } from '../getRelationshipStatement';
-import { GetRelationshipStatementParams } from '../getRelationshipStatement/getRelationshipStatement.types';
+import type { GetRelationshipStatementParams } from '../getRelationshipStatement/getRelationshipStatement.types';
 import {
   isRelationshipWithProperties,
   isRelationshipWithWhere,
 } from '../QueryBuilder.types';
-import {
+import type {
   GetRelationshipStringDeps,
   GetRelationshipStringRelationship,
   GetRelationshipStringResult,

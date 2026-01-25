@@ -1,4 +1,4 @@
-import { GetUnwindStringUnwind } from './getUnwindString.types';
+import type { GetUnwindStringUnwind } from './getUnwindString.types';
 
 export const getUnwindString = (unwind: GetUnwindStringUnwind): string => {
   const unwindString =

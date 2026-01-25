@@ -1,10 +1,11 @@
 import { randomUUID as uuid } from 'crypto';
 
-import { NeogmaModel } from '../index';
+import type { NeogmaModel } from '../index';
 import { Neogma } from '../Neogma';
 // Import from Queries index first to ensure proper module initialization
 import { QueryRunner } from '../QueryRunner';
-import { ModelFactory, ModelRelatedNodesI, NeogmaInstance } from '.';
+import type { ModelRelatedNodesI, NeogmaInstance } from '.';
+import { ModelFactory } from '.';
 
 const { getResultProperties } = QueryRunner;
 

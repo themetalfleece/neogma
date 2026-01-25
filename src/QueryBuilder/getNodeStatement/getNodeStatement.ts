@@ -1,7 +1,7 @@
 import { Where } from '../../Where';
 import { getIdentifierWithLabel } from '../getIdentifierWithLabel';
 import { getPropertiesWithParams } from '../getPropertiesWithParams';
-import { GetNodeStatementParams } from './getNodeStatement.types';
+import type { GetNodeStatementParams } from './getNodeStatement.types';
 
 /**
  * Returns the appropriate string for a node, ready to be put in a statement

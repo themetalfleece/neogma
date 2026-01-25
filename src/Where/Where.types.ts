@@ -1,5 +1,5 @@
-import { Literal } from '../Literal';
-import {
+import type { Literal } from '../Literal';
+import type {
   Neo4jSingleTypes,
   Neo4jSupportedTypes,
 } from '../QueryRunner/QueryRunner.types';

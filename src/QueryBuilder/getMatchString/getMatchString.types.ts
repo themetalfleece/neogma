@@ -1,5 +1,5 @@
-import { BindParam } from '../../BindParam';
-import { MatchI } from '../QueryBuilder.types';
+import type { BindParam } from '../../BindParam';
+import type { MatchI } from '../QueryBuilder.types';
 
 export type GetMatchStringMatch = MatchI['match'];
 

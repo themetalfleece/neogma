@@ -1,4 +1,4 @@
-import { GetOrderByStringOrderBy } from './getOrderByString.types';
+import type { GetOrderByStringOrderBy } from './getOrderByString.types';
 
 export const getOrderByString = (orderBy: GetOrderByStringOrderBy): string => {
   if (typeof orderBy === 'string') {

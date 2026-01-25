@@ -1,5 +1,5 @@
-import { BindParam } from '../../BindParam';
-import { SetI } from '../QueryBuilder.types';
+import type { BindParam } from '../../BindParam';
+import type { SetI } from '../QueryBuilder.types';
 
 export type GetSetStringSet = SetI['set'];
 

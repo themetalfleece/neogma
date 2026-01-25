@@ -1,13 +1,13 @@
 import { randomUUID as uuid } from 'crypto';
 
 import { Op } from '../../Where';
+import type { UsersRelatedNodesI } from '../testHelpers';
 import {
   closeNeogma,
   createOrdersModel,
   createUsersModel,
   getNeogma,
   typeCheck,
-  UsersRelatedNodesI,
 } from '../testHelpers';
 
 beforeAll(async () => {

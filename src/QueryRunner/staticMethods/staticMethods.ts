@@ -1,4 +1,4 @@
-import { QueryResult } from 'neo4j-driver';
+import type { QueryResult } from 'neo4j-driver';
 
 export const getResultProperties = <T>(
   result: QueryResult,

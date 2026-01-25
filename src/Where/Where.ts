@@ -2,15 +2,14 @@ import { neo4jDriver } from '..';
 import { BindParam } from '../BindParam/BindParam';
 import { NeogmaConstraintError } from '../Errors';
 import { Literal } from '../Literal';
-import { Neo4jSupportedTypes } from '../QueryRunner/QueryRunner.types';
-import {
-  isOperator,
-  Op,
+import type { Neo4jSupportedTypes } from '../QueryRunner/QueryRunner.types';
+import type {
   operators,
   WhereParamsByIdentifierI,
   WhereParamsI,
   WhereValuesI,
 } from './Where.types';
+import { isOperator, Op } from './Where.types';
 
 /** a Where instance or the basic object which can create a Where instance */
 export type AnyWhereI = WhereParamsByIdentifierI | Where;

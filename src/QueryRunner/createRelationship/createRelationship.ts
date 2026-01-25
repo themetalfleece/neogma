@@ -1,8 +1,8 @@
-import { QueryResult } from 'neo4j-driver';
+import type { QueryResult } from 'neo4j-driver';
 
 import { QueryBuilder } from '../../QueryBuilder';
 import { Where } from '../../Where/Where';
-import { CreateRelationshipParamsI, Runnable } from '../QueryRunner.types';
+import type { CreateRelationshipParamsI, Runnable } from '../QueryRunner.types';
 
 export interface CreateRelationshipDeps {
   runQueryBuilder: (

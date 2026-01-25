@@ -1,6 +1,6 @@
-import { BindParam } from '../../BindParam';
-import { Where } from '../../Where';
-import { NodeForCreateI, NodeForMatchI } from '../QueryBuilder.types';
+import type { BindParam } from '../../BindParam';
+import type { Where } from '../../Where';
+import type { NodeForCreateI, NodeForMatchI } from '../QueryBuilder.types';
 
 export type GetNodeStringNode = NodeForMatchI | NodeForCreateI;
 

@@ -1,5 +1,5 @@
-import { BindParam } from '../../BindParam';
-import { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { BindParam } from '../../BindParam';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 
 export interface GetSetPartsParams {
   /** properties to set */

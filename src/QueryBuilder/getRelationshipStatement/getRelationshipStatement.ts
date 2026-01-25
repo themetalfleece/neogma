@@ -2,7 +2,7 @@ import { Where } from '../../Where';
 import { getIdentifierWithLabel } from '../getIdentifierWithLabel';
 import { getPropertiesWithParams } from '../getPropertiesWithParams';
 import { getVariableLengthRelationshipString } from '../getVariableLengthRelationshipString';
-import { GetRelationshipStatementParams } from './getRelationshipStatement.types';
+import type { GetRelationshipStatementParams } from './getRelationshipStatement.types';
 
 /**
  * Returns the appropriate string for a relationship, ready to be put in a statement

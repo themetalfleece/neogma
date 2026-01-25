@@ -1,3 +1,3 @@
-import { ReturnI } from '../QueryBuilder.types';
+import type { ReturnI } from '../QueryBuilder.types';
 
 export type GetReturnStringReturn = ReturnI['return'];

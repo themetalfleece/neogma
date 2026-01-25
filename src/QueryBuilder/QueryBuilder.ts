@@ -1,8 +1,9 @@
-import { QueryResult } from 'neo4j-driver';
+import type { QueryResult } from 'neo4j-driver';
 
 import { BindParam } from '../BindParam';
 import { NeogmaError } from '../Errors';
-import { QueryRunner, Runnable } from '../QueryRunner';
+import type { Runnable } from '../QueryRunner';
+import { QueryRunner } from '../QueryRunner';
 import { getRunnable } from '../Sessions';
 import { trimWhitespace } from '../utils/string';
 import { getCreateOrMergeString } from './getCreateOrMergeString';
@@ -25,10 +26,25 @@ import { getUnwindString } from './getUnwindString';
 import { getVariableLengthRelationshipString } from './getVariableLengthRelationshipString';
 import { getWhereString } from './getWhereString';
 import { getWithString } from './getWithString';
-import {
+import type {
   CreateI,
   DeleteI,
   ForEachI,
+  LimitI,
+  MatchI,
+  MergeI,
+  OrderByI,
+  ParameterI,
+  RawI,
+  RemoveI,
+  ReturnI,
+  SetI,
+  SkipI,
+  UnwindI,
+  WhereI,
+  WithI,
+} from './QueryBuilder.types';
+import {
   isCreateParameter,
   isDeleteParameter,
   isForEachParameter,
@@ -44,19 +60,6 @@ import {
   isUnwindParameter,
   isWhereParameter,
   isWithParameter,
-  LimitI,
-  MatchI,
-  MergeI,
-  OrderByI,
-  ParameterI,
-  RawI,
-  RemoveI,
-  ReturnI,
-  SetI,
-  SkipI,
-  UnwindI,
-  WhereI,
-  WithI,
 } from './QueryBuilder.types';
 
 export type QueryBuilderParameters = {

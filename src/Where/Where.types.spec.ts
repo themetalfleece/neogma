@@ -25,13 +25,13 @@ import type {
   UpdateRelationshipParams,
   UpdateRelationshipWhereClause,
 } from '../ModelFactory/updateRelationship/updateRelationship.types';
-import {
+import type {
   ExtractPropertiesFromInstance,
-  Op,
   TypedRelationshipWhereI,
   WhereParamsI,
   WhereValuesI,
 } from '.';
+import { Op } from '.';
 
 // ============ Test Types Setup ============
 

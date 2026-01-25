@@ -1,6 +1,6 @@
 import { int } from 'neo4j-driver';
 
-import {
+import type {
   GetLimitStringDeps,
   GetLimitStringLimit,
 } from './getLimitString.types';

@@ -3,7 +3,7 @@ import {
   isDeleteWithIdentifier,
   isDeleteWithLiteral,
 } from '../QueryBuilder.types';
-import { GetDeleteStringDelete } from './getDeleteString.types';
+import type { GetDeleteStringDelete } from './getDeleteString.types';
 
 export const getDeleteString = (dlt: GetDeleteStringDelete): string => {
   if (typeof dlt === 'string') {

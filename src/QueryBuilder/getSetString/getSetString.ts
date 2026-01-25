@@ -1,5 +1,5 @@
 import { getSetParts } from '../getSetParts';
-import { GetSetStringDeps, GetSetStringSet } from './getSetString.types';
+import type { GetSetStringDeps, GetSetStringSet } from './getSetString.types';
 
 /** Returns a string in the format: `SET a.p1 = $v1, a.p2 = $v2` */
 export const getSetString = (

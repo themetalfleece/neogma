@@ -1,9 +1,11 @@
-import { Driver, QueryResult, SessionConfig } from 'neo4j-driver';
+import type { Driver, QueryResult, SessionConfig } from 'neo4j-driver';
 
-import { create, CreateParams } from './create';
+import type { CreateParams } from './create';
+import { create } from './create';
 import { createRelationship } from './createRelationship';
-import { deleteNodes, DeleteParams } from './delete';
-import {
+import type { DeleteParams } from './delete';
+import { deleteNodes } from './delete';
+import type {
   CreateRelationshipParamsI,
   Runnable,
   UpdateSupportedProperties,
@@ -14,7 +16,8 @@ import {
   getRelationshipsDeleted,
   getResultProperties,
 } from './staticMethods';
-import { update, UpdateParams } from './update';
+import type { UpdateParams } from './update';
+import { update } from './update';
 
 type AnyObject = Record<string, any>;
 
