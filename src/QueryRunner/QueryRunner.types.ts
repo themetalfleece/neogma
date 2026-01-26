@@ -32,6 +32,13 @@ export type Neo4jSingleTypes =
 /** all the types that Neo4j supports (single or array) */
 export type Neo4jSupportedTypes = Neo4jSingleTypes | Neo4jSingleTypes[];
 
+/**
+ * Types that can be bound to query parameters in Where clauses.
+ * This extends Neo4jSupportedTypes to include nested arrays (Neo4jSingleTypes[][])
+ * which are needed for Op.in on array-typed properties (e.g., WHERE tags IN [['a','b'], ['c','d']]).
+ */
+export type BindableWhereValue = Neo4jSupportedTypes | Neo4jSingleTypes[][];
+
 export type Neo4jSupportedProperties = Record<
   string,
   Neo4jSupportedTypes | Literal | undefined

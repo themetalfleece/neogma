@@ -198,6 +198,9 @@ export type WhereValuesI<T = unknown> =
  * When Properties is not provided or is a generic Record type, falls back to permissive behavior.
  * When Properties has specific keys, validates both property names and value types.
  *
+ * **Note:** Properties with `undefined` values are silently dropped at runtime by `Where.addParams`.
+ * To omit a filter, either don't include the key or explicitly handle the undefined case before passing.
+ *
  * @typeParam Properties - The type of the model properties to filter by.
  *                         Defaults to Record<string, unknown> for permissive behavior.
  *
