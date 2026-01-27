@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
-import neo4j, { Driver, QueryResult, Session } from 'neo4j-driver';
+import type { Driver, QueryResult, Session } from 'neo4j-driver';
+import neo4j from 'neo4j-driver';
 
 import { NeogmaError } from '../Errors';
 

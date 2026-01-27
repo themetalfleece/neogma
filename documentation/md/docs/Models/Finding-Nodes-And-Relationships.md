@@ -2,9 +2,13 @@
 
 Neogma provides some basic functionality for matching, filtering, limiting and ordering nodes. For more complex find statements, one can use the driver for running a raw query.
 
+> **Type Safety**: When using TypeScript, the `where` parameters in all find methods are type-checked against your model's properties. Both property names and value types are validated at compile time. See [Where Parameters](../Where-Parameters.md#type-safe-where-parameters) for details.
+
 ## Finding Many Nodes
 
 ```js
+import { Op } from 'neogma';
+
 /* --> finds Users Nodes and returns an array of Users Instances */
 const users = await Users.findMany({
     /* --> the where param for matching the Nodes */

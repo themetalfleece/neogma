@@ -17,7 +17,14 @@ export interface UpdateContext<
   }) => NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
 }
 
-export interface UpdateParams extends GenericConfiguration {
-  where?: WhereParamsI;
+/**
+ * Parameters for the static update method.
+ * @typeParam Properties - The model's property types for type-safe where clause validation.
+ */
+export interface UpdateParams<
+  Properties = Record<string, unknown>,
+> extends GenericConfiguration {
+  /** Where clause with type-safe property name and value validation. */
+  where?: WhereParamsI<Properties>;
   return?: boolean;
 }

@@ -1,13 +1,13 @@
 import { Where } from '../../Where';
 import { getNodeStatement } from '../getNodeStatement';
-import { GetNodeStatementParams } from '../getNodeStatement/getNodeStatement.types';
+import type { GetNodeStatementParams } from '../getNodeStatement/getNodeStatement.types';
 import {
   isNodeWithLabel,
   isNodeWithModel,
   isNodeWithProperties,
   isNodeWithWhere,
 } from '../QueryBuilder.types';
-import {
+import type {
   GetNodeStringDeps,
   GetNodeStringNode,
   GetNodeStringResult,

@@ -4,5 +4,6 @@ export type {
   InstanceRelateToParams,
   InstanceRelationshipContext,
   RelateToParams,
+  RelateToWhereClause,
   RelationshipCrudContext,
 } from './relateTo.types';

@@ -2,22 +2,32 @@ import { neo4jDriver } from '..';
 import { BindParam } from '../BindParam/BindParam';
 import { NeogmaConstraintError } from '../Errors';
 import { Literal } from '../Literal';
-import { Neo4jSupportedTypes } from '../QueryRunner/QueryRunner.types';
-import {
-  isOperator,
-  Op,
+import type {
+  BindableWhereValue,
+  Neo4jSupportedTypes,
+} from '../QueryRunner/QueryRunner.types';
+import type {
   operators,
   WhereParamsByIdentifierI,
   WhereParamsI,
   WhereValuesI,
 } from './Where.types';
+import { isOperator, Op } from './Where.types';
 
 /** a Where instance or the basic object which can create a Where instance */
 export type AnyWhereI = WhereParamsByIdentifierI | Where;
 
+/**
+ * Type guard to check if a where value is a direct Neo4j supported type (not an operator).
+ * Direct values are treated as implicit equality checks.
+ */
 const isNeo4jSupportedTypes = (
-  value: WhereValuesI,
-): value is Neo4jSupportedTypes => {
+  value: WhereValuesI | undefined,
+): value is Neo4jSupportedTypes | Literal => {
+  if (value === undefined) {
+    return false;
+  }
+
   const isSupportedSingleType = (value: WhereValuesI): boolean => {
     return (
       value instanceof Literal ||
@@ -36,6 +46,8 @@ const isNeo4jSupportedTypes = (
   };
 
   if (Array.isArray(value)) {
+    // For direct array values, check each element is a supported single type.
+    // Note: Nested arrays (Neo4jSingleTypes[][]) come from Op.in extraction, not direct values.
     return value.every((element) => isSupportedSingleType(element));
   }
 
@@ -162,7 +174,7 @@ export class Where {
     identifier: string;
     property: string;
     operator: Where['identifierPropertyData'][0]['operator'];
-    value: Neo4jSupportedTypes;
+    value: BindableWhereValue | Literal;
   }) => {
     const bindParamName = this.bindParam.getUniqueNameAndAddWithLiteral(
       property,

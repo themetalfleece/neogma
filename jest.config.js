@@ -7,6 +7,9 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: 'tsconfig.spec.json',
+        diagnostics: {
+          warnOnly: false, // Fail tests on TypeScript errors
+        },
       },
     ],
   },

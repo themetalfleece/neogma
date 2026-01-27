@@ -1,5 +1,5 @@
-import { BindParam } from '../../BindParam';
-import { LimitI } from '../QueryBuilder.types';
+import type { BindParam } from '../../BindParam';
+import type { LimitI } from '../QueryBuilder.types';
 
 export type GetLimitStringLimit = LimitI['limit'];
 

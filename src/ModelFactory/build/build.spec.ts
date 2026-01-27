@@ -2,13 +2,12 @@ import { randomUUID as uuid } from 'crypto';
 
 import { QueryBuilder } from '../../QueryBuilder';
 import { QueryRunner } from '../../QueryRunner';
+import type { OrderAttributesI, UserAttributesI } from '../testHelpers';
 import {
   closeNeogma,
   createOrdersModel,
   createUsersModel,
   getNeogma,
-  OrderAttributesI,
-  UserAttributesI,
 } from '../testHelpers';
 
 const { getResultProperties } = QueryRunner;

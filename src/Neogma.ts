@@ -1,10 +1,11 @@
+import type { Config, Driver, Session, Transaction } from 'neo4j-driver';
 import * as neo4j_driver from 'neo4j-driver';
-import { Config, Driver, Session, Transaction } from 'neo4j-driver';
 
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
-import { NeogmaModel } from './ModelFactory';
+import type { NeogmaModel } from './ModelFactory';
 import { QueryBuilder } from './QueryBuilder';
-import { QueryRunner, Runnable } from './QueryRunner';
+import type { Runnable } from './QueryRunner';
+import { QueryRunner } from './QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import {
   clearAllTempDatabases,

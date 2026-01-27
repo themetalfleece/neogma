@@ -1,6 +1,6 @@
 import { NeogmaConstraintError } from '../../Errors';
 import { isRemoveLabels, isRemoveProperties } from '../QueryBuilder.types';
-import { GetRemoveStringRemove } from './getRemoveString.types';
+import type { GetRemoveStringRemove } from './getRemoveString.types';
 
 export const getRemoveString = (remove: GetRemoveStringRemove): string => {
   if (typeof remove === 'string') {

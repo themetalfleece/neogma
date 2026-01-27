@@ -1,6 +1,6 @@
-import { BindParam } from '../../BindParam';
-import { Neo4jSupportedProperties } from '../../QueryRunner';
-import { Where } from '../../Where';
+import type { BindParam } from '../../BindParam';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { Where } from '../../Where';
 
 export interface GetRelationshipStatementParams {
   /** relationship direction */

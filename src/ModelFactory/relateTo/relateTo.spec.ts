@@ -2,15 +2,19 @@ import { randomUUID as uuid } from 'crypto';
 
 import { QueryBuilder } from '../../QueryBuilder';
 import { QueryRunner } from '../../QueryRunner';
+import { Op } from '../../Where';
+import type {
+  ModelRelatedNodesI,
+  NeogmaInstance,
+  UsersRelatedNodesI,
+} from '../testHelpers';
 import {
   closeNeogma,
   createOrdersModel,
   createUsersModel,
   getNeogma,
   ModelFactory,
-  ModelRelatedNodesI,
-  NeogmaInstance,
-  UsersRelatedNodesI,
+  typeCheck,
 } from '../testHelpers';
 
 const { getResultProperties } = QueryRunner;
@@ -376,5 +380,349 @@ describe('relateTo type safety', () => {
     });
 
     expect(typeof count).toBe('number');
+  });
+});
+
+/**
+ * Where parameter type safety tests.
+ * These tests verify that property names and value types are validated at compile time
+ * for both static and instance relateTo methods.
+ */
+describe('relateTo where type safety', () => {
+  describe('static method (source/target where)', () => {
+    it('accepts valid where parameters for source and target', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      // Valid: correct property names and types
+      await Users.relateTo({
+        alias: 'Orders',
+        where: {
+          source: { id: 'user-id', name: 'John' },
+          target: { id: 'order-id', name: 'Order1' },
+        },
+        properties: { Rating: 5 },
+      });
+
+      // Valid: using operators with correct types
+      await Users.relateTo({
+        alias: 'Orders',
+        where: {
+          source: { id: { [Op.eq]: 'user-id' } },
+          target: { name: { [Op.contains]: 'Order' } },
+        },
+        properties: { Rating: 5 },
+      });
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects invalid property names in source where clause', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              id: 'valid',
+              // @ts-expect-error - 'nam' is not a valid source property (typo)
+              nam: 'John',
+            },
+            target: { id: 'order-id' },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              // @ts-expect-error - 'userId' is not a valid source property
+              userId: 'test',
+            },
+            target: { id: 'order-id' },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects invalid property names in target where clause', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              // @ts-expect-error - 'orderId' is not a valid target property
+              orderId: 'test',
+            },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              id: 'valid',
+              // @ts-expect-error - 'nonExistent' is not a valid target property
+              nonExistent: 'value',
+            },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects wrong value types in source and target', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              // @ts-expect-error - 'id' expects string, not number
+              id: 123,
+            },
+            target: { id: 'order-id' },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              // @ts-expect-error - 'name' expects string, not boolean
+              name: true,
+            },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects wrong value types in operators', () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: {
+              // @ts-expect-error - Op.eq expects string for 'id', not number
+              id: { [Op.eq]: 123 },
+            },
+            target: { id: 'order-id' },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        Users.relateTo({
+          alias: 'Orders',
+          where: {
+            source: { id: 'user-id' },
+            target: {
+              // @ts-expect-error - Op.in expects string[] for 'name', not number[]
+              name: { [Op.in]: [1, 2, 3] },
+            },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('instance method (target only where)', () => {
+    it('accepts valid where parameters for target', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+      // Valid: correct property names and types
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: 'order-id', name: 'Order1' },
+        properties: { Rating: 5 },
+      });
+
+      // Valid: using operators with correct types
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: { [Op.eq]: 'order-id' } },
+        properties: { Rating: 5 },
+      });
+
+      await user.relateTo({
+        alias: 'Orders',
+        where: { name: { [Op.contains]: 'Order' } },
+        properties: { Rating: 5 },
+      });
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects invalid property names in where clause', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            id: 'valid',
+            // @ts-expect-error - 'orderId' is not a valid target property
+            orderId: 'test',
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'nonExistent' is not a valid target property
+            nonExistent: 'value',
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects wrong value types for properties', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'id' expects string, not number
+            id: 123,
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'name' expects string, not boolean
+            name: false,
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects wrong value types in operators', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - Op.eq expects string for 'id', not number
+            id: { [Op.eq]: 456 },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - Op.contains expects string for 'name', not number
+            name: { [Op.contains]: 123 },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
+
+    it('rejects operators on invalid property names', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'invalid' is not a valid target property
+            invalid: { [Op.eq]: 'value' },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      typeCheck(() =>
+        user.relateTo({
+          alias: 'Orders',
+          where: {
+            // @ts-expect-error - 'typo' is not a valid target property
+            typo: { [Op.in]: ['a', 'b'] },
+          },
+          properties: { Rating: 5 },
+        }),
+      );
+
+      expect(true).toBe(true);
+    });
   });
 });

@@ -16,7 +16,11 @@ export async function deleteRelationships<
   Alias extends keyof RelatedNodesToAssociateI,
 >(
   ctx: RelationshipCrudContext<Properties, RelatedNodesToAssociateI, MethodsI>,
-  params: DeleteRelationshipsParams<RelatedNodesToAssociateI, Alias>,
+  params: DeleteRelationshipsParams<
+    Properties,
+    RelatedNodesToAssociateI,
+    Alias
+  >,
 ): Promise<number> {
   const { alias, where, session } = params;
 

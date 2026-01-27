@@ -1,7 +1,8 @@
-import { ModelFactory, NeogmaInstance } from '..';
-import { ModelRelatedNodesI } from '../ModelFactory';
+import type { NeogmaInstance } from '..';
+import { ModelFactory } from '..';
+import type { ModelRelatedNodesI } from '../ModelFactory';
 import { Neogma } from '../Neogma';
-import { QueryBuilder } from './QueryBuilder';
+import type { QueryBuilder } from './QueryBuilder';
 
 // Shared neogma instance
 export const neogma = new Neogma({

@@ -8,7 +8,7 @@ import {
   isNodeWithModel,
   isRelationship,
 } from '../QueryBuilder.types';
-import {
+import type {
   GetCreateOrMergeStringCreate,
   GetCreateOrMergeStringDeps,
   GetCreateOrMergeStringMode,

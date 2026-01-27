@@ -1,15 +1,15 @@
-import { QueryResult } from 'neo4j-driver';
+import type { QueryResult } from 'neo4j-driver';
 
-import { Literal } from '../../Literal';
+import type { Literal } from '../../Literal';
 import { QueryBuilder } from '../../QueryBuilder';
-import { AnyWhereI, Where } from '../../Where/Where';
-import {
-  isUpdateOperator,
+import type { AnyWhereI } from '../../Where/Where';
+import { Where } from '../../Where/Where';
+import type {
   Neo4jSupportedTypes,
   Runnable,
-  UpdateOp,
   UpdateSupportedProperties,
 } from '../QueryRunner.types';
+import { isUpdateOperator, UpdateOp } from '../QueryRunner.types';
 
 export interface UpdateParams<T extends UpdateSupportedProperties> {
   /** the label of the nodes to update */

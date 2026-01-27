@@ -1,3 +1,3 @@
-import { OrderByI } from '../QueryBuilder.types';
+import type { OrderByI } from '../QueryBuilder.types';
 
 export type GetOrderByStringOrderBy = OrderByI['orderBy'];

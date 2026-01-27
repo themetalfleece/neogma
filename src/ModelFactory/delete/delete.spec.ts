@@ -1,10 +1,12 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { Op } from '../../Where';
 import {
   closeNeogma,
   createOrdersModel,
   createUsersModel,
   getNeogma,
+  typeCheck,
 } from '../testHelpers';
 
 beforeAll(async () => {
@@ -208,5 +210,223 @@ describe('delete type safety', () => {
     await user2.delete({
       detach: false,
     });
+  });
+});
+
+/**
+ * Where parameter type safety tests.
+ * These tests verify that property names and value types are validated at compile time.
+ */
+describe('delete where type safety', () => {
+  it('accepts valid property names with correct value types', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const testId = uuid();
+    const testName = uuid();
+
+    // Valid: correct property names and value types (using detach to handle any relationships)
+    await Users.delete({ where: { id: testId }, detach: true });
+
+    await Users.delete({ where: { id: testId, name: testName }, detach: true });
+
+    await Users.delete({
+      where: { id: testId, name: testName },
+      detach: true,
+    });
+
+    // Valid: using operators with correct types
+    await Users.delete({ where: { id: { [Op.eq]: testId } }, detach: true });
+
+    await Users.delete({
+      where: { id: { [Op.in]: [testId, uuid()] } },
+      detach: true,
+    });
+
+    await Users.delete({
+      where: { id: testId, name: { [Op.contains]: testName } },
+      detach: true,
+    });
+
+    // Valid: numeric property with comparison operators
+    await Users.delete({
+      where: { id: testId, age: { [Op.gte]: 18 } },
+      detach: true,
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects invalid property names in where clause', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const testId = uuid();
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'nam' is not a valid property (typo)
+          nam: 'John',
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'userId' is not a valid property
+          userId: 'test',
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'nonExistent' is not a valid property
+          nonExistent: 'value',
+        },
+        detach: true,
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects wrong value types for properties', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const testId = uuid();
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          name: testId,
+          // @ts-expect-error - 'id' expects string, not number
+          id: 123,
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'name' expects string, not boolean
+          name: true,
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'age' expects number, not string
+          age: 'twenty-five',
+        },
+        detach: true,
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects wrong value types in operators', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const testId = uuid();
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          name: testId,
+          // @ts-expect-error - Op.eq expects string for 'id', not number
+          id: { [Op.eq]: 123 },
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          name: testId,
+          // @ts-expect-error - Op.in expects string[] for 'id', not number[]
+          id: { [Op.in]: [1, 2, 3] },
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - Op.gte expects number for 'age', not string
+          age: { [Op.gte]: 'eighteen' },
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - Op.contains expects string for 'name', not number
+          name: { [Op.contains]: 42 },
+        },
+        detach: true,
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects operators on invalid property names', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const testId = uuid();
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'invalid' is not a valid property
+          invalid: { [Op.eq]: 'value' },
+        },
+        detach: true,
+      }),
+    );
+
+    typeCheck(() =>
+      Users.delete({
+        where: {
+          id: testId,
+          // @ts-expect-error - 'typo' is not a valid property
+          typo: { [Op.in]: ['a', 'b'] },
+        },
+        detach: true,
+      }),
+    );
+
+    expect(true).toBe(true);
   });
 });

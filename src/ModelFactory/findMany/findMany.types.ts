@@ -20,7 +20,7 @@ export interface FindContext<
 }
 
 export interface FindManyParams<Properties> extends GenericConfiguration {
-  where?: WhereParamsI;
+  where?: WhereParamsI<Properties>;
   limit?: number;
   skip?: number;
   order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;

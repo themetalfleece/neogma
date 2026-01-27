@@ -1,12 +1,7 @@
 import { randomUUID as uuid } from 'crypto';
 
-import {
-  closeNeogma,
-  getNeogma,
-  ModelFactory,
-  ModelRelatedNodesI,
-  NeogmaInstance,
-} from '../testHelpers';
+import type { ModelRelatedNodesI, NeogmaInstance } from '../testHelpers';
+import { closeNeogma, getNeogma, ModelFactory } from '../testHelpers';
 
 beforeAll(async () => {
   const neogma = getNeogma();

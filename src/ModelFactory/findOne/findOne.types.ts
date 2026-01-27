@@ -5,7 +5,7 @@ import type { GenericConfiguration } from '../shared.types';
 export type { FindContext } from '../findMany/findMany.types';
 
 export interface FindOneParams<Properties> extends GenericConfiguration {
-  where?: WhereParamsI;
+  where?: WhereParamsI<Properties>;
   order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
   plain?: boolean;
   throwIfNotFound?: boolean;

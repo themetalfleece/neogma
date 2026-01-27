@@ -1,7 +1,8 @@
 import { BindParam } from '../../BindParam/BindParam';
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
-import { QueryBuilder, QueryBuilderParameters } from '../../QueryBuilder';
-import { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { QueryBuilderParameters } from '../../QueryBuilder';
+import { QueryBuilder } from '../../QueryBuilder';
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { WhereParamsI } from '../../Where';
 import type {
   CreateDataI,

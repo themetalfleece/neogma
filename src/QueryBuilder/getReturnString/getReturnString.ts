@@ -1,5 +1,5 @@
 import { isReturnObject } from '../QueryBuilder.types';
-import { GetReturnStringReturn } from './getReturnString.types';
+import type { GetReturnStringReturn } from './getReturnString.types';
 
 export const getReturnString = (rtn: GetReturnStringReturn): string => {
   if (typeof rtn === 'string') {

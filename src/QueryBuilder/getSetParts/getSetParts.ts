@@ -1,5 +1,5 @@
 import { Literal } from '../../Literal';
-import { GetSetPartsParams, GetSetPartsResult } from './getSetParts.types';
+import type { GetSetPartsParams, GetSetPartsResult } from './getSetParts.types';
 
 /** Returns the parts and the statement for a SET operation with the given params */
 export const getSetParts = (params: GetSetPartsParams): GetSetPartsResult => {

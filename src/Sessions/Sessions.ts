@@ -1,6 +1,6 @@
-import { Driver, Session, SessionConfig, Transaction } from 'neo4j-driver';
+import type { Driver, Session, SessionConfig, Transaction } from 'neo4j-driver';
 
-import { Runnable } from '../QueryRunner';
+import type { Runnable } from '../QueryRunner';
 
 const isTransaction = (tx: unknown): tx is Transaction =>
   tx !== null &&

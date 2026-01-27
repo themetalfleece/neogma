@@ -1,6 +1,9 @@
 import { int } from 'neo4j-driver';
 
-import { GetSkipStringDeps, GetSkipStringSkip } from './getSkipString.types';
+import type {
+  GetSkipStringDeps,
+  GetSkipStringSkip,
+} from './getSkipString.types';
 
 export const getSkipString = (
   skip: GetSkipStringSkip,

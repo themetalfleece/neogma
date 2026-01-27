@@ -1,16 +1,16 @@
 import { NeogmaConstraintError } from '../../Errors';
-import { Where } from '../../Where';
+import type { Where } from '../../Where';
 import { getNodeString } from '../getNodeString';
-import { GetNodeStringResult } from '../getNodeString/getNodeString.types';
+import type { GetNodeStringResult } from '../getNodeString/getNodeString.types';
 import { getRelationshipString } from '../getRelationshipString';
-import { GetRelationshipStringResult } from '../getRelationshipString/getRelationshipString.types';
+import type { GetRelationshipStringResult } from '../getRelationshipString/getRelationshipString.types';
 import {
   isMatchLiteral,
   isMatchMultiple,
   isMatchRelated,
   isRelationship,
 } from '../QueryBuilder.types';
-import {
+import type {
   GetMatchStringDeps,
   GetMatchStringMatch,
 } from './getMatchString.types';

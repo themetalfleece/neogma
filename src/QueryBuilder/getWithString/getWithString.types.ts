@@ -1,3 +1,3 @@
-import { WithI } from '../QueryBuilder.types';
+import type { WithI } from '../QueryBuilder.types';
 
 export type GetWithStringWith = WithI['with'];

@@ -1,6 +1,6 @@
-import { BindParam } from '../../BindParam';
-import { Where } from '../../Where';
-import {
+import type { BindParam } from '../../BindParam';
+import type { Where } from '../../Where';
+import type {
   RelationshipForCreateI,
   RelationshipForMatchI,
 } from '../QueryBuilder.types';

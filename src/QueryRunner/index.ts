@@ -1,5 +1,6 @@
 export { QueryRunner } from './QueryRunner';
 export type {
+  BindableWhereValue,
   CreateRelationshipParamsI,
   Neo4jSingleTypes,
   Neo4jSupportedProperties,

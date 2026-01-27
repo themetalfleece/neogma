@@ -15,7 +15,7 @@ export async function update<
 >(
   ctx: UpdateContext<Properties, RelatedNodesToAssociateI, MethodsI>,
   data: UpdateDataI<Properties>,
-  params?: UpdateParams,
+  params?: UpdateParams<Properties>,
 ): Promise<
   [
     Array<NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>>,
