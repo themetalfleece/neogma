@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { typeCheck } from '../ModelFactory/testHelpers';
-import { trimWhitespace } from '../utils/string';
+import { randomSuffix, trimWhitespace } from '../utils/string';
 import type { WhereValuesI } from '.';
 import { isAnyOperator, Op, Where } from '.';
 
@@ -286,8 +286,8 @@ describe('Where', () => {
   });
 
   it('ignores undefined values but treats null as IS NULL', () => {
-    const undefinedIdentifier = 'ui_' + Math.random().toString();
-    const nullIdentifier = 'ni_' + Math.random().toString();
+    const undefinedIdentifier = 'ui_' + randomSuffix();
+    const nullIdentifier = 'ni_' + randomSuffix();
 
     const where = new Where({
       identifier: {
