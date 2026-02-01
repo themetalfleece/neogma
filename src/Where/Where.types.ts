@@ -366,9 +366,15 @@ export const isOperator = {
   ne: (value: WhereValuesI): value is WhereTypes['Ne'] =>
     typeof value === 'object' && value !== null && Op.ne in value,
   isNull: (value: WhereValuesI): value is WhereTypes['IsNull'] =>
-    typeof value === 'object' && value !== null && Op.isNull in value,
+    typeof value === 'object' &&
+    value !== null &&
+    Op.isNull in value &&
+    (value as WhereTypes['IsNull'])[Op.isNull] === true,
   isNotNull: (value: WhereValuesI): value is WhereTypes['IsNotNull'] =>
-    typeof value === 'object' && value !== null && Op.isNotNull in value,
+    typeof value === 'object' &&
+    value !== null &&
+    Op.isNotNull in value &&
+    (value as WhereTypes['IsNotNull'])[Op.isNotNull] === true,
 } as const;
 
 /**
