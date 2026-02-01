@@ -105,6 +105,8 @@ const relationships = await Users.findRelationships({
     minHops: 1,
     /* --> (optional) maximum hops for a variable length relationship. The value Infinity can be used for no limit on the max hops */
     maxHops: 1,
+    /* --> (optional) throws NeogmaNotFoundError if no relationships are found */
+    throwIfNoneFound: false,
     /* --> (optional) an existing session or transaction to use */
     session: null,
 });
@@ -154,6 +156,8 @@ const relationships = await user.findRelationships({
     minHops: 1,
     /* --> (optional) maximum hops for a variable length relationship. The value Infinity can be used for no limit on the max hops */
     maxHops: 1,
+    /* --> (optional) throws NeogmaNotFoundError if no relationships are found */
+    throwIfNoneFound: false,
     /* --> (optional) an existing session or transaction to use */
     session: null,
 });

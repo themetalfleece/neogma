@@ -1,3 +1,4 @@
+import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
@@ -23,8 +24,17 @@ export async function findRelationships<
     relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
   }>
 > {
-  const { alias, where, limit, skip, session, minHops, maxHops, order } =
-    params;
+  const {
+    alias,
+    where,
+    limit,
+    skip,
+    session,
+    minHops,
+    maxHops,
+    throwIfNoneFound,
+    order,
+  } = params;
 
   const identifiers = {
     source: 'source',
@@ -77,6 +87,12 @@ export async function findRelationships<
   }
 
   const res = await queryBuilder.run(ctx.queryRunner, session);
+
+  if (throwIfNoneFound && res.records.length === 0) {
+    throw new NeogmaNotFoundError('No relationships were found', {
+      alias: String(alias),
+    });
+  }
 
   return res.records.map((record) => ({
     source: ctx.buildFromRecord(record.get(identifiers.source)),

@@ -175,7 +175,10 @@ export interface NeogmaModelStaticsI<
     data: UpdateData,
     params?: GenericConfiguration & {
       where?: WhereParamsI<Properties>;
-      /** defaults to false. Whether to return the properties of the nodes after the update. If it's false, the first entry of the return value of this function will be an empty array */
+      /**
+       * When true, the first element of the returned tuple contains the updated instances.
+       * When false (default), the first element is an empty array.
+       */
       return?: boolean;
     },
   ) => Promise<[Instance[], QueryResult]>;
@@ -188,9 +191,25 @@ export interface NeogmaModelStaticsI<
         RelatedNodesToAssociateI,
         Alias
       >;
+      /**
+       * When true, the first element of the returned tuple contains the updated relationships.
+       * When false (default), the first element is an empty array.
+       */
+      return?: boolean;
+      /** When true, throws NeogmaNotFoundError if no relationships were updated. */
+      throwIfNoneUpdated?: boolean;
       session?: GenericConfiguration['session'];
     },
-  ) => Promise<QueryResult>;
+  ) => Promise<
+    [
+      Array<{
+        source: Instance;
+        target: RelatedNodesToAssociateI[Alias]['Instance'];
+        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+      }>,
+      QueryResult,
+    ]
+  >;
   /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
   getRelationshipProperties: (
     relationship: RelationshipsI<any>[0],
@@ -249,8 +268,24 @@ export interface NeogmaModelStaticsI<
     properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
     /** throws an error if the number of created relationships don't equal to this number */
     assertCreatedRelationships?: number;
+    /**
+     * When true, the first element of the returned tuple contains the created relationships.
+     * When false (default), the first element is an empty array.
+     */
+    return?: boolean;
+    /** When true, throws NeogmaNotFoundError if no relationships were created. */
+    throwIfNoneCreated?: boolean;
     session?: GenericConfiguration['session'];
-  }) => Promise<number>;
+  }) => Promise<
+    [
+      Array<{
+        source: Instance;
+        target: RelatedNodesToAssociateI[Alias]['Instance'];
+        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+      }>,
+      number,
+    ]
+  >;
   findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
     where?: FindRelationshipsWhereClause<
@@ -266,6 +301,8 @@ export interface NeogmaModelStaticsI<
     minHops?: number;
     /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
     maxHops?: number;
+    /** When true, throws NeogmaNotFoundError if no relationships are found. */
+    throwIfNoneFound?: boolean;
     session?: GenericConfiguration['session'];
     /** order the results */
     order?: Array<
@@ -308,6 +345,8 @@ export interface NeogmaModelStaticsI<
       RelatedNodesToAssociateI,
       Alias
     >;
+    /** When true, throws NeogmaNotFoundError if no relationships were deleted. */
+    throwIfNoneDeleted?: boolean;
     session?: GenericConfiguration['session'];
   }) => Promise<number>;
 }
@@ -336,9 +375,25 @@ export interface NeogmaInstanceMethodsI<
         RelatedNodesToAssociateI,
         Alias
       >;
+      /**
+       * When true, the first element of the returned tuple contains the updated relationships.
+       * When false (default), the first element is an empty array.
+       */
+      return?: boolean;
+      /** When true, throws NeogmaNotFoundError if no relationships were updated. */
+      throwIfNoneUpdated?: boolean;
       session?: GenericConfiguration['session'];
     },
-  ) => Promise<QueryResult>;
+  ) => Promise<
+    [
+      Array<{
+        source: Instance;
+        target: RelatedNodesToAssociateI[Alias]['Instance'];
+        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+      }>,
+      QueryResult,
+    ]
+  >;
   delete: (
     configuration?: GenericConfiguration & {
       detach?: boolean;
@@ -352,8 +407,24 @@ export interface NeogmaInstanceMethodsI<
     properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
     /** throws an error if the number of created relationships don't equal to this number */
     assertCreatedRelationships?: number;
+    /**
+     * When true, the first element of the returned tuple contains the created relationships.
+     * When false (default), the first element is an empty array.
+     */
+    return?: boolean;
+    /** When true, throws NeogmaNotFoundError if no relationships were created. */
+    throwIfNoneCreated?: boolean;
     session?: GenericConfiguration['session'];
-  }) => Promise<number>;
+  }) => Promise<
+    [
+      Array<{
+        source: Instance;
+        target: RelatedNodesToAssociateI[Alias]['Instance'];
+        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+      }>,
+      number,
+    ]
+  >;
   findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
     where?: InstanceFindRelationshipsWhereClause<
@@ -364,6 +435,12 @@ export interface NeogmaInstanceMethodsI<
     limit?: number;
     /** skip the first n relationships */
     skip?: number;
+    /** variable length relationship: minimum hops */
+    minHops?: number;
+    /** variable length relationship: maximum hops. The value Infinity can be used for no limit on the max hops */
+    maxHops?: number;
+    /** When true, throws NeogmaNotFoundError if no relationships are found. */
+    throwIfNoneFound?: boolean;
     session?: GenericConfiguration['session'];
     order?: Array<
       | {

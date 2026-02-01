@@ -108,4 +108,6 @@ export interface CreateRelationshipParamsI {
   where?: WhereParam;
   /** the session or transaction for running this query */
   session?: Runnable | null;
+  /** when true, returns the created source, target, and relationship in the query result records */
+  return?: boolean;
 }

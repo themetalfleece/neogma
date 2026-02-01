@@ -32,7 +32,17 @@ export async function instanceFindRelationships<
     relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
   }>
 > {
-  const { where, alias, limit, skip, session, order } = params;
+  const {
+    where,
+    alias,
+    limit,
+    skip,
+    minHops,
+    maxHops,
+    throwIfNoneFound,
+    session,
+    order,
+  } = params;
   const primaryKeyField = ctx.assertPrimaryKeyField(
     ctx.primaryKeyField,
     'findRelationships',
@@ -42,6 +52,9 @@ export async function instanceFindRelationships<
     alias,
     limit,
     skip,
+    minHops,
+    maxHops,
+    throwIfNoneFound,
     session,
     order,
     where: {

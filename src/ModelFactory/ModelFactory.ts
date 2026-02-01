@@ -1,5 +1,4 @@
 import clone from 'clone';
-import type { QueryResult } from 'neo4j-driver';
 
 import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
@@ -47,6 +46,7 @@ import type {
 } from './relateTo';
 import { relateTo as relateToFn } from './relateTo';
 import { instanceRelateTo } from './relateTo';
+import type { RelateToResult } from './relateTo/relateTo.static';
 import type { RelationshipConfigContext } from './relationshipConfig';
 import {
   addRelationships as addRelationshipsFn,
@@ -72,6 +72,7 @@ import {
   instanceUpdateRelationship,
   updateRelationship as updateRelationshipFn,
 } from './updateRelationship';
+import type { UpdateRelationshipResult } from './updateRelationship/updateRelationship.static';
 import {
   assertPrimaryKeyField,
   getLabelFromRelationshipModel,
@@ -456,8 +457,11 @@ export const ModelFactory = <
       where: RelateToWhereClause<Properties, RelatedNodesToAssociateI, Alias>;
       properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
       assertCreatedRelationships?: number;
+      return?: boolean;
       session?: GenericConfiguration['session'];
-    }): Promise<number> {
+    }): Promise<
+      RelateToResult<Properties, RelatedNodesToAssociateI, MethodsI, Alias>
+    > {
       const ctx: RelationshipCrudContext<
         Properties,
         RelatedNodesToAssociateI,
@@ -670,7 +674,9 @@ export const ModelFactory = <
     public async relateTo<Alias extends keyof RelatedNodesToAssociateI>(
       this: Instance,
       params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias>,
-    ): Promise<number> {
+    ): Promise<
+      RelateToResult<Properties, RelatedNodesToAssociateI, MethodsI, Alias>
+    > {
       const ctx: InstanceRelationshipContext<
         Properties,
         RelatedNodesToAssociateI,
@@ -727,7 +733,14 @@ export const ModelFactory = <
       this: Instance,
       data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
       params: InstanceUpdateRelationshipParams<RelatedNodesToAssociateI, Alias>,
-    ): Promise<QueryResult> {
+    ): Promise<
+      UpdateRelationshipResult<
+        Properties,
+        RelatedNodesToAssociateI,
+        MethodsI,
+        Alias
+      >
+    > {
       const ctx: InstanceRelationshipContext<
         Properties,
         RelatedNodesToAssociateI,

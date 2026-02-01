@@ -26,5 +26,9 @@ export interface UpdateParams<
 > extends GenericConfiguration {
   /** Where clause with type-safe property name and value validation. */
   where?: WhereParamsI<Properties>;
+  /**
+   * When true, the first element of the returned tuple contains the updated instances.
+   * When false (default), the first element is an empty array.
+   */
   return?: boolean;
 }

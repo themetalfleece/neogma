@@ -7,7 +7,7 @@ Apart from saving an existing [Instance](./Instances), each model provides funct
 Nodes can be updated directly by providing the properties to be set, providing property [update operators](../QueryRunner/Updating-Nodes#update-operators), and a [where parameter](../Where-Parameters) to match the nodes.
 
 ```js
-const result = await Users.update(
+await Users.update(
   {
     /* --> updates the nodes to set their name to 'Bob' */
     name: 'Bob',
@@ -20,20 +20,31 @@ const result = await Users.update(
       /* --> nodes with the id '1' will be matched */
       id: '1',
     },
-    /* --> (optional, default false) whether to return the values of the nodes after the update */
-    return: true,
+    /* --> (optional) when true, the first element of the returned tuple contains the updated instances */
+    return: false,
     /* --> (optional) an existing session or transaction to use */
     session: null,
   },
 );
+```
 
-/* --> ONLY if 'return' is set to true. The Instances of the matched and updated nodes. If 'return' is set to false, this will be an empty array */
-const instances = result[0];
+### Return value
+The method always returns a tuple `[instances, queryResult]`:
+- `instances`: Array of updated Instances (populated when `return: true`, empty when `return: false`)
+- `queryResult`: The QueryResult from the neo4j driver
+
+```js
+const [instances, queryResult] = await Users.update(
+  { name: 'Bob' },
+  {
+    where: { id: '1' },
+    return: true,
+  },
+);
+
+/* --> instances is populated when return: true */
 console.log(instances[0].name); // "Bob"
-console.log(instances[0].age); // undefined
-
-/* --> the QueryResult from the neo4j driver */
-const queryResult = result[1];
+console.log(queryResult.summary.counters.updates().propertiesSet); // number of properties updated
 ```
 
 ## Updating relationship properties via the Model static
@@ -64,10 +75,34 @@ await Users.updateRelationship(
         rating: 4,
       },
     },
+    /* --> (optional) when true, the first element of the returned tuple contains the updated relationships */
+    return: false,
+    /* --> (optional) throws NeogmaNotFoundError if no relationships were updated */
+    throwIfNoneUpdated: false,
     /* --> (optional) an existing session or transaction to use */
     session: null,
   },
 );
+```
+
+### Return value
+The method always returns a tuple `[relationships, queryResult]`:
+- `relationships`: Array of `{ source, target, relationship }` objects (populated when `return: true`, empty when `return: false`)
+- `queryResult`: The QueryResult from the neo4j driver
+
+```js
+const [relationships, queryResult] = await Users.updateRelationship(
+  { rating: 5 },
+  {
+    alias: 'Orders',
+    where: { source: { name: 'Bob' } },
+    return: true,
+  },
+);
+
+/* --> relationships is populated when return: true */
+console.log(relationships[0].relationship.rating); // 5
+console.log(queryResult.summary.counters.updates().propertiesSet); // number of properties updated
 ```
 
 ## Updating relationship properties via the Instance method
@@ -95,10 +130,30 @@ await user.updateRelationship(
         rating: 4,
       },
     },
+    /* --> (optional) when true, the first element of the returned tuple contains the updated relationships */
+    return: false,
+    /* --> (optional) throws NeogmaNotFoundError if no relationships were updated */
+    throwIfNoneUpdated: false,
     /* --> (optional) an existing session or transaction to use */
     session: null,
   },
 );
+```
+
+The instance method also returns a tuple `[relationships, queryResult]`:
+
+```js
+const [relationships, queryResult] = await user.updateRelationship(
+  { rating: 5 },
+  {
+    alias: 'Orders',
+    where: { target: { id: '2' } },
+    return: true,
+  },
+);
+
+console.log(relationships[0].relationship.rating); // 5
+console.log(queryResult.summary); // query summary
 ```
 
 > :ToCPrevNext

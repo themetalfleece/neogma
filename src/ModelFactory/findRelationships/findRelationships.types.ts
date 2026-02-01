@@ -39,6 +39,11 @@ export interface FindRelationshipsParams<
   skip?: number;
   minHops?: number;
   maxHops?: number;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships are found.
+   * @default false
+   */
+  throwIfNoneFound?: boolean;
   order?: Array<
     | {
         on: 'source';
@@ -89,6 +94,13 @@ export interface InstanceFindRelationshipsParams<
   where?: InstanceFindRelationshipsWhereClause<RelatedNodesToAssociateI, Alias>;
   limit?: number;
   skip?: number;
+  minHops?: number;
+  maxHops?: number;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships are found.
+   * @default false
+   */
+  throwIfNoneFound?: boolean;
   order?: Array<
     | {
         on: 'source';

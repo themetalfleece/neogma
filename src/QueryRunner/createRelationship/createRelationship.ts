@@ -12,6 +12,7 @@ export interface CreateRelationshipDeps {
   defaultIdentifiers: {
     source: string;
     target: string;
+    relationship: string;
   };
 }
 
@@ -22,11 +23,10 @@ export const createRelationship = async (
   const { source, target, relationship } = params;
   const where = Where.acquire(params.where);
 
-  const relationshipIdentifier = 'r';
-
   const identifiers = {
     source: source.identifier || deps.defaultIdentifiers.source,
     target: target.identifier || deps.defaultIdentifiers.target,
+    relationship: deps.defaultIdentifiers.relationship,
   };
 
   const queryBuilder = new QueryBuilder(
@@ -59,7 +59,7 @@ export const createRelationship = async (
       {
         direction: relationship.direction,
         name: relationship.name,
-        identifier: relationshipIdentifier,
+        identifier: identifiers.relationship,
       },
       {
         identifier: identifiers.target,
@@ -71,9 +71,17 @@ export const createRelationship = async (
   if (relationshipProperties && Object.keys(relationshipProperties).length) {
     /** the relationship properties statement to be inserted into the final statement string */
     queryBuilder.set({
-      identifier: relationshipIdentifier,
+      identifier: identifiers.relationship,
       properties: relationshipProperties,
     });
+  }
+
+  if (params.return) {
+    queryBuilder.return([
+      identifiers.source,
+      identifiers.target,
+      identifiers.relationship,
+    ]);
   }
 
   return deps.runQueryBuilder(queryBuilder, params.session);

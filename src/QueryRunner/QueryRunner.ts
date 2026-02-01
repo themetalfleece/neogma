@@ -131,6 +131,8 @@ export class QueryRunner {
       source: 'source',
       /** default identifier for the target node */
       target: 'target',
+      /** default identifier for the relationship */
+      relationship: 'r',
     },
   };
 
