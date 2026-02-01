@@ -49,7 +49,7 @@ console.log(queryResult.summary.counters.updates().propertiesSet); // number of 
 
 ## Updating relationship properties via the Model static
 
-Relationship properties can be updated directly by providing the values to be set, the relatioship alias, and an optional where parameter to match the source nodes, target nodes and relationships.
+Relationship properties can be updated directly by providing the values to be set, the relationship alias, and an optional where parameter to match the source nodes, target nodes and relationships.
 
 ```js
 await Users.updateRelationship(
@@ -107,7 +107,7 @@ console.log(queryResult.summary.counters.updates().propertiesSet); // number of 
 
 ## Updating relationship properties via the Instance method
 
-Similar to the Model static, relationship properties can be updated directly by providing the values to be set, the relatioship alias, and an optional where parameter to match the target nodes and relationships. The source node will always be the one that corresponds to the instance, and its primary key field must be set.
+Similar to the Model static, relationship properties can be updated directly by providing the values to be set, the relationship alias, and an optional where parameter to match the target nodes and relationships. The source node will always be the one that corresponds to the instance, and its primary key field must be set.
 
 ```js
 /* --> let 'user' be a Users Instance. It's used as the source node */

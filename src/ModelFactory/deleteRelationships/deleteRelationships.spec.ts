@@ -610,7 +610,72 @@ describe('deleteRelationships where type safety', () => {
 });
 
 /**
- * Tests for deleteRelationships throwIfNoneDeleted option.
+ * Type tests for throwIfNoneDeleted option.
+ */
+describe('deleteRelationships throwIfNoneDeleted type safety', () => {
+  it('accepts boolean values for throwIfNoneDeleted', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    // Valid: throwIfNoneDeleted as true
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        throwIfNoneDeleted: true,
+      }),
+    );
+
+    // Valid: throwIfNoneDeleted as false
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        throwIfNoneDeleted: false,
+      }),
+    );
+
+    // Valid: throwIfNoneDeleted not specified
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects non-boolean values for throwIfNoneDeleted', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        // @ts-expect-error - throwIfNoneDeleted expects boolean, not string
+        throwIfNoneDeleted: 'true',
+      }),
+    );
+
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        // @ts-expect-error - throwIfNoneDeleted expects boolean, not number
+        throwIfNoneDeleted: 1,
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+});
+
+/**
+ * Runtime tests for deleteRelationships throwIfNoneDeleted option.
  */
 describe('deleteRelationships throwIfNoneDeleted', () => {
   it('returns 0 when no relationships match and throwIfNoneDeleted is false', async () => {

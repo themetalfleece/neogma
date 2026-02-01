@@ -1,6 +1,6 @@
-# Deleting Relationshhips
+# Deleting Relationships
 
-## Deleting Relationshhips via the Model static
+## Deleting Relationships via the Model static
 
 Using the `deleteRelationships` static of a Model and providing a Where parameter, relationships of the Model can be deleted
 
@@ -8,7 +8,7 @@ Using the `deleteRelationships` static of a Model and providing a Where paramete
 const deletedCount = await Users.deleteRelationships({
     /* --> the alias of the relationship, as provided in the Model definition */
     alias: 'Orders',
-    /* --> the Relationshhips to be deleted will be matched using this param */
+    /* --> the Relationships to be deleted will be matched using this param */
     where: {
         /* --> (optional) the relationship(s) to be deleted need to be from a User with the name 'John' AND the id '1' */
         source: {

@@ -580,6 +580,8 @@ export const ModelFactory = <
         RelatedNodesToAssociateI,
         Alias
       >;
+      /** When true, throws NeogmaNotFoundError if no relationships were deleted. */
+      throwIfNoneDeleted?: boolean;
       session?: GenericConfiguration['session'];
     }): Promise<number> {
       const ctx: RelationshipCrudContext<
