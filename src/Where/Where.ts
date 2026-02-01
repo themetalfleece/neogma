@@ -66,11 +66,13 @@ export class Where {
    * 1. Generating the WHERE statement using these values
    * 2. Differentiating bind parameter names created by this Where instance
    *    from those in the BindParam, since this Where can only remove parameters it created
+   *
+   * Note: `bindParamName` is null for operators that don't require a parameter (isNull, isNotNull).
    */
   private identifierPropertyData: Array<{
     identifier: string;
     property: string;
-    bindParamName: string | Literal;
+    bindParamName: string | Literal | null;
     operator: (typeof operators)[number];
   }> = [];
 
@@ -144,17 +146,36 @@ export class Where {
             value,
             operator: 'eq',
           });
-        } else if (value !== null && typeof value === 'object') {
+        } else if (value === null) {
+          // Direct null value means IS NULL - this is a convenient shorthand
+          // equivalent to { [Op.isNull]: true }
+          this.identifierPropertyData.push({
+            identifier: nodeIdentifier,
+            property,
+            bindParamName: null,
+            operator: 'isNull',
+          });
+        } else if (typeof value === 'object') {
           const symbols = Object.getOwnPropertySymbols(value);
           for (const { description } of symbols) {
             const operator = description as (typeof operators)[number];
             if (operator && isOperator[operator]?.(value)) {
-              this.addBindParamDataEntry({
-                identifier: nodeIdentifier,
-                property,
-                value: value[Op[operator]],
-                operator,
-              });
+              // isNull and isNotNull operators don't need bind parameters
+              if (operator === 'isNull' || operator === 'isNotNull') {
+                this.identifierPropertyData.push({
+                  identifier: nodeIdentifier,
+                  property,
+                  bindParamName: null,
+                  operator,
+                });
+              } else {
+                this.addBindParamDataEntry({
+                  identifier: nodeIdentifier,
+                  property,
+                  value: value[Op[operator]],
+                  operator,
+                });
+              }
             }
           }
         }
@@ -204,7 +225,8 @@ export class Where {
       if (mode === 'object') {
         if (operator !== 'eq') {
           throw new NeogmaConstraintError(
-            'The only operator which is supported for object mode is "eq"',
+            `The only operator which is supported for object mode is "eq". ` +
+              `Operator "${operator}" requires text mode (WHERE clause).`,
             {
               actual: {
                 mode,
@@ -231,10 +253,22 @@ export class Where {
         lt: '<',
         lte: '<=',
         ne: '<>',
+        isNull: 'IS NULL',
+        isNotNull: 'IS NOT NULL',
       };
 
       // else, return the appropriate text-mode operator
       return textMap[operator];
+    };
+
+    /**
+     * Returns true if the operator doesn't require a bind parameter.
+     * These operators are unary and only need the property reference.
+     */
+    const isNoParamOperator = (
+      operator: Where['identifierPropertyData'][0]['operator'],
+    ) => {
+      return operator === 'isNull' || operator === 'isNotNull';
     };
 
     /**
@@ -254,6 +288,15 @@ export class Where {
     if (mode === 'text') {
       for (const bindParamData of this.identifierPropertyData) {
         const { bindParamName } = bindParamData;
+
+        // Handle operators that don't need a parameter (isNull, isNotNull)
+        if (isNoParamOperator(bindParamData.operator)) {
+          statementParts.push(
+            `${bindParamData.identifier}.${bindParamData.property} ${operatorForStatement(bindParamData.operator)}`,
+          );
+          continue;
+        }
+
         const name =
           bindParamName instanceof Literal
             ? bindParamName.getValue()
@@ -362,8 +405,14 @@ export class Where {
         continue;
       }
 
+      // Direct null means IS NULL - goes to nonEqParams
+      if (value === null) {
+        nonEqParams[property] = value;
+        continue;
+      }
+
       // Check if value is an operator object
-      if (value !== null && typeof value === 'object') {
+      if (typeof value === 'object') {
         const symbols = Object.getOwnPropertySymbols(value);
         let hasNonEqOperator = false;
         let hasEqOperator = false;

@@ -85,6 +85,8 @@ describe('WhereValuesI type safety', () => {
       const opIn: WhereValuesI<string> = { [Op.in]: ['John', 'Jane'] };
       const opNe: WhereValuesI<string> = { [Op.ne]: 'Admin' };
       const opContains: WhereValuesI<string> = { [Op.contains]: 'ohn' };
+      const opIsNull: WhereValuesI<string> = { [Op.isNull]: true };
+      const opIsNotNull: WhereValuesI<string> = { [Op.isNotNull]: true };
 
       expect(direct).toBe('John');
       expect(array).toEqual(['John', 'Jane']);
@@ -92,6 +94,8 @@ describe('WhereValuesI type safety', () => {
       expect(opIn).toBeDefined();
       expect(opNe).toBeDefined();
       expect(opContains).toBeDefined();
+      expect(opIsNull).toBeDefined();
+      expect(opIsNotNull).toBeDefined();
     });
 
     it('rejects wrong value types', () => {
@@ -112,6 +116,26 @@ describe('WhereValuesI type safety', () => {
       void _opIn;
       void _opNe;
     });
+
+    it('rejects wrong value for Op.isNull (must be true)', () => {
+      // @ts-expect-error - Op.isNull only accepts true
+      const _wrongValue: WhereValuesI<string> = { [Op.isNull]: false };
+      // @ts-expect-error - Op.isNull only accepts true
+      const _stringValue: WhereValuesI<string> = { [Op.isNull]: 'yes' };
+
+      void _wrongValue;
+      void _stringValue;
+    });
+
+    it('rejects wrong value for Op.isNotNull (must be true)', () => {
+      // @ts-expect-error - Op.isNotNull only accepts true
+      const _wrongValue: WhereValuesI<string> = { [Op.isNotNull]: false };
+      // @ts-expect-error - Op.isNotNull only accepts true
+      const _stringValue: WhereValuesI<string> = { [Op.isNotNull]: 'yes' };
+
+      void _wrongValue;
+      void _stringValue;
+    });
   });
 
   describe('number property', () => {
@@ -124,6 +148,8 @@ describe('WhereValuesI type safety', () => {
       const opGte: WhereValuesI<number> = { [Op.gte]: 21 };
       const opLt: WhereValuesI<number> = { [Op.lt]: 65 };
       const opLte: WhereValuesI<number> = { [Op.lte]: 100 };
+      const opIsNull: WhereValuesI<number> = { [Op.isNull]: true };
+      const opIsNotNull: WhereValuesI<number> = { [Op.isNotNull]: true };
 
       expect(direct).toBe(25);
       expect(array).toEqual([18, 25, 30]);
@@ -133,6 +159,8 @@ describe('WhereValuesI type safety', () => {
       expect(opGte).toBeDefined();
       expect(opLt).toBeDefined();
       expect(opLte).toBeDefined();
+      expect(opIsNull).toBeDefined();
+      expect(opIsNotNull).toBeDefined();
     });
 
     it('rejects wrong value types', () => {
@@ -157,10 +185,14 @@ describe('WhereValuesI type safety', () => {
       const direct: WhereValuesI<boolean> = true;
       const opEq: WhereValuesI<boolean> = { [Op.eq]: false };
       const opNe: WhereValuesI<boolean> = { [Op.ne]: true };
+      const opIsNull: WhereValuesI<boolean> = { [Op.isNull]: true };
+      const opIsNotNull: WhereValuesI<boolean> = { [Op.isNotNull]: true };
 
       expect(direct).toBe(true);
       expect(opEq).toBeDefined();
       expect(opNe).toBeDefined();
+      expect(opIsNull).toBeDefined();
+      expect(opIsNotNull).toBeDefined();
     });
 
     it('rejects wrong value types', () => {
@@ -804,6 +836,94 @@ describe('real-world usage patterns', () => {
       };
 
       expect(validParams.where?.target?.groupName).toBe('Administrators');
+    });
+  });
+
+  describe('isNull/isNotNull for soft delete pattern', () => {
+    // Real-world example: fetching projects that are not soft-deleted
+    type ProjectProperties = {
+      id: string;
+      name: string;
+      deleted?: string; // ISO8601 timestamp when deleted, or undefined if not deleted
+    };
+
+    type OrganizationProperties = {
+      id: string;
+      name: string;
+    };
+
+    type FindRelationshipsParams = {
+      alias: 'Projects';
+      where?: {
+        source?: WhereParamsI<OrganizationProperties>;
+        target?: WhereParamsI<ProjectProperties>;
+      };
+    };
+
+    it('accepts Op.isNull to filter non-deleted projects', () => {
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: { deleted: { [Op.isNull]: true } },
+        },
+      };
+
+      expect(params.where?.target?.deleted).toBeDefined();
+    });
+
+    it('accepts direct null to filter non-deleted projects (shorthand)', () => {
+      // This is the intuitive API that matches the original issue request
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: { deleted: null }, // Direct null = IS NULL
+        },
+      };
+
+      expect(params.where?.target?.deleted).toBeNull();
+    });
+
+    it('accepts Op.isNotNull to find only deleted projects', () => {
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: { deleted: { [Op.isNotNull]: true } },
+        },
+      };
+
+      expect(params.where?.target?.deleted).toBeDefined();
+    });
+
+    it('rejects wrong value for isNull (must be true)', () => {
+      const _params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          target: {
+            // @ts-expect-error - Op.isNull only accepts true
+            deleted: { [Op.isNull]: false },
+          },
+        },
+      };
+
+      void _params;
+    });
+
+    it('accepts combining isNull with other conditions', () => {
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: {
+            deleted: { [Op.isNull]: true },
+            name: { [Op.contains]: 'test' },
+          },
+        },
+      };
+
+      expect(params.where?.target).toBeDefined();
     });
   });
 });

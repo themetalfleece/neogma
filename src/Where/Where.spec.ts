@@ -91,6 +91,112 @@ describe('Where', () => {
       expect(where.getBindParam().get()).toEqual(expectedValues);
     });
 
+    it('generates IS NULL statement with Op.isNull', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.isNull]: true },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
+      // isNull operator should not add any bind params
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('generates IS NULL statement with direct null value', () => {
+      const where = new Where({
+        identifier: {
+          deleted: null,
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
+      // null should not add any bind params
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('generates IS NOT NULL statement with Op.isNotNull', () => {
+      const where = new Where({
+        identifier: {
+          deletedAt: { [Op.isNotNull]: true },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe(
+        'identifier.deletedAt IS NOT NULL',
+      );
+      // isNotNull operator should not add any bind params
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('combines isNull/isNotNull with other operators', () => {
+      const where = new Where({
+        node: {
+          name: 'John',
+          deleted: { [Op.isNull]: true },
+          createdAt: { [Op.isNotNull]: true },
+          age: { [Op.gte]: 18 },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.name = $name');
+      expect(statement).toContain('node.deleted IS NULL');
+      expect(statement).toContain('node.createdAt IS NOT NULL');
+      expect(statement).toContain('node.age >= $age');
+
+      // Only name and age should be in bind params
+      expect(where.getBindParam().get()).toEqual({
+        name: 'John',
+        age: 18,
+      });
+    });
+
+    it('combines direct null with other operators', () => {
+      const where = new Where({
+        node: {
+          name: 'John',
+          deleted: null, // Direct null = IS NULL
+          age: { [Op.gte]: 18 },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.name = $name');
+      expect(statement).toContain('node.deleted IS NULL');
+      expect(statement).toContain('node.age >= $age');
+
+      // Only name and age should be in bind params
+      expect(where.getBindParam().get()).toEqual({
+        name: 'John',
+        age: 18,
+      });
+    });
+
+    it('throws error when using isNull in object mode', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.isNull]: true },
+        },
+      });
+
+      expect(() => where.getStatement('object')).toThrow(
+        'The only operator which is supported for object mode is "eq"',
+      );
+    });
+
+    it('throws error when using isNotNull in object mode', () => {
+      const where = new Where({
+        identifier: {
+          deletedAt: { [Op.isNotNull]: true },
+        },
+      });
+
+      expect(() => where.getStatement('object')).toThrow(
+        'The only operator which is supported for object mode is "eq"',
+      );
+    });
+
     it('Support more than one operator per property', () => {
       const where = new Where({
         identifier: {
@@ -118,7 +224,7 @@ describe('Where', () => {
         where.getStatement('object');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toEqual(
+        expect((error as Error).message).toContain(
           'The only operator which is supported for object mode is "eq"',
         );
       }
@@ -179,12 +285,11 @@ describe('Where', () => {
     });
   });
 
-  it('ignores null and undefined values', () => {
+  it('ignores undefined values but treats null as IS NULL', () => {
     const undefinedIdentifier = 'ui_' + Math.random().toString();
-    const nullIdentifier = 'ui_' + Math.random().toString();
+    const nullIdentifier = 'ni_' + Math.random().toString();
 
     const where = new Where({
-      // @ts-expect-error
       identifier: {
         a: 1,
         [nullIdentifier]: null,
@@ -195,10 +300,14 @@ describe('Where', () => {
     expect(
       where.getStatement('text').includes('identifier.a = $a'),
     ).toBeTruthy();
+    // undefined is ignored - no filter for that property
     expect(
       where.getStatement('text').includes(undefinedIdentifier),
     ).toBeFalsy();
-    expect(where.getStatement('text').includes(nullIdentifier)).toBeFalsy();
+    // null generates IS NULL
+    expect(
+      where.getStatement('text').includes(`identifier.${nullIdentifier} IS NULL`),
+    ).toBeTruthy();
   });
 
   describe('type safety', () => {
@@ -273,6 +382,22 @@ describe('Where', () => {
           node: { tag: { [Op._in]: 'important' } },
         });
         expect(where.getStatement('text')).toContain('$tag IN node.tag');
+      });
+
+      it('accepts valid Op.isNull', () => {
+        const where = new Where({
+          node: { deleted: { [Op.isNull]: true } },
+        });
+        expect(where.getStatement('text')).toContain('node.deleted IS NULL');
+      });
+
+      it('accepts valid Op.isNotNull', () => {
+        const where = new Where({
+          node: { createdAt: { [Op.isNotNull]: true } },
+        });
+        expect(where.getStatement('text')).toContain(
+          'node.createdAt IS NOT NULL',
+        );
       });
     });
 
@@ -499,6 +624,16 @@ describe('Where', () => {
       it('accepts empty array', () => {
         const value: WhereValuesI<string[]> = [];
         expect(value).toEqual([]);
+      });
+
+      it('accepts Op.isNull for array types', () => {
+        const value: WhereValuesI<string[]> = { [Op.isNull]: true };
+        expect(Op.isNull in value).toBe(true);
+      });
+
+      it('accepts Op.isNotNull for array types', () => {
+        const value: WhereValuesI<string[]> = { [Op.isNotNull]: true };
+        expect(Op.isNotNull in value).toBe(true);
       });
 
       it('accepts boolean[] array type', () => {
@@ -785,6 +920,14 @@ describe('Where', () => {
         expect(isAnyOperator({ [Op.lte]: 100 })).toBe(true);
       });
 
+      it('returns true for Op.isNull', () => {
+        expect(isAnyOperator({ [Op.isNull]: true })).toBe(true);
+      });
+
+      it('returns true for Op.isNotNull', () => {
+        expect(isAnyOperator({ [Op.isNotNull]: true })).toBe(true);
+      });
+
       it('returns false for direct string value', () => {
         expect(isAnyOperator('direct value')).toBe(false);
       });
@@ -965,6 +1108,44 @@ describe('Where', () => {
 
       expect(eqParams).toEqual({});
       expect(nonEqParams).toEqual({});
+    });
+
+    it('puts Op.isNull in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: { [Op.isNull]: true },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: { [Op.isNull]: true } });
+    });
+
+    it('puts direct null in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: null,
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: null });
+    });
+
+    it('puts Op.isNotNull in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        createdAt: { [Op.isNotNull]: true },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ createdAt: { [Op.isNotNull]: true } });
+    });
+
+    it('handles isNull/isNotNull with other params', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: 'John',
+        deleted: { [Op.isNull]: true },
+        status: 'active',
+      });
+
+      expect(eqParams).toEqual({ name: 'John', status: 'active' });
+      expect(nonEqParams).toEqual({ deleted: { [Op.isNull]: true } });
     });
   });
 });
