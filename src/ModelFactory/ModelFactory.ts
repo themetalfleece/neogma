@@ -1,5 +1,4 @@
 import clone from 'clone';
-import type { QueryResult } from 'neo4j-driver';
 
 import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
@@ -47,6 +46,7 @@ import type {
 } from './relateTo';
 import { relateTo as relateToFn } from './relateTo';
 import { instanceRelateTo } from './relateTo';
+import type { RelateToResult } from './relateTo/relateTo.static';
 import type { RelationshipConfigContext } from './relationshipConfig';
 import {
   addRelationships as addRelationshipsFn,
@@ -62,16 +62,18 @@ import type {
   GenericConfiguration,
   IValidationSchema,
 } from './shared.types';
-import type { UpdateContext } from './update';
+import type { UpdateContext, UpdateParams, UpdateResult } from './update';
 import { update as updateFn } from './update';
 import type {
   InstanceUpdateRelationshipParams,
   UpdateRelationshipData,
+  UpdateRelationshipWhereClause,
 } from './updateRelationship';
 import {
   instanceUpdateRelationship,
   updateRelationship as updateRelationshipFn,
 } from './updateRelationship';
+import type { UpdateRelationshipResult } from './updateRelationship/updateRelationship.static';
 import {
   assertPrimaryKeyField,
   getLabelFromRelationshipModel,
@@ -425,17 +427,21 @@ export const ModelFactory = <
       return findOneFn(ctx, params);
     }
 
-    public static async update(
+    public static async update<Return extends boolean = false>(
       data: Parameters<ModelStaticsI['update']>[0],
-      params?: Parameters<ModelStaticsI['update']>[1],
-    ): ReturnType<ModelStaticsI['update']> {
+      params?: UpdateParams<Properties> & { return?: Return },
+    ): Promise<
+      UpdateResult<Properties, RelatedNodesToAssociateI, MethodsI, Return>
+    > {
       const ctx: UpdateContext<Properties, RelatedNodesToAssociateI, MethodsI> =
         {
           queryRunner,
           getLabel: Model.getLabel,
           buildFromRecord: Model.buildFromRecord,
         };
-      return updateFn(ctx, data, params);
+      return updateFn(ctx, data, params) as Promise<
+        UpdateResult<Properties, RelatedNodesToAssociateI, MethodsI, Return>
+      >;
     }
 
     public static async delete(
@@ -451,13 +457,24 @@ export const ModelFactory = <
     // Relationship CRUD methods
     public static async relateTo<
       Alias extends keyof RelatedNodesToAssociateI,
+      Return extends boolean = false,
     >(params: {
       alias: Alias;
       where: RelateToWhereClause<Properties, RelatedNodesToAssociateI, Alias>;
       properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
       assertCreatedRelationships?: number;
+      return?: Return;
+      throwIfNoneCreated?: boolean;
       session?: GenericConfiguration['session'];
-    }): Promise<number> {
+    }): Promise<
+      RelateToResult<
+        Properties,
+        RelatedNodesToAssociateI,
+        MethodsI,
+        Alias,
+        Return
+      >
+    > {
       const ctx: RelationshipCrudContext<
         Properties,
         RelatedNodesToAssociateI,
@@ -477,7 +494,15 @@ export const ModelFactory = <
         getRelationshipProperties: Model.getRelationshipProperties,
         buildFromRecord: Model.buildFromRecord,
       };
-      return relateToFn(ctx, params);
+      return relateToFn(ctx, params) as Promise<
+        RelateToResult<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias,
+          Return
+        >
+      >;
     }
 
     public static async findRelationships<
@@ -555,6 +580,8 @@ export const ModelFactory = <
         RelatedNodesToAssociateI,
         Alias
       >;
+      /** When true, throws NeogmaNotFoundError if no relationships were deleted. */
+      throwIfNoneDeleted?: boolean;
       session?: GenericConfiguration['session'];
     }): Promise<number> {
       const ctx: RelationshipCrudContext<
@@ -585,10 +612,31 @@ export const ModelFactory = <
       return createRelationshipFn(queryRunner, params);
     }
 
-    public static async updateRelationship(
-      data: Parameters<ModelStaticsI['updateRelationship']>[0],
-      params: Parameters<ModelStaticsI['updateRelationship']>[1],
-    ): ReturnType<ModelStaticsI['updateRelationship']> {
+    public static async updateRelationship<
+      Alias extends keyof RelatedNodesToAssociateI,
+      Return extends boolean = false,
+    >(
+      data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
+      params: {
+        alias: Alias;
+        where?: UpdateRelationshipWhereClause<
+          Properties,
+          RelatedNodesToAssociateI,
+          Alias
+        >;
+        return?: Return;
+        throwIfNoneUpdated?: boolean;
+        session?: GenericConfiguration['session'];
+      },
+    ): Promise<
+      UpdateRelationshipResult<
+        Properties,
+        RelatedNodesToAssociateI,
+        MethodsI,
+        Alias,
+        Return
+      >
+    > {
       const ctx: RelationshipCrudContext<
         Properties,
         RelatedNodesToAssociateI,
@@ -608,7 +656,15 @@ export const ModelFactory = <
         getRelationshipProperties: Model.getRelationshipProperties,
         buildFromRecord: Model.buildFromRecord,
       };
-      return updateRelationshipFn(ctx, data, params);
+      return updateRelationshipFn(ctx, data, params) as Promise<
+        UpdateRelationshipResult<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias,
+          Return
+        >
+      >;
     }
 
     // Instance methods
@@ -667,10 +723,23 @@ export const ModelFactory = <
       return deleteInstance(this, ctx, configuration);
     }
 
-    public async relateTo<Alias extends keyof RelatedNodesToAssociateI>(
+    public async relateTo<
+      Alias extends keyof RelatedNodesToAssociateI,
+      Return extends boolean = false,
+    >(
       this: Instance,
-      params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias>,
-    ): Promise<number> {
+      params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias> & {
+        return?: Return;
+      },
+    ): Promise<
+      RelateToResult<
+        Properties,
+        RelatedNodesToAssociateI,
+        MethodsI,
+        Alias,
+        Return
+      >
+    > {
       const ctx: InstanceRelationshipContext<
         Properties,
         RelatedNodesToAssociateI,
@@ -685,7 +754,15 @@ export const ModelFactory = <
         primaryKeyField: modelPrimaryKeyField,
         assertPrimaryKeyField,
       };
-      return instanceRelateTo(this, ctx, params);
+      return instanceRelateTo(this, ctx, params) as Promise<
+        RelateToResult<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias,
+          Return
+        >
+      >;
     }
 
     public async findRelationships<
@@ -723,11 +800,25 @@ export const ModelFactory = <
 
     public async updateRelationship<
       Alias extends keyof RelatedNodesToAssociateI,
+      Return extends boolean = false,
     >(
       this: Instance,
       data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
-      params: InstanceUpdateRelationshipParams<RelatedNodesToAssociateI, Alias>,
-    ): Promise<QueryResult> {
+      params: InstanceUpdateRelationshipParams<
+        RelatedNodesToAssociateI,
+        Alias
+      > & {
+        return?: Return;
+      },
+    ): Promise<
+      UpdateRelationshipResult<
+        Properties,
+        RelatedNodesToAssociateI,
+        MethodsI,
+        Alias,
+        Return
+      >
+    > {
       const ctx: InstanceRelationshipContext<
         Properties,
         RelatedNodesToAssociateI,
@@ -742,7 +833,15 @@ export const ModelFactory = <
         primaryKeyField: modelPrimaryKeyField,
         assertPrimaryKeyField,
       };
-      return instanceUpdateRelationship(this, ctx, data, params);
+      return instanceUpdateRelationship(this, ctx, data, params) as Promise<
+        UpdateRelationshipResult<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias,
+          Return
+        >
+      >;
     }
   };
 

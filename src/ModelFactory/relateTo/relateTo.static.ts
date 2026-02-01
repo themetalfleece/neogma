@@ -1,43 +1,58 @@
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
+import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { QueryRunner } from '../../QueryRunner';
 import type { WhereParamsByIdentifierI } from '../../Where';
 import type { AnyObject } from '../shared.types';
-import type { RelateToParams, RelationshipCrudContext } from './relateTo.types';
+import type {
+  RelateToParams,
+  RelateToResult,
+  RelateToResultEntry,
+  RelationshipCrudContext,
+} from './relateTo.types';
+
+export type { RelateToResult, RelateToResultEntry };
 
 /**
  * Creates a relationship using the configuration specified in "relationships".
+ * @returns A tuple of [relationships, count] where relationships is populated when return: true
  */
 export async function relateTo<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
+  Return extends boolean = false,
 >(
   ctx: RelationshipCrudContext<Properties, RelatedNodesToAssociateI, MethodsI>,
-  params: RelateToParams<Properties, RelatedNodesToAssociateI, Alias>,
-): Promise<number> {
+  params: RelateToParams<Properties, RelatedNodesToAssociateI, Alias> & {
+    return?: Return;
+  },
+): Promise<
+  RelateToResult<Properties, RelatedNodesToAssociateI, MethodsI, Alias, Return>
+> {
   const relationship = ctx.getRelationshipConfiguration(params.alias);
-
-  const where: WhereParamsByIdentifierI = {};
-  if (params.where) {
-    where[QueryRunner.identifiers.createRelationship.source] =
-      params.where.source;
-    where[QueryRunner.identifiers.createRelationship.target] =
-      params.where.target;
-  }
+  const relationshipModel = ctx.getRelationshipModel(relationship.model);
 
   const relationshipProperties = ctx.getRelationshipProperties(
     relationship,
     params.properties || {},
   );
 
+  const identifiers = QueryRunner.identifiers.createRelationship;
+
+  const where: WhereParamsByIdentifierI = {};
+  if (params.where) {
+    where[identifiers.source] = params.where.source;
+    where[identifiers.target] = params.where.target;
+  }
+
   const res = await ctx.queryRunner.createRelationship({
     source: {
       label: ctx.getLabel(),
     },
     target: {
-      label: ctx.getRelationshipModel(relationship.model).getLabel(),
+      label: relationshipModel.getLabel(),
     },
     relationship: {
       name: relationship.name,
@@ -46,10 +61,17 @@ export async function relateTo<
     },
     where,
     session: params.session,
+    return: params.return,
   });
 
   const relationshipsCreated =
     res.summary.counters.updates().relationshipsCreated;
+
+  if (params.throwIfNoneCreated && relationshipsCreated === 0) {
+    throw new NeogmaNotFoundError('No relationships were created', {
+      alias: String(params.alias),
+    });
+  }
 
   const { assertCreatedRelationships } = params;
   if (
@@ -65,5 +87,29 @@ export async function relateTo<
     );
   }
 
-  return relationshipsCreated;
+  if (params.return) {
+    const relationships = res.records.map((record) => ({
+      source: ctx.buildFromRecord(record.get(identifiers.source)),
+      target: relationshipModel.buildFromRecord(record.get(identifiers.target)),
+      relationship: record.get(identifiers.relationship).properties,
+    })) as Array<
+      RelateToResultEntry<Properties, RelatedNodesToAssociateI, MethodsI, Alias>
+    >;
+
+    return [relationships, relationshipsCreated] as RelateToResult<
+      Properties,
+      RelatedNodesToAssociateI,
+      MethodsI,
+      Alias,
+      Return
+    >;
+  }
+
+  return [[], relationshipsCreated] as RelateToResult<
+    Properties,
+    RelatedNodesToAssociateI,
+    MethodsI,
+    Alias,
+    Return
+  >;
 }

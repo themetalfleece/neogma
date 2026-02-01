@@ -40,4 +40,9 @@ export interface DeleteRelationshipsParams<
     RelatedNodesToAssociateI,
     Alias
   >;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships were deleted.
+   * @default false
+   */
+  throwIfNoneDeleted?: boolean;
 }

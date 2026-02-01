@@ -1,3 +1,5 @@
+import type { QueryResult } from 'neo4j-driver';
+
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { QueryRunner } from '../../QueryRunner';
 import type { WhereParamsI } from '../../Where';
@@ -17,6 +19,19 @@ export interface UpdateContext<
   }) => NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
 }
 
+/** Result type for update - tuple of [instances[], QueryResult] when return is true, [[], QueryResult] when false */
+export type UpdateResult<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+  Return extends boolean = false,
+> = Return extends true
+  ? [
+      Array<NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>>,
+      QueryResult,
+    ]
+  : [[], QueryResult];
+
 /**
  * Parameters for the static update method.
  * @typeParam Properties - The model's property types for type-safe where clause validation.
@@ -26,5 +41,9 @@ export interface UpdateParams<
 > extends GenericConfiguration {
   /** Where clause with type-safe property name and value validation. */
   where?: WhereParamsI<Properties>;
+  /**
+   * When true, the first element of the returned tuple contains the updated instances.
+   * When false (default), the first element is an empty array.
+   */
   return?: boolean;
 }

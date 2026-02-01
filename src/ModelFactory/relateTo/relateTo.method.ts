@@ -2,6 +2,7 @@ import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
 import type { AnyObject } from '../shared.types';
 import { getInstanceProperty } from '../utils/propertyAccessor';
+import type { RelateToResult } from './relateTo.static';
 import type {
   InstanceRelateToParams,
   InstanceRelationshipContext,
@@ -9,12 +10,14 @@ import type {
 
 /**
  * Creates a relationship from this instance to a target node.
+ * @returns A tuple of [relationships, count] where relationships is populated when return: true
  */
 export async function instanceRelateTo<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
+  Return extends boolean = false,
 >(
   instance: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
   ctx: InstanceRelationshipContext<
@@ -22,8 +25,12 @@ export async function instanceRelateTo<
     RelatedNodesToAssociateI,
     MethodsI
   >,
-  params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias>,
-): Promise<number> {
+  params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias> & {
+    return?: Return;
+  },
+): Promise<
+  RelateToResult<Properties, RelatedNodesToAssociateI, MethodsI, Alias, Return>
+> {
   const primaryKeyField = ctx.assertPrimaryKeyField(
     ctx.primaryKeyField,
     'relateTo',

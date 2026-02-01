@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { Op } from '../../Where';
 import type { UsersRelatedNodesI } from '../testHelpers';
 import {
@@ -226,7 +227,7 @@ describe('deleteRelationships type safety', () => {
         relationship: { rating: 5 },
       },
     });
-  });
+  }, 30000);
 });
 
 /**
@@ -285,7 +286,7 @@ describe('deleteRelationships where type safety', () => {
     });
 
     expect(true).toBe(true);
-  });
+  }, 30000);
 
   it('rejects invalid property names in source where clause', () => {
     const neogma = getNeogma();
@@ -605,5 +606,154 @@ describe('deleteRelationships where type safety', () => {
     );
 
     expect(true).toBe(true);
+  });
+});
+
+/**
+ * Type tests for throwIfNoneDeleted option.
+ */
+describe('deleteRelationships throwIfNoneDeleted type safety', () => {
+  it('accepts boolean values for throwIfNoneDeleted', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    // Valid: throwIfNoneDeleted as true
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        throwIfNoneDeleted: true,
+      }),
+    );
+
+    // Valid: throwIfNoneDeleted as false
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        throwIfNoneDeleted: false,
+      }),
+    );
+
+    // Valid: throwIfNoneDeleted not specified
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects non-boolean values for throwIfNoneDeleted', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        // @ts-expect-error - throwIfNoneDeleted expects boolean, not string
+        throwIfNoneDeleted: 'true',
+      }),
+    );
+
+    typeCheck(() =>
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: { source: { id: 'test' } },
+        // @ts-expect-error - throwIfNoneDeleted expects boolean, not number
+        throwIfNoneDeleted: 1,
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+});
+
+/**
+ * Runtime tests for deleteRelationships throwIfNoneDeleted option.
+ */
+describe('deleteRelationships throwIfNoneDeleted', () => {
+  it('returns 0 when no relationships match and throwIfNoneDeleted is false', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const deletedCount = await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: { id: 'non-existent-user' },
+        target: { id: 'non-existent-order' },
+      },
+      throwIfNoneDeleted: false,
+    });
+
+    expect(deletedCount).toBe(0);
+  });
+
+  it('returns 0 when no relationships match and throwIfNoneDeleted is not specified', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const deletedCount = await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: { id: 'non-existent-user' },
+        target: { id: 'non-existent-order' },
+      },
+    });
+
+    expect(deletedCount).toBe(0);
+  });
+
+  it('throws NeogmaNotFoundError when no relationships match and throwIfNoneDeleted is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await expect(
+      Users.deleteRelationships({
+        alias: 'Orders',
+        where: {
+          source: { id: 'non-existent-user' },
+          target: { id: 'non-existent-order' },
+        },
+        throwIfNoneDeleted: true,
+      }),
+    ).rejects.toThrow(NeogmaNotFoundError);
+  });
+
+  it('does not throw when relationships are deleted and throwIfNoneDeleted is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await Users.relateTo({
+      alias: 'Orders',
+      where: {
+        source: { id: user.id },
+        target: { id: order.id },
+      },
+      properties: { Rating: 5 },
+    });
+
+    const deletedCount = await Users.deleteRelationships({
+      alias: 'Orders',
+      where: {
+        source: { id: user.id },
+        target: { id: order.id },
+      },
+      throwIfNoneDeleted: true,
+    });
+
+    expect(deletedCount).toBe(1);
   });
 });

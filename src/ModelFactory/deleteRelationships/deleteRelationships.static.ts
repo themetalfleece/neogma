@@ -1,4 +1,5 @@
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
+import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { QueryRunner } from '../../QueryRunner';
@@ -65,5 +66,13 @@ export async function deleteRelationships<
 
   const res = await queryBuilder.run(ctx.queryRunner, session);
 
-  return QueryRunner.getRelationshipsDeleted(res);
+  const deletedCount = QueryRunner.getRelationshipsDeleted(res);
+
+  if (params.throwIfNoneDeleted && deletedCount === 0) {
+    throw new NeogmaNotFoundError('No relationships were deleted', {
+      alias: String(alias),
+    });
+  }
+
+  return deletedCount;
 }

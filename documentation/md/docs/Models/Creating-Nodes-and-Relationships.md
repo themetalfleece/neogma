@@ -136,10 +136,37 @@ await Users.relateTo(
         },
         /* --> (optional) throws an error if the created relationships are not equal to this number */
         assertCreatedRelationships: 2,
+        /* --> (optional) when true, the first element of the returned tuple contains the created relationships */
+        return: false,
+        /* --> (optional) throws NeogmaNotFoundError if no relationships were created */
+        throwIfNoneCreated: false,
         /* --> (optional) an existing session or transaction to use */
         session: null
     }
 );
+```
+
+### Return value
+The method always returns a tuple `[relationships, count]`:
+- `relationships`: Array of `{ source, target, relationship }` objects (populated when `return: true`, empty when `return: false`)
+- `count`: Number of relationships created
+
+```js
+const [relationships, count] = await Users.relateTo({
+    alias: 'Orders',
+    where: {
+        source: { name: 'John' },
+        target: { id: '2' },
+    },
+    properties: { Rating: 4 },
+    return: true,
+});
+
+/* --> relationships is populated when return: true */
+console.log(relationships[0].source.name); // 'John'
+console.log(relationships[0].target.id); // '2'
+console.log(relationships[0].relationship.rating); // 4
+console.log(count); // 1
 ```
 
 ## Creating relationships via the Instance method
@@ -164,10 +191,28 @@ await user.relateTo(
         },
         /* --> (optional) throws an error if the created relationships are not equal to this number */
         assertCreatedRelationships: 2,
+        /* --> (optional) when true, the first element of the returned tuple contains the created relationships */
+        return: false,
+        /* --> (optional) throws NeogmaNotFoundError if no relationships were created */
+        throwIfNoneCreated: false,
         /* --> (optional) an existing session or transaction to use */
         session: null
     }
 );
+```
+
+The instance method also returns a tuple `[relationships, count]`:
+
+```js
+const [relationships, count] = await user.relateTo({
+    alias: 'Orders',
+    where: { id: '2' },
+    properties: { Rating: 4 },
+    return: true,
+});
+
+console.log(relationships[0].relationship.rating); // 4
+console.log(count); // 1
 ```
 
 > :ToCPrevNext

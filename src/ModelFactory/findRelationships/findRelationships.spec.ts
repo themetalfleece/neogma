@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { Op } from '../../Where';
 import type { UsersRelatedNodesI } from '../testHelpers';
 import {
@@ -814,5 +815,95 @@ describe('findRelationships where type safety', () => {
     );
 
     expect(true).toBe(true);
+  });
+});
+
+/**
+ * Tests for findRelationships throwIfNoneFound option.
+ */
+describe('findRelationships throwIfNoneFound', () => {
+  it('returns empty array when no relationships match and throwIfNoneFound is false', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+    const relationships = await user.findRelationships({
+      alias: 'Orders',
+      throwIfNoneFound: false,
+    });
+
+    expect(relationships).toEqual([]);
+  });
+
+  it('returns empty array when no relationships match and throwIfNoneFound is not specified', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+    const relationships = await user.findRelationships({
+      alias: 'Orders',
+    });
+
+    expect(relationships).toEqual([]);
+  });
+
+  it('throws NeogmaNotFoundError when no relationships match and throwIfNoneFound is true (static)', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await expect(
+      Users.findRelationships({
+        alias: 'Orders',
+        where: {
+          source: { id: 'non-existent-user' },
+        },
+        throwIfNoneFound: true,
+      }),
+    ).rejects.toThrow(NeogmaNotFoundError);
+  });
+
+  it('throws NeogmaNotFoundError when no relationships match and throwIfNoneFound is true (instance)', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+    await expect(
+      user.findRelationships({
+        alias: 'Orders',
+        throwIfNoneFound: true,
+      }),
+    ).rejects.toThrow(NeogmaNotFoundError);
+  });
+
+  it('does not throw when relationships are found and throwIfNoneFound is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await Users.relateTo({
+      alias: 'Orders',
+      where: {
+        source: { id: user.id },
+        target: { id: order.id },
+      },
+      properties: { Rating: 5 },
+    });
+
+    const relationships = await user.findRelationships({
+      alias: 'Orders',
+      throwIfNoneFound: true,
+    });
+
+    expect(relationships.length).toBe(1);
   });
 });

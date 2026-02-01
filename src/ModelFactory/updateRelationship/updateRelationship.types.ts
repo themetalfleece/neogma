@@ -1,9 +1,46 @@
+import type { QueryResult } from 'neo4j-driver';
+
+import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { ExtractPropertiesFromInstance, WhereParamsI } from '../../Where';
+import type { NeogmaInstance } from '../model.types';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 // Re-export RelationshipCrudContext from relateTo since they share the same context
 export type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 export type { InstanceRelationshipContext } from '../relateTo/relateTo.types';
+
+/** Result type for a single relationship entry */
+export type UpdateRelationshipResultEntry<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+> = {
+  source: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
+  target: RelatedNodesToAssociateI[Alias]['Instance'];
+  relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+};
+
+/** Result type for updateRelationship - tuple of [relationships[], QueryResult] when return is true, [[], QueryResult] when false */
+export type UpdateRelationshipResult<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+  Return extends boolean = false,
+> = Return extends true
+  ? [
+      Array<
+        UpdateRelationshipResultEntry<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias
+        >
+      >,
+      QueryResult,
+    ]
+  : [[], QueryResult];
 
 /**
  * Type-safe data for updating relationship properties.
@@ -52,6 +89,16 @@ export interface UpdateRelationshipParams<
     RelatedNodesToAssociateI,
     Alias
   >;
+  /**
+   * When true, the first element of the returned tuple contains the updated relationships.
+   * When false (default), the first element is an empty array.
+   */
+  return?: boolean;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships were updated.
+   * @default false
+   */
+  throwIfNoneUpdated?: boolean;
 }
 
 /**
@@ -85,4 +132,14 @@ export interface InstanceUpdateRelationshipParams<
     RelatedNodesToAssociateI,
     Alias
   >;
+  /**
+   * When true, the first element of the returned tuple contains the updated relationships.
+   * When false (default), the first element is an empty array.
+   */
+  return?: boolean;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships were updated.
+   * @default false
+   */
+  throwIfNoneUpdated?: boolean;
 }

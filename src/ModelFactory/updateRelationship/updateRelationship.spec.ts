@@ -1,5 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 
+import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { Op } from '../../Where';
 import type { UsersRelatedNodesI } from '../testHelpers';
 import {
@@ -346,7 +347,7 @@ describe('updateRelationship type safety', () => {
     ).rejects.toThrow();
   });
 
-  it('updateRelationship returns Promise<QueryResult>', async () => {
+  it('updateRelationship returns tuple [relationships[], QueryResult]', async () => {
     const neogma = getNeogma();
     const Orders = createOrdersModel(neogma);
     const Users = createUsersModel(Orders, neogma);
@@ -360,7 +361,7 @@ describe('updateRelationship type safety', () => {
       properties: { Rating: 3 },
     });
 
-    const result = await Users.updateRelationship(
+    const [relationships, queryResult] = await Users.updateRelationship(
       { rating: 5 },
       {
         alias: 'Orders',
@@ -368,9 +369,11 @@ describe('updateRelationship type safety', () => {
       },
     );
 
-    // QueryResult has records property
-    expect(result).toHaveProperty('records');
-    expect(result).toHaveProperty('summary');
+    // First element is relationships array (empty when return not specified)
+    expect(Array.isArray(relationships)).toBe(true);
+    // Second element is QueryResult
+    expect(queryResult).toHaveProperty('records');
+    expect(queryResult).toHaveProperty('summary');
   });
 });
 
@@ -1117,5 +1120,450 @@ describe('updateRelationship data type safety', () => {
 
       expect(true).toBe(true);
     });
+  });
+});
+
+/**
+ * Tests for the return option in updateRelationship.
+ * updateRelationship always returns a tuple [relationships[], QueryResult].
+ * When return is true, relationships[] is populated. When false/not specified, it's empty.
+ */
+describe('updateRelationship with return option', () => {
+  it('returns populated relationships when return is true (static method)', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 3 },
+    });
+
+    const [relationships, queryResult] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: user.id },
+          target: { id: order.id },
+        },
+        return: true,
+      },
+    );
+
+    expect(Array.isArray(relationships)).toBe(true);
+    expect(relationships.length).toBe(1);
+    expect(relationships[0].source.id).toBe(user.id);
+    expect(relationships[0].target.id).toBe(order.id);
+    expect(relationships[0].relationship.rating).toBe(5);
+    expect(queryResult.summary).toBeDefined();
+  });
+
+  it('returns populated relationships when return is true (instance method)', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 2 },
+    });
+
+    const [relationships, queryResult] = await user.updateRelationship(
+      { rating: 4 },
+      {
+        alias: 'Orders',
+        where: { target: { id: order.id } },
+        return: true,
+      },
+    );
+
+    expect(Array.isArray(relationships)).toBe(true);
+    expect(relationships.length).toBe(1);
+    expect(relationships[0].source.id).toBe(user.id);
+    expect(relationships[0].target.id).toBe(order.id);
+    expect(relationships[0].relationship.rating).toBe(4);
+    expect(queryResult.summary).toBeDefined();
+  });
+
+  it('returns empty array and QueryResult when return is false', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 3 },
+    });
+
+    const [relationships, queryResult] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: user.id },
+          target: { id: order.id },
+        },
+        return: false,
+      },
+    );
+
+    expect(relationships).toEqual([]);
+    expect(queryResult.summary).toBeDefined();
+  });
+
+  it('returns multiple updated relationships when return is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order1 = await Orders.createOne({ id: uuid(), name: uuid() });
+    const order2 = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order1.id },
+      properties: { Rating: 1 },
+    });
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order2.id },
+      properties: { Rating: 2 },
+    });
+
+    const [relationships] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: { source: { id: user.id } },
+        return: true,
+      },
+    );
+
+    expect(relationships.length).toBe(2);
+    expect(relationships.every((r) => r.source.id === user.id)).toBe(true);
+    expect(relationships.every((r) => r.relationship.rating === 5)).toBe(true);
+  });
+});
+
+/**
+ * Tests for updateRelationship throwIfNoneUpdated option.
+ */
+describe('updateRelationship throwIfNoneUpdated', () => {
+  it('returns without throwing when no relationships match and throwIfNoneUpdated is false', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const [relationships, queryResult] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: 'non-existent-user' },
+        },
+        throwIfNoneUpdated: false,
+      },
+    );
+
+    expect(relationships).toEqual([]);
+    expect(queryResult.summary).toBeDefined();
+  });
+
+  it('returns without throwing when no relationships match and throwIfNoneUpdated is not specified', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const [relationships, queryResult] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: 'non-existent-user' },
+        },
+      },
+    );
+
+    expect(relationships).toEqual([]);
+    expect(queryResult.summary).toBeDefined();
+  });
+
+  it('throws NeogmaNotFoundError when no relationships match and throwIfNoneUpdated is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    await expect(
+      Users.updateRelationship(
+        { rating: 5 },
+        {
+          alias: 'Orders',
+          where: {
+            source: { id: 'non-existent-user' },
+          },
+          throwIfNoneUpdated: true,
+        },
+      ),
+    ).rejects.toThrow(NeogmaNotFoundError);
+  });
+
+  it('does not throw when relationships are updated and throwIfNoneUpdated is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await Users.relateTo({
+      alias: 'Orders',
+      where: {
+        source: { id: user.id },
+        target: { id: order.id },
+      },
+      properties: { Rating: 3 },
+    });
+
+    const [relationships] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: user.id },
+        },
+        return: true,
+        throwIfNoneUpdated: true,
+      },
+    );
+
+    expect(relationships.length).toBe(1);
+    expect(relationships[0].relationship.rating).toBe(5);
+  });
+});
+
+/**
+ * Type-level tests for the return option.
+ * Return type is always a tuple [relationships[], QueryResult].
+ */
+describe('updateRelationship return option type safety', () => {
+  it('return type is tuple [relationships[], QueryResult]', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 3 },
+    });
+
+    // Result is a tuple
+    const [relationships, queryResult] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: user.id },
+        },
+      },
+    );
+
+    expect(Array.isArray(relationships)).toBe(true);
+    expect(queryResult.summary).toBeDefined();
+  });
+
+  it('relationships array is populated when return is true', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 3 },
+    });
+
+    const [relationships, queryResult] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: {
+          source: { id: user.id },
+        },
+        return: true,
+      },
+    );
+
+    // Access relationship properties - this should compile
+    const rating: number = relationships[0].relationship.rating;
+    expect(rating).toBe(5);
+
+    // Access source and target - this should compile
+    const sourceId: string = relationships[0].source.id;
+    const targetId: string = relationships[0].target.id;
+    expect(sourceId).toBe(user.id);
+    expect(targetId).toBe(order.id);
+    expect(queryResult.summary).toBeDefined();
+  });
+});
+
+/**
+ * Type tests for conditional return types.
+ * Verifies that the return type changes based on the `return` parameter.
+ */
+describe('updateRelationship conditional return type safety', () => {
+  it('when return is true, relationships array has proper typing', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 3 },
+    });
+
+    const [relationships] = await Users.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: { source: { id: user.id } },
+        return: true,
+      },
+    );
+
+    // These should all type-check correctly
+    const sourceId: string = relationships[0].source.id;
+    const targetId: string = relationships[0].target.id;
+    const rating: number = relationships[0].relationship.rating;
+
+    expect(sourceId).toBe(user.id);
+    expect(targetId).toBe(order.id);
+    expect(rating).toBe(5);
+  });
+
+  it('when return is false, relationships is typed as empty array', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(async () => {
+      const [relationships] = await Users.updateRelationship(
+        { rating: 5 },
+        {
+          alias: 'Orders',
+          where: { source: { id: 'user-id' } },
+          return: false,
+        },
+      );
+
+      // @ts-expect-error - relationships is typed as [] when return is false, accessing [0] should error
+      const _source = relationships[0];
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('when return is not specified, relationships is typed as empty array', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(async () => {
+      const [relationships] = await Users.updateRelationship(
+        { rating: 5 },
+        {
+          alias: 'Orders',
+          where: { source: { id: 'user-id' } },
+        },
+      );
+
+      // @ts-expect-error - relationships is typed as [] when return is not specified, accessing [0] should error
+      const _source = relationships[0];
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('instance method: when return is true, relationships has proper typing', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 3 },
+    });
+
+    const [relationships] = await user.updateRelationship(
+      { rating: 5 },
+      {
+        alias: 'Orders',
+        where: { target: { id: order.id } },
+        return: true,
+      },
+    );
+
+    // These should all type-check correctly
+    const sourceId: string = relationships[0].source.id;
+    const targetId: string = relationships[0].target.id;
+    const rating: number = relationships[0].relationship.rating;
+
+    expect(sourceId).toBe(user.id);
+    expect(targetId).toBe(order.id);
+    expect(rating).toBe(5);
+  });
+
+  it('instance method: when return is false, relationships is typed as empty array', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+    typeCheck(() =>
+      user
+        .updateRelationship(
+          { rating: 5 },
+          {
+            alias: 'Orders',
+            where: { target: { id: 'order-id' } },
+            return: false,
+          },
+        )
+        .then(([relationships]) => {
+          // @ts-expect-error - relationships is typed as [] when return is false
+          const _source = relationships[0];
+        }),
+    );
+
+    expect(true).toBe(true);
   });
 });

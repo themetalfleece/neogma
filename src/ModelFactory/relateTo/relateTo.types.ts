@@ -8,6 +8,39 @@ import type {
 } from '../model.types';
 import type { AnyObject, GenericConfiguration } from '../shared.types';
 
+/** Result type for a single relationship entry */
+export type RelateToResultEntry<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+> = {
+  source: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
+  target: RelatedNodesToAssociateI[Alias]['Instance'];
+  relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+};
+
+/** Result type for relateTo - tuple of [relationships[], count] when return is true, [[], count] when false */
+export type RelateToResult<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+  Alias extends keyof RelatedNodesToAssociateI,
+  Return extends boolean = false,
+> = Return extends true
+  ? [
+      Array<
+        RelateToResultEntry<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias
+        >
+      >,
+      number,
+    ]
+  : [[], number];
+
 export interface RelationshipCrudContext<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
@@ -74,6 +107,16 @@ export interface RelateToParams<
   where: RelateToWhereClause<SourceProperties, RelatedNodesToAssociateI, Alias>;
   properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
   assertCreatedRelationships?: number;
+  /**
+   * When true, the first element of the returned tuple contains the created relationships.
+   * When false (default), the first element is an empty array.
+   */
+  return?: boolean;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships were created.
+   * @default false
+   */
+  throwIfNoneCreated?: boolean;
 }
 
 // Instance relateTo types
@@ -106,4 +149,14 @@ export interface InstanceRelateToParams<
   >;
   properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
   assertCreatedRelationships?: number;
+  /**
+   * When true, the first element of the returned tuple contains the created relationships.
+   * When false (default), the first element is an empty array.
+   */
+  return?: boolean;
+  /**
+   * When true, throws NeogmaNotFoundError if no relationships were created.
+   * @default false
+   */
+  throwIfNoneCreated?: boolean;
 }
