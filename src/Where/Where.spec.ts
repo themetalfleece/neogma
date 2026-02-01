@@ -306,7 +306,9 @@ describe('Where', () => {
     ).toBeFalsy();
     // null generates IS NULL
     expect(
-      where.getStatement('text').includes(`identifier.${nullIdentifier} IS NULL`),
+      where
+        .getStatement('text')
+        .includes(`identifier.${nullIdentifier} IS NULL`),
     ).toBeTruthy();
   });
 
