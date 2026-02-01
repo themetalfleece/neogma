@@ -478,123 +478,31 @@ await Users.findMany({ where: { age: { [Op.contains]: 5 } } }); // Error!
 
 ### IS NULL and IS NOT NULL
 
-The `Op.isNull` and `Op.isNotNull` operators check whether a property is null or not null in the database. These are useful for soft-delete patterns, optional properties, and filtering by missing values.
-
-#### Using Op.isNull
-
-Check if a property is null:
+Check if a property is null or not null:
 
 ```js
 const where = new Where({
     n: {
         deleted: { [Op.isNull]: true },
-    },
-});
-
-console.log(where.getStatement('text')); // n.deleted IS NULL
-console.log(where.bindParam.get()); // {} (no bind params needed)
-```
-
-#### Using Op.isNotNull
-
-Check if a property is not null:
-
-```js
-const where = new Where({
-    n: {
         createdAt: { [Op.isNotNull]: true },
     },
 });
 
-console.log(where.getStatement('text')); // n.createdAt IS NOT NULL
-console.log(where.bindParam.get()); // {} (no bind params needed)
-```
-
-#### Shorthand: Direct null Value
-
-For convenience, you can use `null` directly as a value, which is equivalent to `{ [Op.isNull]: true }`:
-
-```js
-const where = new Where({
-    n: {
-        deleted: null,  // Shorthand for { [Op.isNull]: true }
-    },
-});
-
-console.log(where.getStatement('text')); // n.deleted IS NULL
-```
-
-#### Soft-Delete Pattern Example
-
-A common use case is implementing soft deletes, where records are marked as deleted rather than actually removed:
-
-```typescript
-// Model with optional 'deleted' property (ISO8601 timestamp when deleted)
-type ProjectProperties = {
-    id: string;
-    name: string;
-    deleted?: string;  // null if not deleted, timestamp if deleted
-};
-
-// Find all non-deleted projects using direct null (intuitive shorthand)
-await Projects.findMany({
-    where: { deleted: null }
-});
-
-// Or using explicit Op.isNull
-await Projects.findMany({
-    where: { deleted: { [Op.isNull]: true } }
-});
-
-// Find only deleted projects
-await Projects.findMany({
-    where: { deleted: { [Op.isNotNull]: true } }
-});
-```
-
-#### Using with findRelationships
-
-The null operators work seamlessly with relationship queries:
-
-```typescript
-// Find all non-deleted projects for an organization
-await Organizations.findRelationships({
-    alias: 'Projects',
-    where: {
-        source: { id: orgId },
-        target: { deleted: null },  // Only non-deleted projects
-    },
-});
-
-// This generates:
-// MATCH (source:Organization { id: $id })-[:CONTAINS]->(target:Project)
-// WHERE target.deleted IS NULL
-```
-
-#### Combining with Other Operators
-
-Null operators can be combined with other conditions:
-
-```js
-const where = new Where({
-    n: {
-        name: 'John',
-        deleted: null,                     // IS NULL
-        createdAt: { [Op.isNotNull]: true }, // IS NOT NULL
-        age: { [Op.gte]: 18 },
-    },
-});
-
 console.log(where.getStatement('text'));
-// n.name = $name AND n.deleted IS NULL AND n.createdAt IS NOT NULL AND n.age >= $age
-
-console.log(where.bindParam.get());
-// { name: 'John', age: 18 }  (only non-null operators add bind params)
+// n.deleted IS NULL AND n.createdAt IS NOT NULL
 ```
 
-> **Note**: `Op.isNull` and `Op.isNotNull` do not add any values to the bind parameters since they don't require a comparison value.
+For convenience, you can use `null` directly as shorthand for `{ [Op.isNull]: true }`:
 
-> **Important**: These operators are only available in "text" mode. Using them with `getStatement('object')` (bracket syntax) will throw an error, as Cypher's bracket syntax doesn't support null checks.
+```js
+const where = new Where({
+    n: {
+        deleted: null,  // Equivalent to { [Op.isNull]: true }
+    },
+});
+```
+
+> **Note**: These operators are only available in "text" mode (WHERE clause), not "object" mode (bracket syntax).
 
 ## Using Operators in QueryBuilder Match
 
