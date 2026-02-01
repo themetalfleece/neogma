@@ -17,6 +17,7 @@ export async function instanceRelateTo<
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
+  Return extends boolean = false,
 >(
   instance: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
   ctx: InstanceRelationshipContext<
@@ -24,9 +25,11 @@ export async function instanceRelateTo<
     RelatedNodesToAssociateI,
     MethodsI
   >,
-  params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias>,
+  params: InstanceRelateToParams<RelatedNodesToAssociateI, Alias> & {
+    return?: Return;
+  },
 ): Promise<
-  RelateToResult<Properties, RelatedNodesToAssociateI, MethodsI, Alias>
+  RelateToResult<Properties, RelatedNodesToAssociateI, MethodsI, Alias, Return>
 > {
   const primaryKeyField = ctx.assertPrimaryKeyField(
     ctx.primaryKeyField,

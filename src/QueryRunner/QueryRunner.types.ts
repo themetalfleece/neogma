@@ -87,7 +87,7 @@ type AnyObject = Record<string, any>;
 /** Imported here to avoid circular dependency - use AnyWhereI from Where module */
 type WhereParam = Record<string, Record<string, any>>;
 
-export interface CreateRelationshipParamsI {
+export interface CreateRelationshipParamsI<Return extends boolean = false> {
   source: {
     label?: string;
     /** identifier to be used in the query. Defaults to the value of QueryRunner.identifiers.createRelationship.source */
@@ -109,5 +109,5 @@ export interface CreateRelationshipParamsI {
   /** the session or transaction for running this query */
   session?: Runnable | null;
   /** when true, returns the created source, target, and relationship in the query result records */
-  return?: boolean;
+  return?: Return;
 }

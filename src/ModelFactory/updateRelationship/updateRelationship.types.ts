@@ -21,23 +21,26 @@ export type UpdateRelationshipResultEntry<
   relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
 };
 
-/** Result type for updateRelationship - tuple of [relationships[], QueryResult] */
+/** Result type for updateRelationship - tuple of [relationships[], QueryResult] when return is true, [[], QueryResult] when false */
 export type UpdateRelationshipResult<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
-> = [
-  Array<
-    UpdateRelationshipResultEntry<
-      Properties,
-      RelatedNodesToAssociateI,
-      MethodsI,
-      Alias
-    >
-  >,
-  QueryResult,
-];
+  Return extends boolean = false,
+> = Return extends true
+  ? [
+      Array<
+        UpdateRelationshipResultEntry<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias
+        >
+      >,
+      QueryResult,
+    ]
+  : [[], QueryResult];
 
 /**
  * Type-safe data for updating relationship properties.

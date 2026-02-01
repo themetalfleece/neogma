@@ -171,7 +171,7 @@ export interface NeogmaModelStaticsI<
   >(
     alias: Alias,
   ) => RelationshipsI<RelatedNodesToAssociateI>[Alias];
-  update: (
+  update: <Return extends boolean = false>(
     data: UpdateData,
     params?: GenericConfiguration & {
       where?: WhereParamsI<Properties>;
@@ -179,10 +179,15 @@ export interface NeogmaModelStaticsI<
        * When true, the first element of the returned tuple contains the updated instances.
        * When false (default), the first element is an empty array.
        */
-      return?: boolean;
+      return?: Return;
     },
-  ) => Promise<[Instance[], QueryResult]>;
-  updateRelationship: <Alias extends keyof RelatedNodesToAssociateI>(
+  ) => Promise<
+    Return extends true ? [Instance[], QueryResult] : [[], QueryResult]
+  >;
+  updateRelationship: <
+    Alias extends keyof RelatedNodesToAssociateI,
+    Return extends boolean = false,
+  >(
     data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
     params: {
       alias: Alias;
@@ -195,20 +200,22 @@ export interface NeogmaModelStaticsI<
        * When true, the first element of the returned tuple contains the updated relationships.
        * When false (default), the first element is an empty array.
        */
-      return?: boolean;
+      return?: Return;
       /** When true, throws NeogmaNotFoundError if no relationships were updated. */
       throwIfNoneUpdated?: boolean;
       session?: GenericConfiguration['session'];
     },
   ) => Promise<
-    [
-      Array<{
-        source: Instance;
-        target: RelatedNodesToAssociateI[Alias]['Instance'];
-        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
-      }>,
-      QueryResult,
-    ]
+    Return extends true
+      ? [
+          Array<{
+            source: Instance;
+            target: RelatedNodesToAssociateI[Alias]['Instance'];
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+          }>,
+          QueryResult,
+        ]
+      : [[], QueryResult]
   >;
   /** returns the relationship properties to be created, from the data in dataToUse (with the alias as a key) */
   getRelationshipProperties: (
@@ -262,7 +269,10 @@ export interface NeogmaModelStaticsI<
     primaryKeyField: string | undefined,
     operation: string,
   ) => string;
-  relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
+  relateTo: <
+    Alias extends keyof RelatedNodesToAssociateI,
+    Return extends boolean = false,
+  >(params: {
     alias: Alias;
     where: RelateToWhereClause<Properties, RelatedNodesToAssociateI, Alias>;
     properties?: RelatedNodesToAssociateI[Alias]['CreateRelationshipProperties'];
@@ -272,19 +282,21 @@ export interface NeogmaModelStaticsI<
      * When true, the first element of the returned tuple contains the created relationships.
      * When false (default), the first element is an empty array.
      */
-    return?: boolean;
+    return?: Return;
     /** When true, throws NeogmaNotFoundError if no relationships were created. */
     throwIfNoneCreated?: boolean;
     session?: GenericConfiguration['session'];
   }) => Promise<
-    [
-      Array<{
-        source: Instance;
-        target: RelatedNodesToAssociateI[Alias]['Instance'];
-        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
-      }>,
-      number,
-    ]
+    Return extends true
+      ? [
+          Array<{
+            source: Instance;
+            target: RelatedNodesToAssociateI[Alias]['Instance'];
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+          }>,
+          number,
+        ]
+      : [[], number]
   >;
   findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;
@@ -367,7 +379,10 @@ export interface NeogmaInstanceMethodsI<
   getDataValues: () => Properties;
   save: (configuration?: CreateDataParamsI) => Promise<Instance>;
   validate: () => Promise<void>;
-  updateRelationship: <Alias extends keyof RelatedNodesToAssociateI>(
+  updateRelationship: <
+    Alias extends keyof RelatedNodesToAssociateI,
+    Return extends boolean = false,
+  >(
     data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
     params: {
       alias: Alias;
@@ -379,27 +394,32 @@ export interface NeogmaInstanceMethodsI<
        * When true, the first element of the returned tuple contains the updated relationships.
        * When false (default), the first element is an empty array.
        */
-      return?: boolean;
+      return?: Return;
       /** When true, throws NeogmaNotFoundError if no relationships were updated. */
       throwIfNoneUpdated?: boolean;
       session?: GenericConfiguration['session'];
     },
   ) => Promise<
-    [
-      Array<{
-        source: Instance;
-        target: RelatedNodesToAssociateI[Alias]['Instance'];
-        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
-      }>,
-      QueryResult,
-    ]
+    Return extends true
+      ? [
+          Array<{
+            source: Instance;
+            target: RelatedNodesToAssociateI[Alias]['Instance'];
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+          }>,
+          QueryResult,
+        ]
+      : [[], QueryResult]
   >;
   delete: (
     configuration?: GenericConfiguration & {
       detach?: boolean;
     },
   ) => Promise<number>;
-  relateTo: <Alias extends keyof RelatedNodesToAssociateI>(params: {
+  relateTo: <
+    Alias extends keyof RelatedNodesToAssociateI,
+    Return extends boolean = false,
+  >(params: {
     alias: Alias;
     where: WhereParamsI<
       ExtractPropertiesFromInstance<RelatedNodesToAssociateI[Alias]['Instance']>
@@ -411,19 +431,21 @@ export interface NeogmaInstanceMethodsI<
      * When true, the first element of the returned tuple contains the created relationships.
      * When false (default), the first element is an empty array.
      */
-    return?: boolean;
+    return?: Return;
     /** When true, throws NeogmaNotFoundError if no relationships were created. */
     throwIfNoneCreated?: boolean;
     session?: GenericConfiguration['session'];
   }) => Promise<
-    [
-      Array<{
-        source: Instance;
-        target: RelatedNodesToAssociateI[Alias]['Instance'];
-        relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
-      }>,
-      number,
-    ]
+    Return extends true
+      ? [
+          Array<{
+            source: Instance;
+            target: RelatedNodesToAssociateI[Alias]['Instance'];
+            relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
+          }>,
+          number,
+        ]
+      : [[], number]
   >;
   findRelationships: <Alias extends keyof RelatedNodesToAssociateI>(params: {
     alias: Alias;

@@ -94,8 +94,8 @@ export class QueryRunner {
     });
   };
 
-  public createRelationship = async (
-    params: CreateRelationshipParamsI,
+  public createRelationship = async <Return extends boolean = false>(
+    params: CreateRelationshipParamsI<Return>,
   ): Promise<QueryResult> => {
     return createRelationship(params, {
       runQueryBuilder: (queryBuilder, session) =>

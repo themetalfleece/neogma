@@ -1,3 +1,5 @@
+import type { QueryResult } from 'neo4j-driver';
+
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { QueryRunner } from '../../QueryRunner';
 import type { WhereParamsI } from '../../Where';
@@ -16,6 +18,19 @@ export interface UpdateContext<
     labels: string[];
   }) => NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>;
 }
+
+/** Result type for update - tuple of [instances[], QueryResult] when return is true, [[], QueryResult] when false */
+export type UpdateResult<
+  Properties extends Neo4jSupportedProperties,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
+  Return extends boolean = false,
+> = Return extends true
+  ? [
+      Array<NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>>,
+      QueryResult,
+    ]
+  : [[], QueryResult];
 
 /**
  * Parameters for the static update method.

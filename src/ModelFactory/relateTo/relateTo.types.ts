@@ -20,18 +20,26 @@ export type RelateToResultEntry<
   relationship: RelatedNodesToAssociateI[Alias]['RelationshipProperties'];
 };
 
-/** Result type for relateTo - tuple of [relationships[], count] */
+/** Result type for relateTo - tuple of [relationships[], count] when return is true, [[], count] when false */
 export type RelateToResult<
   Properties extends Neo4jSupportedProperties,
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
-> = [
-  Array<
-    RelateToResultEntry<Properties, RelatedNodesToAssociateI, MethodsI, Alias>
-  >,
-  number,
-];
+  Return extends boolean = false,
+> = Return extends true
+  ? [
+      Array<
+        RelateToResultEntry<
+          Properties,
+          RelatedNodesToAssociateI,
+          MethodsI,
+          Alias
+        >
+      >,
+      number,
+    ]
+  : [[], number];
 
 export interface RelationshipCrudContext<
   Properties extends Neo4jSupportedProperties,

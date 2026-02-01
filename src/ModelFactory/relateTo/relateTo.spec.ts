@@ -1012,3 +1012,131 @@ describe('relateTo throwIfNoneCreated', () => {
     expect(relationships.length).toBe(1);
   });
 });
+
+/**
+ * Type tests for conditional return types.
+ * Verifies that the return type changes based on the `return` parameter.
+ */
+describe('relateTo conditional return type safety', () => {
+  it('when return is true, relationships array has proper typing', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    const [relationships] = await Users.relateTo({
+      alias: 'Orders',
+      where: {
+        source: { id: user.id },
+        target: { id: order.id },
+      },
+      properties: { Rating: 5 },
+      return: true,
+    });
+
+    // These should all type-check correctly
+    const sourceId: string = relationships[0].source.id;
+    const targetId: string = relationships[0].target.id;
+    const rating: number = relationships[0].relationship.rating;
+
+    expect(sourceId).toBe(user.id);
+    expect(targetId).toBe(order.id);
+    expect(rating).toBe(5);
+  });
+
+  it('when return is false, relationships is typed as empty array', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(async () => {
+      const [relationships] = await Users.relateTo({
+        alias: 'Orders',
+        where: {
+          source: { id: 'user-id' },
+          target: { id: 'order-id' },
+        },
+        properties: { Rating: 5 },
+        return: false,
+      });
+
+      // @ts-expect-error - relationships is typed as [] when return is false, accessing [0] should error
+      const _source = relationships[0];
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('when return is not specified, relationships is typed as empty array', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(async () => {
+      const [relationships] = await Users.relateTo({
+        alias: 'Orders',
+        where: {
+          source: { id: 'user-id' },
+          target: { id: 'order-id' },
+        },
+        properties: { Rating: 5 },
+      });
+
+      // @ts-expect-error - relationships is typed as [] when return is not specified, accessing [0] should error
+      const _source = relationships[0];
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('instance method: when return is true, relationships has proper typing', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+    const order = await Orders.createOne({ id: uuid(), name: uuid() });
+
+    const [relationships] = await user.relateTo({
+      alias: 'Orders',
+      where: { id: order.id },
+      properties: { Rating: 5 },
+      return: true,
+    });
+
+    // These should all type-check correctly
+    const sourceId: string = relationships[0].source.id;
+    const targetId: string = relationships[0].target.id;
+    const rating: number = relationships[0].relationship.rating;
+
+    expect(sourceId).toBe(user.id);
+    expect(targetId).toBe(order.id);
+    expect(rating).toBe(5);
+  });
+
+  it('instance method: when return is false, relationships is typed as empty array', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+    typeCheck(() =>
+      user
+        .relateTo({
+          alias: 'Orders',
+          where: { id: 'order-id' },
+          properties: { Rating: 5 },
+          return: false,
+        })
+        .then(([relationships]) => {
+          // @ts-expect-error - relationships is typed as [] when return is false
+          const _source = relationships[0];
+        }),
+    );
+
+    expect(true).toBe(true);
+  });
+});

@@ -22,16 +22,24 @@ export async function updateRelationship<
   RelatedNodesToAssociateI extends AnyObject,
   MethodsI extends AnyObject,
   Alias extends keyof RelatedNodesToAssociateI,
+  Return extends boolean = false,
 >(
   ctx: RelationshipCrudContext<Properties, RelatedNodesToAssociateI, MethodsI>,
   data: UpdateRelationshipData<RelatedNodesToAssociateI, Alias>,
-  params: UpdateRelationshipParams<Properties, RelatedNodesToAssociateI, Alias>,
+  params: UpdateRelationshipParams<
+    Properties,
+    RelatedNodesToAssociateI,
+    Alias
+  > & {
+    return?: Return;
+  },
 ): Promise<
   UpdateRelationshipResult<
     Properties,
     RelatedNodesToAssociateI,
     MethodsI,
-    Alias
+    Alias,
+    Return
   >
 > {
   const relationship = ctx.getRelationshipConfiguration(params.alias);
@@ -126,7 +134,8 @@ export async function updateRelationship<
       Properties,
       RelatedNodesToAssociateI,
       MethodsI,
-      Alias
+      Alias,
+      Return
     >;
   }
 
@@ -134,6 +143,7 @@ export async function updateRelationship<
     Properties,
     RelatedNodesToAssociateI,
     MethodsI,
-    Alias
+    Alias,
+    Return
   >;
 }

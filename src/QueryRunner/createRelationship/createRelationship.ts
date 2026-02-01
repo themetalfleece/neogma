@@ -16,8 +16,8 @@ export interface CreateRelationshipDeps {
   };
 }
 
-export const createRelationship = async (
-  params: CreateRelationshipParamsI,
+export const createRelationship = async <Return extends boolean = false>(
+  params: CreateRelationshipParamsI<Return>,
   deps: CreateRelationshipDeps,
 ): Promise<QueryResult> => {
   const { source, target, relationship } = params;

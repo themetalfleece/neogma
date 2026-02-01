@@ -444,3 +444,73 @@ describe('update where type safety', () => {
     expect(true).toBe(true);
   });
 });
+
+/**
+ * Type tests for conditional return types.
+ * Verifies that the return type changes based on the `return` parameter.
+ */
+describe('update conditional return type safety', () => {
+  it('when return is true, instances array has proper typing', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const user = await Users.createOne({ id: uuid(), name: uuid() });
+
+    const [instances] = await Users.update(
+      { name: 'Updated' },
+      {
+        where: { id: user.id },
+        return: true,
+      },
+    );
+
+    // These should all type-check correctly
+    const id: string = instances[0].id;
+    const name: string = instances[0].name;
+
+    expect(id).toBe(user.id);
+    expect(name).toBe('Updated');
+  });
+
+  it('when return is false, instances is typed as empty array', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(async () => {
+      const [instances] = await Users.update(
+        { name: 'Updated' },
+        {
+          where: { id: 'user-id' },
+          return: false,
+        },
+      );
+
+      // @ts-expect-error - instances is typed as [] when return is false, accessing [0] should error
+      const _id = instances[0];
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('when return is not specified, instances is typed as empty array', () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    typeCheck(async () => {
+      const [instances] = await Users.update(
+        { name: 'Updated' },
+        {
+          where: { id: 'user-id' },
+        },
+      );
+
+      // @ts-expect-error - instances is typed as [] when return is not specified, accessing [0] should error
+      const _id = instances[0];
+    });
+
+    expect(true).toBe(true);
+  });
+});
