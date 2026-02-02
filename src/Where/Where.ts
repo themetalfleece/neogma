@@ -28,27 +28,27 @@ const isNeo4jSupportedTypes = (
     return false;
   }
 
-  const isSupportedSingleType = (value: WhereValuesI): boolean => {
+  const isSupportedSingleType = (v: WhereValuesI): boolean => {
     return (
-      value instanceof Literal ||
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean' ||
-      neo4jDriver.isInt(value) ||
-      neo4jDriver.isPoint(value) ||
-      neo4jDriver.isDate(value) ||
-      neo4jDriver.isTime(value) ||
-      neo4jDriver.isLocalTime(value) ||
-      neo4jDriver.isDateTime(value) ||
-      neo4jDriver.isLocalDateTime(value) ||
-      neo4jDriver.isDuration(value)
+      v instanceof Literal ||
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean' ||
+      neo4jDriver.isInt(v) ||
+      neo4jDriver.isPoint(v) ||
+      neo4jDriver.isDate(v) ||
+      neo4jDriver.isTime(v) ||
+      neo4jDriver.isLocalTime(v) ||
+      neo4jDriver.isDateTime(v) ||
+      neo4jDriver.isLocalDateTime(v) ||
+      neo4jDriver.isDuration(v)
     );
   };
 
   if (Array.isArray(value)) {
     // For direct array values, check each element is a supported single type.
     // Note: Nested arrays (Neo4jSingleTypes[][]) come from Op.in extraction, not direct values.
-    return value.every((element) => isSupportedSingleType(element));
+    return value.every((el) => isSupportedSingleType(el));
   }
 
   return isSupportedSingleType(value);
@@ -66,11 +66,13 @@ export class Where {
    * 1. Generating the WHERE statement using these values
    * 2. Differentiating bind parameter names created by this Where instance
    *    from those in the BindParam, since this Where can only remove parameters it created
+   *
+   * Note: `bindParamName` is null for operators that don't require a parameter (is, isNot with null).
    */
   private identifierPropertyData: Array<{
     identifier: string;
     property: string;
-    bindParamName: string | Literal;
+    bindParamName: string | Literal | null;
     operator: (typeof operators)[number];
   }> = [];
 
@@ -136,35 +138,104 @@ export class Where {
     for (const nodeIdentifier in params) {
       for (const property in params[nodeIdentifier]) {
         const value = params[nodeIdentifier][property];
-
-        if (isNeo4jSupportedTypes(value)) {
-          this.addBindParamDataEntry({
-            identifier: nodeIdentifier,
-            property,
-            value,
-            operator: 'eq',
-          });
-        } else if (value !== null && typeof value === 'object') {
-          const symbols = Object.getOwnPropertySymbols(value);
-          for (const { description } of symbols) {
-            const operator = description as (typeof operators)[number];
-            if (operator && isOperator[operator]?.(value)) {
-              this.addBindParamDataEntry({
-                identifier: nodeIdentifier,
-                property,
-                value: value[Op[operator]],
-                operator,
-              });
-            }
-          }
-        }
+        this.processPropertyValue(nodeIdentifier, property, value);
       }
     }
 
     return this;
   }
 
-  /** adds a value to the bind param, while updating the usedBindParamNames field appropriately */
+  /**
+   * Determines if an operator with its value represents a null check.
+   * Returns the effective null-check operator ('is' or 'isNot'), or null if not a null check.
+   *
+   * Null check patterns:
+   * - `Op.is` → 'is' (explicit IS NULL)
+   * - `Op.isNot` → 'isNot' (explicit IS NOT NULL)
+   * - `Op.eq` with null → 'is' (equality with null becomes IS NULL)
+   * - `Op.ne` with null → 'isNot' (not-equal with null becomes IS NOT NULL)
+   */
+  private static resolveNullCheckOperator(
+    operator: (typeof operators)[number],
+    operatorValue: unknown,
+  ): 'is' | 'isNot' | null {
+    if (operator === 'is') return 'is';
+    if (operator === 'isNot') return 'isNot';
+    if (operatorValue === null) {
+      if (operator === 'eq') return 'is';
+      if (operator === 'ne') return 'isNot';
+    }
+    return null;
+  }
+
+  /**
+   * Processes a single property value and adds it to identifierPropertyData.
+   * Handles null checks, direct values, and operator objects.
+   */
+  private processPropertyValue = (
+    identifier: string,
+    property: string,
+    value: WhereValuesI | undefined,
+  ): void => {
+    // Direct null value → IS NULL
+    if (value === null) {
+      this.addNullCheckEntry(identifier, property, 'is');
+      return;
+    }
+
+    // Direct Neo4j value → equality check
+    if (isNeo4jSupportedTypes(value)) {
+      this.addBindParamDataEntry({
+        identifier,
+        property,
+        value,
+        operator: 'eq',
+      });
+      return;
+    }
+
+    // Object with operator symbols - process each operator individually
+    // Note: null already handled above, undefined is falsy, so this handles operator objects
+    if (value && typeof value === 'object') {
+      for (const { description } of Object.getOwnPropertySymbols(value)) {
+        const operator = description as (typeof operators)[number];
+        if (!operator || !isOperator[operator]?.(value)) continue;
+
+        const operatorValue = value[Op[operator]];
+        const nullCheckOp = Where.resolveNullCheckOperator(
+          operator,
+          operatorValue,
+        );
+
+        if (nullCheckOp) {
+          this.addNullCheckEntry(identifier, property, nullCheckOp);
+        } else {
+          this.addBindParamDataEntry({
+            identifier,
+            property,
+            value: operatorValue,
+            operator,
+          });
+        }
+      }
+    }
+  };
+
+  /** Adds a null-check entry (IS NULL or IS NOT NULL) without a bind param. */
+  private addNullCheckEntry = (
+    identifier: string,
+    property: string,
+    operator: 'is' | 'isNot',
+  ): void => {
+    this.identifierPropertyData.push({
+      identifier,
+      property,
+      bindParamName: null,
+      operator,
+    });
+  };
+
+  /** Adds a value to the bind param, while updating the identifierPropertyData field. */
   private addBindParamDataEntry = ({
     identifier,
     property,
@@ -175,7 +246,7 @@ export class Where {
     property: string;
     operator: Where['identifierPropertyData'][0]['operator'];
     value: BindableWhereValue | Literal;
-  }) => {
+  }): void => {
     const bindParamName = this.bindParam.getUniqueNameAndAddWithLiteral(
       property,
       value,
@@ -204,7 +275,8 @@ export class Where {
       if (mode === 'object') {
         if (operator !== 'eq') {
           throw new NeogmaConstraintError(
-            'The only operator which is supported for object mode is "eq"',
+            `The only operator which is supported for object mode is "eq". ` +
+              `Operator "${operator}" requires text mode (WHERE clause).`,
             {
               actual: {
                 mode,
@@ -231,10 +303,22 @@ export class Where {
         lt: '<',
         lte: '<=',
         ne: '<>',
+        is: 'IS NULL',
+        isNot: 'IS NOT NULL',
       };
 
       // else, return the appropriate text-mode operator
       return textMap[operator];
+    };
+
+    /**
+     * Returns true if the operator doesn't require a bind parameter.
+     * These operators are unary and only need the property reference.
+     */
+    const isNoParamOperator = (
+      operator: Where['identifierPropertyData'][0]['operator'],
+    ) => {
+      return operator === 'is' || operator === 'isNot';
     };
 
     /**
@@ -243,17 +327,20 @@ export class Where {
      */
     const isReverseOperator = (
       operator: Where['identifierPropertyData'][0]['operator'],
-    ) => {
-      if (operator === '_in') {
-        return true;
-      }
-
-      return false;
-    };
+    ): boolean => operator === '_in';
 
     if (mode === 'text') {
       for (const bindParamData of this.identifierPropertyData) {
         const { bindParamName } = bindParamData;
+
+        // Handle operators that don't need a parameter (is, isNot)
+        if (isNoParamOperator(bindParamData.operator)) {
+          statementParts.push(
+            `${bindParamData.identifier}.${bindParamData.property} ${operatorForStatement(bindParamData.operator)}`,
+          );
+          continue;
+        }
+
         const name =
           bindParamName instanceof Literal
             ? bindParamName.getValue()
@@ -362,29 +449,37 @@ export class Where {
         continue;
       }
 
-      // Check if value is an operator object
-      if (value !== null && typeof value === 'object') {
-        const symbols = Object.getOwnPropertySymbols(value);
-        let hasNonEqOperator = false;
-        let hasEqOperator = false;
+      // Direct null means IS NULL - goes to nonEqParams
+      if (value === null) {
+        nonEqParams[property] = value;
+        continue;
+      }
 
-        for (const symbol of symbols) {
-          const operator = symbol.description as (typeof operators)[number];
-          if (operator && isOperator[operator]?.(value)) {
-            if (operator === 'eq') {
-              hasEqOperator = true;
-            } else {
-              hasNonEqOperator = true;
-            }
+      // Check if value is an operator object
+      if (typeof value === 'object') {
+        let hasNonEqOperator = false;
+        let hasEqWithValue = false;
+
+        for (const { description } of Object.getOwnPropertySymbols(value)) {
+          const operator = description as (typeof operators)[number];
+          if (!operator || !isOperator[operator]?.(value)) continue;
+
+          const operatorValue = value[Op[operator]];
+
+          // Null checks and non-eq operators go to nonEqParams
+          if (Where.resolveNullCheckOperator(operator, operatorValue)) {
+            hasNonEqOperator = true;
+          } else if (operator === 'eq') {
+            hasEqWithValue = true;
+          } else {
+            hasNonEqOperator = true;
           }
         }
 
-        // If has any non-eq operators, put entire property in nonEqParams
-        // This handles cases like { [Op.gte]: 18, [Op.lte]: 65 } or { [Op.eq]: 'a', [Op.ne]: 'b' }
+        // Non-eq operators (including null checks) require WHERE clause
         if (hasNonEqOperator) {
           nonEqParams[property] = value;
-        } else if (hasEqOperator) {
-          // Only eq operator - can use bracket syntax
+        } else if (hasEqWithValue) {
           eqParams[property] = value;
         }
       }

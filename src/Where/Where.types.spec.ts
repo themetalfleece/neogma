@@ -85,6 +85,8 @@ describe('WhereValuesI type safety', () => {
       const opIn: WhereValuesI<string> = { [Op.in]: ['John', 'Jane'] };
       const opNe: WhereValuesI<string> = { [Op.ne]: 'Admin' };
       const opContains: WhereValuesI<string> = { [Op.contains]: 'ohn' };
+      const opIs: WhereValuesI<string> = { [Op.is]: null };
+      const opIsNot: WhereValuesI<string> = { [Op.isNot]: null };
 
       expect(direct).toBe('John');
       expect(array).toEqual(['John', 'Jane']);
@@ -92,6 +94,8 @@ describe('WhereValuesI type safety', () => {
       expect(opIn).toBeDefined();
       expect(opNe).toBeDefined();
       expect(opContains).toBeDefined();
+      expect(opIs).toBeDefined();
+      expect(opIsNot).toBeDefined();
     });
 
     it('rejects wrong value types', () => {
@@ -112,6 +116,26 @@ describe('WhereValuesI type safety', () => {
       void _opIn;
       void _opNe;
     });
+
+    it('rejects wrong value for Op.is (must be null)', () => {
+      // @ts-expect-error - Op.is only accepts null
+      const _wrongValue: WhereValuesI<string> = { [Op.is]: false };
+      // @ts-expect-error - Op.is only accepts null
+      const _stringValue: WhereValuesI<string> = { [Op.is]: 'yes' };
+
+      void _wrongValue;
+      void _stringValue;
+    });
+
+    it('rejects wrong value for Op.isNot (must be null)', () => {
+      // @ts-expect-error - Op.isNot only accepts null
+      const _wrongValue: WhereValuesI<string> = { [Op.isNot]: false };
+      // @ts-expect-error - Op.isNot only accepts null
+      const _stringValue: WhereValuesI<string> = { [Op.isNot]: 'yes' };
+
+      void _wrongValue;
+      void _stringValue;
+    });
   });
 
   describe('number property', () => {
@@ -124,6 +148,8 @@ describe('WhereValuesI type safety', () => {
       const opGte: WhereValuesI<number> = { [Op.gte]: 21 };
       const opLt: WhereValuesI<number> = { [Op.lt]: 65 };
       const opLte: WhereValuesI<number> = { [Op.lte]: 100 };
+      const opIs: WhereValuesI<number> = { [Op.is]: null };
+      const opIsNot: WhereValuesI<number> = { [Op.isNot]: null };
 
       expect(direct).toBe(25);
       expect(array).toEqual([18, 25, 30]);
@@ -133,6 +159,8 @@ describe('WhereValuesI type safety', () => {
       expect(opGte).toBeDefined();
       expect(opLt).toBeDefined();
       expect(opLte).toBeDefined();
+      expect(opIs).toBeDefined();
+      expect(opIsNot).toBeDefined();
     });
 
     it('rejects wrong value types', () => {
@@ -150,6 +178,32 @@ describe('WhereValuesI type safety', () => {
       void _opGt;
       void _opIn;
     });
+
+    it('rejects wrong value for Op.is (must be null)', () => {
+      // @ts-expect-error - Op.is only accepts null, not number
+      const _zero: WhereValuesI<number> = { [Op.is]: 0 };
+      // @ts-expect-error - Op.is only accepts null, not number
+      const _one: WhereValuesI<number> = { [Op.is]: 1 };
+      // @ts-expect-error - Op.is only accepts null, not string
+      const _string: WhereValuesI<number> = { [Op.is]: 'null' };
+
+      void _zero;
+      void _one;
+      void _string;
+    });
+
+    it('rejects wrong value for Op.isNot (must be null)', () => {
+      // @ts-expect-error - Op.isNot only accepts null, not number
+      const _zero: WhereValuesI<number> = { [Op.isNot]: 0 };
+      // @ts-expect-error - Op.isNot only accepts null, not number
+      const _one: WhereValuesI<number> = { [Op.isNot]: 1 };
+      // @ts-expect-error - Op.isNot only accepts null, not string
+      const _string: WhereValuesI<number> = { [Op.isNot]: 'null' };
+
+      void _zero;
+      void _one;
+      void _string;
+    });
   });
 
   describe('boolean property', () => {
@@ -157,10 +211,14 @@ describe('WhereValuesI type safety', () => {
       const direct: WhereValuesI<boolean> = true;
       const opEq: WhereValuesI<boolean> = { [Op.eq]: false };
       const opNe: WhereValuesI<boolean> = { [Op.ne]: true };
+      const opIs: WhereValuesI<boolean> = { [Op.is]: null };
+      const opIsNot: WhereValuesI<boolean> = { [Op.isNot]: null };
 
       expect(direct).toBe(true);
       expect(opEq).toBeDefined();
       expect(opNe).toBeDefined();
+      expect(opIs).toBeDefined();
+      expect(opIsNot).toBeDefined();
     });
 
     it('rejects wrong value types', () => {
@@ -174,6 +232,158 @@ describe('WhereValuesI type safety', () => {
       void _string;
       void _number;
       void _opEq;
+    });
+
+    it('rejects wrong value for Op.is (must be null)', () => {
+      // @ts-expect-error - Op.is only accepts null, not boolean
+      const _true: WhereValuesI<boolean> = { [Op.is]: true };
+      // @ts-expect-error - Op.is only accepts null, not boolean
+      const _false: WhereValuesI<boolean> = { [Op.is]: false };
+      // @ts-expect-error - Op.is only accepts null, not number
+      const _zero: WhereValuesI<boolean> = { [Op.is]: 0 };
+
+      void _true;
+      void _false;
+      void _zero;
+    });
+
+    it('rejects wrong value for Op.isNot (must be null)', () => {
+      // @ts-expect-error - Op.isNot only accepts null, not boolean
+      const _true: WhereValuesI<boolean> = { [Op.isNot]: true };
+      // @ts-expect-error - Op.isNot only accepts null, not boolean
+      const _false: WhereValuesI<boolean> = { [Op.isNot]: false };
+      // @ts-expect-error - Op.isNot only accepts null, not number
+      const _zero: WhereValuesI<boolean> = { [Op.isNot]: 0 };
+
+      void _true;
+      void _false;
+      void _zero;
+    });
+  });
+
+  describe('array property', () => {
+    it('accepts valid array values and operators', () => {
+      const direct: WhereValuesI<string[]> = ['tag1', 'tag2'];
+      const opEq: WhereValuesI<string[]> = { [Op.eq]: ['a', 'b'] };
+      const opNe: WhereValuesI<string[]> = { [Op.ne]: ['x', 'y'] };
+      const op_In: WhereValuesI<string[]> = { [Op._in]: 'element' }; // element IN property
+      const opIn: WhereValuesI<string[]> = {
+        [Op.in]: [
+          ['a', 'b'],
+          ['c', 'd'],
+        ],
+      }; // property IN [[a,b], [c,d]]
+      const opIs: WhereValuesI<string[]> = { [Op.is]: null };
+      const opIsNot: WhereValuesI<string[]> = { [Op.isNot]: null };
+
+      expect(direct).toEqual(['tag1', 'tag2']);
+      expect(opEq).toBeDefined();
+      expect(opNe).toBeDefined();
+      expect(op_In).toBeDefined();
+      expect(opIn).toBeDefined();
+      expect(opIs).toBeDefined();
+      expect(opIsNot).toBeDefined();
+    });
+
+    it('accepts number array values and operators', () => {
+      const direct: WhereValuesI<number[]> = [1, 2, 3];
+      const opEq: WhereValuesI<number[]> = { [Op.eq]: [10, 20] };
+      const op_In: WhereValuesI<number[]> = { [Op._in]: 5 }; // 5 IN property
+      const opIs: WhereValuesI<number[]> = { [Op.is]: null };
+      const opIsNot: WhereValuesI<number[]> = { [Op.isNot]: null };
+
+      expect(direct).toEqual([1, 2, 3]);
+      expect(opEq).toBeDefined();
+      expect(op_In).toBeDefined();
+      expect(opIs).toBeDefined();
+      expect(opIsNot).toBeDefined();
+    });
+
+    it('rejects wrong element types for array', () => {
+      // @ts-expect-error - number[] is not assignable to string[]
+      const _wrongType: WhereValuesI<string[]> = [1, 2, 3];
+      // @ts-expect-error - Op.eq for string[] expects string[], not number[]
+      const _opEqWrong: WhereValuesI<string[]> = { [Op.eq]: [1, 2, 3] };
+      // @ts-expect-error - Op._in for string[] expects string, not number
+      const _op_InWrong: WhereValuesI<string[]> = { [Op._in]: 123 };
+
+      void _wrongType;
+      void _opEqWrong;
+      void _op_InWrong;
+    });
+
+    it('rejects wrong value for Op.is (must be null)', () => {
+      // @ts-expect-error - Op.is only accepts null, not empty array
+      const _emptyArray: WhereValuesI<string[]> = { [Op.is]: [] };
+      // @ts-expect-error - Op.is only accepts null, not string
+      const _string: WhereValuesI<string[]> = { [Op.is]: 'null' };
+      // @ts-expect-error - Op.is only accepts null, not boolean
+      const _false: WhereValuesI<string[]> = { [Op.is]: false };
+
+      void _emptyArray;
+      void _string;
+      void _false;
+    });
+
+    it('rejects wrong value for Op.isNot (must be null)', () => {
+      // @ts-expect-error - Op.isNot only accepts null, not empty array
+      const _emptyArray: WhereValuesI<string[]> = { [Op.isNot]: [] };
+      // @ts-expect-error - Op.isNot only accepts null, not string
+      const _string: WhereValuesI<string[]> = { [Op.isNot]: 'null' };
+      // @ts-expect-error - Op.isNot only accepts null, not boolean
+      const _true: WhereValuesI<string[]> = { [Op.isNot]: true };
+
+      void _emptyArray;
+      void _string;
+      void _true;
+    });
+  });
+
+  describe('permissive mode (no type parameter)', () => {
+    it('accepts any valid Neo4j value type', () => {
+      const str: WhereValuesI = 'John';
+      const num: WhereValuesI = 42;
+      const bool: WhereValuesI = true;
+      const arr: WhereValuesI = [1, 2, 3];
+      const opIs: WhereValuesI = { [Op.is]: null };
+      const opIsNot: WhereValuesI = { [Op.isNot]: null };
+      const opEq: WhereValuesI = { [Op.eq]: 'value' };
+      const opGt: WhereValuesI = { [Op.gt]: 100 };
+
+      expect(str).toBe('John');
+      expect(num).toBe(42);
+      expect(bool).toBe(true);
+      expect(arr).toEqual([1, 2, 3]);
+      expect(opIs).toBeDefined();
+      expect(opIsNot).toBeDefined();
+      expect(opEq).toBeDefined();
+      expect(opGt).toBeDefined();
+    });
+
+    it('rejects wrong value for Op.is (must be null) even in permissive mode', () => {
+      // @ts-expect-error - Op.is only accepts null, not string
+      const _string: WhereValuesI = { [Op.is]: 'null' };
+      // @ts-expect-error - Op.is only accepts null, not number
+      const _number: WhereValuesI = { [Op.is]: 0 };
+      // @ts-expect-error - Op.is only accepts null, not boolean
+      const _boolean: WhereValuesI = { [Op.is]: false };
+
+      void _string;
+      void _number;
+      void _boolean;
+    });
+
+    it('rejects wrong value for Op.isNot (must be null) even in permissive mode', () => {
+      // @ts-expect-error - Op.isNot only accepts null, not string
+      const _string: WhereValuesI = { [Op.isNot]: 'null' };
+      // @ts-expect-error - Op.isNot only accepts null, not number
+      const _number: WhereValuesI = { [Op.isNot]: 0 };
+      // @ts-expect-error - Op.isNot only accepts null, not boolean
+      const _boolean: WhereValuesI = { [Op.isNot]: true };
+
+      void _string;
+      void _number;
+      void _boolean;
     });
   });
 });
@@ -804,6 +1014,94 @@ describe('real-world usage patterns', () => {
       };
 
       expect(validParams.where?.target?.groupName).toBe('Administrators');
+    });
+  });
+
+  describe('is/isNot for soft delete pattern', () => {
+    // Real-world example: fetching projects that are not soft-deleted
+    type ProjectProperties = {
+      id: string;
+      name: string;
+      deleted?: string; // ISO8601 timestamp when deleted, or undefined if not deleted
+    };
+
+    type OrganizationProperties = {
+      id: string;
+      name: string;
+    };
+
+    type FindRelationshipsParams = {
+      alias: 'Projects';
+      where?: {
+        source?: WhereParamsI<OrganizationProperties>;
+        target?: WhereParamsI<ProjectProperties>;
+      };
+    };
+
+    it('accepts Op.is to filter non-deleted projects', () => {
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: { deleted: { [Op.is]: null } },
+        },
+      };
+
+      expect(params.where?.target?.deleted).toBeDefined();
+    });
+
+    it('accepts direct null to filter non-deleted projects (shorthand)', () => {
+      // This is the intuitive API that matches the original issue request
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: { deleted: null }, // Direct null = IS NULL
+        },
+      };
+
+      expect(params.where?.target?.deleted).toBeNull();
+    });
+
+    it('accepts Op.isNot to find only deleted projects', () => {
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: { deleted: { [Op.isNot]: null } },
+        },
+      };
+
+      expect(params.where?.target?.deleted).toBeDefined();
+    });
+
+    it('rejects wrong value for is (must be null)', () => {
+      const _params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          target: {
+            // @ts-expect-error - Op.is only accepts null
+            deleted: { [Op.is]: false },
+          },
+        },
+      };
+
+      void _params;
+    });
+
+    it('accepts combining is with other conditions', () => {
+      const params: FindRelationshipsParams = {
+        alias: 'Projects',
+        where: {
+          source: { id: 'org-123' },
+          target: {
+            deleted: { [Op.is]: null },
+            name: { [Op.contains]: 'test' },
+          },
+        },
+      };
+
+      expect(params.where?.target).toBeDefined();
     });
   });
 });

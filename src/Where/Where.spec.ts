@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { typeCheck } from '../ModelFactory/testHelpers';
-import { trimWhitespace } from '../utils/string';
+import { randomSuffix, trimWhitespace } from '../utils/string';
 import type { WhereValuesI } from '.';
-import { isAnyOperator, Op, Where } from '.';
+import { isAnyOperator, isOperator, Op, Where } from '.';
 
 describe('Where', () => {
   describe('contructor', () => {
@@ -91,6 +91,134 @@ describe('Where', () => {
       expect(where.getBindParam().get()).toEqual(expectedValues);
     });
 
+    it('generates IS NULL statement with Op.is', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.is]: null },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
+      // is operator should not add any bind params
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('generates IS NULL statement with direct null value', () => {
+      const where = new Where({
+        identifier: {
+          deleted: null,
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
+      // null should not add any bind params
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('generates IS NOT NULL statement with Op.isNot', () => {
+      const where = new Where({
+        identifier: {
+          deletedAt: { [Op.isNot]: null },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe(
+        'identifier.deletedAt IS NOT NULL',
+      );
+      // isNot operator should not add any bind params
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('translates Op.eq with null to IS NULL', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.eq]: null },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('translates Op.ne with null to IS NOT NULL', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.ne]: null },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NOT NULL');
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('combines is/isNot with other operators', () => {
+      const where = new Where({
+        node: {
+          name: 'John',
+          deleted: { [Op.is]: null },
+          createdAt: { [Op.isNot]: null },
+          age: { [Op.gte]: 18 },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.name = $name');
+      expect(statement).toContain('node.deleted IS NULL');
+      expect(statement).toContain('node.createdAt IS NOT NULL');
+      expect(statement).toContain('node.age >= $age');
+
+      // Only name and age should be in bind params
+      expect(where.getBindParam().get()).toEqual({
+        name: 'John',
+        age: 18,
+      });
+    });
+
+    it('combines direct null with other operators', () => {
+      const where = new Where({
+        node: {
+          name: 'John',
+          deleted: null, // Direct null = IS NULL
+          age: { [Op.gte]: 18 },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.name = $name');
+      expect(statement).toContain('node.deleted IS NULL');
+      expect(statement).toContain('node.age >= $age');
+
+      // Only name and age should be in bind params
+      expect(where.getBindParam().get()).toEqual({
+        name: 'John',
+        age: 18,
+      });
+    });
+
+    it('throws error when using is in object mode', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.is]: null },
+        },
+      });
+
+      expect(() => where.getStatement('object')).toThrow(
+        'The only operator which is supported for object mode is "eq"',
+      );
+    });
+
+    it('throws error when using isNot in object mode', () => {
+      const where = new Where({
+        identifier: {
+          deletedAt: { [Op.isNot]: null },
+        },
+      });
+
+      expect(() => where.getStatement('object')).toThrow(
+        'The only operator which is supported for object mode is "eq"',
+      );
+    });
+
     it('Support more than one operator per property', () => {
       const where = new Where({
         identifier: {
@@ -118,10 +246,62 @@ describe('Where', () => {
         where.getStatement('object');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toEqual(
+        expect((error as Error).message).toContain(
           'The only operator which is supported for object mode is "eq"',
         );
       }
+    });
+
+    it('supports multiple operators including null check on same property', () => {
+      // Edge case: combining Op.isNot with another operator on same property
+      // This tests that null-check handling doesn't short-circuit and drop other operators
+      const where = new Where({
+        node: {
+          status: {
+            [Op.isNot]: null,
+            [Op.ne]: 'banned',
+          },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.status IS NOT NULL');
+      expect(statement).toContain('node.status <> $status');
+
+      // Only 'banned' should be in bind params, not null
+      expect(where.getBindParam().get()).toEqual({ status: 'banned' });
+    });
+
+    it('supports Op.is with other operators on same property', () => {
+      // This is a weird edge case but should be handled correctly
+      const where = new Where({
+        node: {
+          value: {
+            [Op.is]: null,
+            [Op.eq]: 'fallback',
+          },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.value IS NULL');
+      expect(statement).toContain('node.value = $value');
+    });
+
+    it('supports Op.eq with null alongside Op.ne with non-null', () => {
+      const where = new Where({
+        node: {
+          deleted: {
+            [Op.eq]: null,
+            [Op.ne]: 'permanently',
+          },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      // Op.eq: null translates to IS NULL
+      expect(statement).toContain('node.deleted IS NULL');
+      expect(statement).toContain('node.deleted <> $deleted');
     });
   });
 
@@ -179,12 +359,11 @@ describe('Where', () => {
     });
   });
 
-  it('ignores null and undefined values', () => {
-    const undefinedIdentifier = 'ui_' + Math.random().toString();
-    const nullIdentifier = 'ui_' + Math.random().toString();
+  it('ignores undefined values but treats null as IS NULL', () => {
+    const undefinedIdentifier = 'ui_' + randomSuffix();
+    const nullIdentifier = 'ni_' + randomSuffix();
 
     const where = new Where({
-      // @ts-expect-error
       identifier: {
         a: 1,
         [nullIdentifier]: null,
@@ -195,10 +374,16 @@ describe('Where', () => {
     expect(
       where.getStatement('text').includes('identifier.a = $a'),
     ).toBeTruthy();
+    // undefined is ignored - no filter for that property
     expect(
       where.getStatement('text').includes(undefinedIdentifier),
     ).toBeFalsy();
-    expect(where.getStatement('text').includes(nullIdentifier)).toBeFalsy();
+    // null generates IS NULL
+    expect(
+      where
+        .getStatement('text')
+        .includes(`identifier.${nullIdentifier} IS NULL`),
+    ).toBeTruthy();
   });
 
   describe('type safety', () => {
@@ -273,6 +458,22 @@ describe('Where', () => {
           node: { tag: { [Op._in]: 'important' } },
         });
         expect(where.getStatement('text')).toContain('$tag IN node.tag');
+      });
+
+      it('accepts valid Op.is', () => {
+        const where = new Where({
+          node: { deleted: { [Op.is]: null } },
+        });
+        expect(where.getStatement('text')).toContain('node.deleted IS NULL');
+      });
+
+      it('accepts valid Op.isNot', () => {
+        const where = new Where({
+          node: { createdAt: { [Op.isNot]: null } },
+        });
+        expect(where.getStatement('text')).toContain(
+          'node.createdAt IS NOT NULL',
+        );
       });
     });
 
@@ -499,6 +700,16 @@ describe('Where', () => {
       it('accepts empty array', () => {
         const value: WhereValuesI<string[]> = [];
         expect(value).toEqual([]);
+      });
+
+      it('accepts Op.is for array types', () => {
+        const value: WhereValuesI<string[]> = { [Op.is]: null };
+        expect(Op.is in value).toBe(true);
+      });
+
+      it('accepts Op.isNot for array types', () => {
+        const value: WhereValuesI<string[]> = { [Op.isNot]: null };
+        expect(Op.isNot in value).toBe(true);
       });
 
       it('accepts boolean[] array type', () => {
@@ -785,6 +996,14 @@ describe('Where', () => {
         expect(isAnyOperator({ [Op.lte]: 100 })).toBe(true);
       });
 
+      it('returns true for Op.is', () => {
+        expect(isAnyOperator({ [Op.is]: null })).toBe(true);
+      });
+
+      it('returns true for Op.isNot', () => {
+        expect(isAnyOperator({ [Op.isNot]: null })).toBe(true);
+      });
+
       it('returns false for direct string value', () => {
         expect(isAnyOperator('direct value')).toBe(false);
       });
@@ -809,6 +1028,38 @@ describe('Where', () => {
         expect(isAnyOperator({ foo: 'bar' } as unknown as WhereValuesI)).toBe(
           false,
         );
+      });
+    });
+
+    describe('isOperator type guard strictness', () => {
+      it('isOperator.is returns true only when value is null', () => {
+        expect(isOperator.is({ [Op.is]: null })).toBe(true);
+        // Invalid: Op.is with non-null value should return false at runtime
+        // Cast to unknown to bypass TypeScript's compile-time checks
+        expect(
+          isOperator.is({ [Op.is]: true } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(
+          isOperator.is({ [Op.is]: 'string' } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(isOperator.is({ [Op.is]: 0 } as unknown as WhereValuesI)).toBe(
+          false,
+        );
+      });
+
+      it('isOperator.isNot returns true only when value is null', () => {
+        expect(isOperator.isNot({ [Op.isNot]: null })).toBe(true);
+        // Invalid: Op.isNot with non-null value should return false at runtime
+        // Cast to unknown to bypass TypeScript's compile-time checks
+        expect(
+          isOperator.isNot({ [Op.isNot]: true } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(
+          isOperator.isNot({ [Op.isNot]: 'string' } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(
+          isOperator.isNot({ [Op.isNot]: 0 } as unknown as WhereValuesI),
+        ).toBe(false);
       });
     });
   });
@@ -965,6 +1216,89 @@ describe('Where', () => {
 
       expect(eqParams).toEqual({});
       expect(nonEqParams).toEqual({});
+    });
+
+    it('puts Op.is in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: { [Op.is]: null },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: { [Op.is]: null } });
+    });
+
+    it('puts direct null in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: null,
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: null });
+    });
+
+    it('puts Op.isNot in nonEqParams', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        createdAt: { [Op.isNot]: null },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ createdAt: { [Op.isNot]: null } });
+    });
+
+    it('handles is/isNot with other params', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: 'John',
+        deleted: { [Op.is]: null },
+        status: 'active',
+      });
+
+      expect(eqParams).toEqual({ name: 'John', status: 'active' });
+      expect(nonEqParams).toEqual({ deleted: { [Op.is]: null } });
+    });
+
+    it('puts Op.eq with null in nonEqParams (translates to IS NULL)', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: { [Op.eq]: null },
+      });
+
+      // Op.eq: null should go to nonEqParams because it becomes IS NULL
+      // which can't use bracket syntax
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: { [Op.eq]: null } });
+    });
+
+    it('puts Op.ne with null in nonEqParams (translates to IS NOT NULL)', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: { [Op.ne]: null },
+      });
+
+      // Op.ne: null should go to nonEqParams because it becomes IS NOT NULL
+      // which can't use bracket syntax
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: { [Op.ne]: null } });
+    });
+
+    it('handles mixed Op.eq with null and non-null values', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: { [Op.eq]: 'John' }, // non-null → eqParams
+        deleted: { [Op.eq]: null }, // null → nonEqParams
+      });
+
+      expect(eqParams).toEqual({ name: { [Op.eq]: 'John' } });
+      expect(nonEqParams).toEqual({ deleted: { [Op.eq]: null } });
+    });
+
+    it('handles property with both null check and other operators', () => {
+      // Property with Op.isNot (null check) and Op.ne (comparison)
+      // Entire property goes to nonEqParams
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        status: { [Op.isNot]: null, [Op.ne]: 'banned' },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({
+        status: { [Op.isNot]: null, [Op.ne]: 'banned' },
+      });
     });
   });
 });

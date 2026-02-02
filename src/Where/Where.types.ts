@@ -16,6 +16,8 @@ const OpGte: unique symbol = Symbol('gte');
 const OpLt: unique symbol = Symbol('lt');
 const OpLte: unique symbol = Symbol('lte');
 const OpNe: unique symbol = Symbol('ne');
+const OpIs: unique symbol = Symbol('is');
+const OpIsNot: unique symbol = Symbol('isNot');
 
 export const Op = {
   eq: OpEq,
@@ -27,16 +29,20 @@ export const Op = {
   lt: OpLt,
   lte: OpLte,
   ne: OpNe,
+  is: OpIs,
+  isNot: OpIsNot,
 } as const;
 
 // ============ Where Type Definitions ============
 
 export type WhereTypes = {
   Eq: {
-    [Op.eq]: Neo4jSupportedTypes | Literal;
+    /** null translates to IS NULL at runtime */
+    [Op.eq]: Neo4jSupportedTypes | Literal | null;
   };
   Ne: {
-    [Op.ne]: Neo4jSupportedTypes | Literal;
+    /** null translates to IS NOT NULL at runtime */
+    [Op.ne]: Neo4jSupportedTypes | Literal | null;
   };
   In: {
     /**
@@ -65,6 +71,20 @@ export type WhereTypes = {
   Lte: {
     [Op.lte]: Neo4jSingleTypes | Literal;
   };
+  /**
+   * Check if a property IS a value (primarily null).
+   * Generates: `property IS NULL` when value is null
+   */
+  Is: {
+    [Op.is]: null;
+  };
+  /**
+   * Check if a property IS NOT a value (primarily null).
+   * Generates: `property IS NOT NULL` when value is null
+   */
+  IsNot: {
+    [Op.isNot]: null;
+  };
 };
 
 // ============ Where Value Types ============
@@ -84,6 +104,9 @@ type PermissiveWhereValue =
   | WhereTypes['Lt']
   | WhereTypes['Lte']
   | WhereTypes['Ne']
+  | WhereTypes['Is']
+  | WhereTypes['IsNot']
+  | null // Direct null means IS NULL
   | Literal;
 
 /**
@@ -98,14 +121,17 @@ type PermissiveWhereValue =
 type BaseScalarOperators<T extends Neo4jSingleTypes> =
   | T // Direct value: property = value
   | T[] // Array value: property = [values] (equality, use Op.in for IN queries)
-  | { [Op.eq]: T | Literal } // Equality: property = value
-  | { [Op.ne]: T | Literal } // Not equal: property <> value
+  | { [Op.eq]: T | Literal | null } // Equality: property = value (null -> IS NULL)
+  | { [Op.ne]: T | Literal | null } // Not equal: property <> value (null -> IS NOT NULL)
   | { [Op.in]: T[] | Literal } // In list: property IN [values]
   | { [Op._in]: T | Literal } // Value in property: value IN property
   | { [Op.gt]: T | Literal } // Greater than: property > value
   | { [Op.gte]: T | Literal } // Greater or equal: property >= value
   | { [Op.lt]: T | Literal } // Less than: property < value
   | { [Op.lte]: T | Literal } // Less or equal: property <= value
+  | { [Op.is]: null } // Null check: property IS NULL
+  | { [Op.isNot]: null } // Not null check: property IS NOT NULL
+  | null // Direct null: property IS NULL (shorthand for Op.is with null)
   | Literal; // Raw Cypher literal
 
 /**
@@ -145,10 +171,13 @@ type ArrayWhereValue<
   E extends Neo4jSingleTypes,
 > =
   | T // Direct value: property = [values]
-  | { [Op.eq]: T | Literal } // Exact match: property = [values]
-  | { [Op.ne]: T | Literal } // Not equal: property <> [values]
+  | { [Op.eq]: T | Literal | null } // Exact match: property = [values] (null -> IS NULL)
+  | { [Op.ne]: T | Literal | null } // Not equal: property <> [values] (null -> IS NOT NULL)
   | { [Op._in]: E | Literal } // Element in array: element IN property
   | { [Op.in]: T[] | Literal } // Array in list: property IN [[a,b], [c,d]]
+  | { [Op.is]: null } // Null check: property IS NULL
+  | { [Op.isNot]: null } // Not null check: property IS NOT NULL
+  | null // Direct null: property IS NULL (shorthand for Op.is with null)
   | Literal; // Raw Cypher literal
 
 /**
@@ -288,7 +317,7 @@ export type TypedRelationshipWhereI<
  * @example
  * ```typescript
  * operators.forEach(op => console.log(op));
- * // 'eq', 'in', '_in', 'contains', 'gt', 'gte', 'lt', 'lte', 'ne'
+ * // 'eq', 'in', '_in', 'contains', 'gt', 'gte', 'lt', 'lte', 'ne', 'is', 'isNot'
  * ```
  */
 export const operators = [
@@ -301,6 +330,8 @@ export const operators = [
   'lt',
   'lte',
   'ne',
+  'is',
+  'isNot',
 ] as const;
 
 /**
@@ -336,6 +367,16 @@ export const isOperator = {
     typeof value === 'object' && value !== null && Op.lte in value,
   ne: (value: WhereValuesI): value is WhereTypes['Ne'] =>
     typeof value === 'object' && value !== null && Op.ne in value,
+  is: (value: WhereValuesI): value is WhereTypes['Is'] =>
+    typeof value === 'object' &&
+    value !== null &&
+    Op.is in value &&
+    (value as Record<symbol, unknown>)[Op.is] === null,
+  isNot: (value: WhereValuesI): value is WhereTypes['IsNot'] =>
+    typeof value === 'object' &&
+    value !== null &&
+    Op.isNot in value &&
+    (value as Record<symbol, unknown>)[Op.isNot] === null,
 } as const;
 
 /**
@@ -363,4 +404,6 @@ export const isAnyOperator = (value: WhereValuesI): boolean =>
     Op.gte in value ||
     Op.lt in value ||
     Op.lte in value ||
-    Op.ne in value);
+    Op.ne in value ||
+    Op.is in value ||
+    Op.isNot in value);
