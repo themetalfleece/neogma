@@ -42,11 +42,33 @@ If nothing has changed, `.save()` will do nothing.
 ```js
     /* --> the Instance's properties and methods are accessible by their key */
     console.log(user.id, user.name, user.age); // "1" "Alex" 38
-    /* --> all the instance properties can be taken as follows */
+    /* --> get a safe copy of all schema properties */
     console.log(user.getDataValues()); // { id: "1", name: "Alex", age: 38 }
+    /* --> or access the internal object directly (mutable, use with caution) */
+    console.log(user.dataValues); // { id: "1", name: "Alex", age: 38 }
     /* --> the methods, used in the Model definition can be used */
     console.log(user.bar()); // "The name of this user is: Alex"
 ```
+
+### `dataValues` vs `getDataValues()`
+Both return only schema properties (not relationship configuration data), but they differ in how they handle the data:
+
+|                | `dataValues`                        | `getDataValues()`                       |
+| -------------- | ----------------------------------- | --------------------------------------- |
+| Returns        | Direct reference to internal object | New object (shallow copy)               |
+| Safe to mutate | No - changes affect the instance    | Yes - changes don't affect the instance |
+| Performance    | Slightly faster (no copy)           | Slightly slower (creates new object)    |
+
+```js
+    /* --> dataValues is a direct reference - mutations affect the instance */
+    user.dataValues.name = 'changed'; // ⚠️ Modifies the instance
+
+    /* --> getDataValues() returns a copy - safe to mutate */
+    const copy = user.getDataValues();
+    copy.name = 'changed'; // ✓ Doesn't affect the instance
+```
+
+Use `getDataValues()` when passing data to external code or when you need to modify the result without affecting the instance.
 
 ## Validating an Instance
 ```js
@@ -81,7 +103,9 @@ If nothing has changed, `.save()` will do nothing.
     /* --> when calling the following method, the User node, the Order node and the relationship between them */
     await userWithOrder.save();
 ```
-For more examples of creating realted nodes, refer to the [Create operations](./Creating-Nodes-and-Relationships), as the same interface is used.
+For more examples of creating related nodes, refer to the [Create operations](./Creating-Nodes-and-Relationships), as the same interface is used.
+
+**Note**: Relationship configuration data (like `Orders` above) is **not** included in `dataValues` or `getDataValues()`. These only return the node's schema properties.
 
 ## Creating an Instance for an existing Node
 If a Node already exists in the database, an Instance can still be created. This is useful for running methods like `.save()` on it.

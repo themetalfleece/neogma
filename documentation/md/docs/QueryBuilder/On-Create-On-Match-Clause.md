@@ -1,38 +1,33 @@
-# ON CREATE SET / ON MATCH SET
-
-```js
-import { QueryBuilder, Literal } from 'neogma';
-```
-
+# On Create Set / On Match Set
 `QueryBuilderParameters['OnCreateSetI']` / `QueryBuilderParameters['OnMatchSetI']`
 
 The `ON CREATE SET` and `ON MATCH SET` clauses are used with `MERGE` to specify different actions depending on whether the pattern was created or matched.
 
-## ON CREATE SET
+## On Create Set
 
 Sets properties when a new node is created by a `MERGE` statement.
 
-### Using a literal string
+### On Create Set by using a literal string
 A literal string will be used as is.
 
 ```js
 const queryBuilder = new QueryBuilder()
     .merge({
-        identifier: 'keanu',
+        identifier: 'n',
         label: 'Person',
-        properties: { name: 'Keanu Reeves' }
+        properties: { name: 'John' }
     })
-    .onCreateSet('keanu.created = timestamp()') /* --> literal string to use */
-    .return('keanu.name, keanu.created');
+    .onCreateSet('n.created = timestamp()') /* --> literal string to use */
+    .return('n.name, n.created');
 
 console.log(queryBuilder.getStatement());
-// MERGE (keanu:Person { name: $name }) ON CREATE SET keanu.created = timestamp() RETURN keanu.name, keanu.created
+// MERGE (n:Person { name: $name }) ON CREATE SET n.created = timestamp() RETURN n.name, n.created
 
 console.log(queryBuilder.getBindParam().get());
-// { name: 'Keanu Reeves' }
+// { name: 'John' }
 ```
 
-### Using an object
+### On Create Set by using an object
 An ON CREATE SET statement can be generated using an object with an identifier and properties.
 
 ```js
@@ -60,7 +55,7 @@ console.log(queryBuilder.getBindParam().get());
 // { email: 'test@example.com', createdAt: '2024-01-01', status: 'pending' }
 ```
 
-### Using Literal for Cypher functions
+### On Create Set with Literal for Cypher functions
 You can use the `Literal` class to include Cypher functions that should not be parameterized.
 
 ```js
@@ -86,11 +81,11 @@ console.log(queryBuilder.getBindParam().get());
 // { name: 'John', version: 1 }
 ```
 
-## ON MATCH SET
+## On Match Set
 
 Sets properties when an existing node is matched by a `MERGE` statement.
 
-### Using a literal string
+### On Match Set by using a literal string
 A literal string will be used as is.
 
 ```js
@@ -110,7 +105,7 @@ console.log(queryBuilder.getBindParam().get());
 // { name: 'pageViews' }
 ```
 
-### Using an object
+### On Match Set by using an object
 An ON MATCH SET statement can be generated using an object with an identifier and properties.
 
 ```js
@@ -138,7 +133,7 @@ console.log(queryBuilder.getBindParam().get());
 // { email: 'test@example.com', lastLogin: '2024-01-01', loginCount: 5 }
 ```
 
-### Using Literal for increment expressions
+### On Match Set with Literal for increment expressions
 You can use the `Literal` class to include expressions like incrementing a counter.
 
 ```js
@@ -164,7 +159,7 @@ console.log(queryBuilder.getBindParam().get());
 // { name: 'pageViews' }
 ```
 
-## Using ON CREATE SET and ON MATCH SET together
+## Using On Create Set and On Match Set together
 
 You can combine both clauses to handle creation and matching differently.
 

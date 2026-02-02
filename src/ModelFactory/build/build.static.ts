@@ -8,6 +8,10 @@ import type { BuildContext } from './build.types';
  * Builds an instance from data.
  * status 'new' means the instance doesn't exist in DB yet
  * status 'existing' means it was loaded from DB
+ *
+ * Note: `dataValues` contains only schema properties (node data).
+ * Relationship configuration data (used for creating related nodes) is stored
+ * separately in `__relationshipData` and accessible via getters on the instance.
  */
 export function build<
   Properties extends Neo4jSupportedProperties,
@@ -23,7 +27,9 @@ export function build<
     RelatedNodesToAssociateI,
     MethodsI
   > &
-    Partial<RelatedNodesToAssociateI>;
+    Partial<RelatedNodesToAssociateI> & {
+      __relationshipData: Partial<RelatedNodesToAssociateI>;
+    };
 
   const status = params?.status || 'new';
 
@@ -32,10 +38,11 @@ export function build<
   instance.dataValues = {} as Properties;
   instance.changed = {} as Record<keyof Properties, boolean>;
 
-  for (const _key of [
-    ...Object.keys(ctx.schema),
-    ...Object.keys(ctx.relationships),
-  ]) {
+  // Separate storage for relationship data (used during createOne/createMany)
+  instance.__relationshipData = {} as Partial<RelatedNodesToAssociateI>;
+
+  // Set up schema property getters/setters (these use dataValues)
+  for (const _key of Object.keys(ctx.schema)) {
     const key = _key as keyof Properties;
 
     // set dataValues using data
@@ -44,7 +51,7 @@ export function build<
       instance.changed[key] = status === 'new';
     }
 
-    // set the setters and getters of the keys
+    // set the setters and getters for schema keys
     Object.defineProperty(instance, key, {
       get: () => {
         return instance.dataValues[key];
@@ -52,6 +59,26 @@ export function build<
       set: (val) => {
         instance.dataValues[key] = val;
         instance.changed[key] = true;
+      },
+    });
+  }
+
+  // Set up relationship alias getters/setters (these use __relationshipData, not dataValues)
+  for (const _key of Object.keys(ctx.relationships)) {
+    const key = _key as keyof RelatedNodesToAssociateI;
+
+    // Store relationship data separately from dataValues
+    if (Object.hasOwn(data, key)) {
+      instance.__relationshipData[key] = (data as AnyObject)[key as string];
+    }
+
+    // set the setters and getters for relationship aliases
+    Object.defineProperty(instance, key, {
+      get: () => {
+        return instance.__relationshipData[key];
+      },
+      set: (val) => {
+        instance.__relationshipData[key] = val;
       },
     });
   }

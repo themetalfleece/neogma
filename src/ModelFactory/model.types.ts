@@ -372,10 +372,67 @@ export interface NeogmaInstanceMethodsI<
   MethodsI extends AnyObject,
   Instance = NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
 > {
+  /**
+   * Indicates whether this instance represents a node that exists in the database.
+   *
+   * - `true`: The instance was loaded from the database (via `findOne`, `findMany`, `buildFromRecord`,
+   *   or `build` with `{ status: 'existing' }`). Calling `save()` will UPDATE the existing node.
+   * - `false`: The instance is new and doesn't exist in the database yet. Calling `save()` will
+   *   CREATE a new node.
+   *
+   * This flag is set automatically by Neogma and should not be modified directly.
+   */
   __existsInDatabase: boolean;
+  /**
+   * Direct reference to the internal object containing schema properties (node data).
+   * Does not include relationship configuration data.
+   *
+   * **Warning**: Mutating this object directly (e.g., `instance.dataValues.name = 'foo'`)
+   * will modify the instance's internal state. Use `getDataValues()` if you need a safe copy.
+   *
+   * @see {@link getDataValues} for a safe copy that won't affect the instance.
+   */
   dataValues: Properties;
+  /**
+   * Tracks which schema properties have been modified since the instance was built or last saved.
+   *
+   * - For new instances (`__existsInDatabase: false`): All provided properties are marked as changed.
+   * - For existing instances (`__existsInDatabase: true`): Properties start as unchanged (`false`)
+   *   and are marked `true` when modified via setters.
+   *
+   * Used by `save()` to determine which properties need to be updated in the database.
+   */
   changed: Record<keyof Properties, boolean>;
+  /**
+   * Internal storage for relationship configuration data.
+   * Used during createOne/createMany for creating related nodes.
+   * Access relationship data via the relationship alias getters on the instance.
+   */
+  __relationshipData: Partial<RelatedNodesToAssociateI>;
+  /**
+   * The Neo4j labels of this node.
+   *
+   * This is properly set when the instance is:
+   * - Built internally by Neogma (e.g., from `findOne`, `findMany`, `update`)
+   * - Built using `buildFromRecord()`
+   *
+   * When using `build()` directly, this will be an empty array unless manually set.
+   */
   labels: string[];
+  /**
+   * Returns a new object containing only the schema properties (node data).
+   * Does not include relationship configuration data.
+   *
+   * Unlike `dataValues`, this returns a shallow copy, so mutations won't affect the instance.
+   *
+   * @returns A new object with the instance's schema property values.
+   *
+   * @example
+   * ```ts
+   * const data = user.getDataValues();
+   * data.name = 'changed'; // Safe - doesn't affect the instance
+   * ```
+   */
   getDataValues: () => Properties;
   save: (configuration?: CreateDataParamsI) => Promise<Instance>;
   validate: () => Promise<void>;
