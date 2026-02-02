@@ -178,6 +178,7 @@ export const ModelFactory = <
     public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
     public dataValues: InstanceMethodsI['dataValues'];
     public changed: InstanceMethodsI['changed'];
+    public __relationshipData: InstanceMethodsI['__relationshipData'];
     public labels: string[] = [];
 
     public static relationships = _relationships;

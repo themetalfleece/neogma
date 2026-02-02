@@ -131,6 +131,71 @@ describe('getDataValues', () => {
     // dataValues property should contain the same data
     expect(order.dataValues).toEqual(order.getDataValues());
   });
+
+  it('dataValues property does not include relationship data', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    // Build a user with relationship data
+    const user = Users.build({
+      id: uuid(),
+      name: 'Test User',
+      age: 25,
+      // Relationship data for creating related nodes
+      Orders: {
+        where: [
+          {
+            params: {
+              name: 'test-order',
+            },
+          },
+        ],
+      },
+    });
+
+    // dataValues should only contain schema properties, NOT relationship data
+    expect(user.dataValues).not.toHaveProperty('Orders');
+    expect(user.dataValues).toHaveProperty('id');
+    expect(user.dataValues).toHaveProperty('name');
+    expect(user.dataValues).toHaveProperty('age');
+
+    // dataValues property should match getDataValues()
+    expect(user.dataValues).toEqual(user.getDataValues());
+  });
+
+  it('relationship aliases are accessible as getters on the instance', async () => {
+    const neogma = getNeogma();
+    const Orders = createOrdersModel(neogma);
+    const Users = createUsersModel(Orders, neogma);
+
+    const orderRelationshipData = {
+      where: [
+        {
+          params: {
+            name: 'test-order',
+          },
+        },
+      ],
+    };
+
+    // Build a user with relationship data
+    const user = Users.build({
+      id: uuid(),
+      name: 'Test User',
+      Orders: orderRelationshipData,
+    });
+
+    // Relationship data should be accessible via the getter on the instance
+    // This is used during createOne/createMany for creating related nodes
+    expect((user as unknown as Record<string, unknown>).Orders).toEqual(
+      orderRelationshipData,
+    );
+
+    // But it should NOT be in dataValues
+    expect(user.dataValues).not.toHaveProperty('Orders');
+    expect(user.getDataValues()).not.toHaveProperty('Orders');
+  });
 });
 
 /**
