@@ -24,6 +24,7 @@
 > [Match Clause](/docs/QueryBuilder/Match-Clause)
 > [Create Clause](/docs/QueryBuilder/Create-Clause)
 > [Set Clause](/docs/QueryBuilder/Set-Clause)
+> [On Create/On Match Clause](/docs/QueryBuilder/On-Create-On-Match-Clause)
 > [Delete Clause](/docs/QueryBuilder/Delete-Clause)
 > [Where Clause](/docs/QueryBuilder/Where-Clause)
 > [Remove Clause](/docs/QueryBuilder/Remove-Clause)

@@ -7,6 +7,8 @@ export * from './getMatchString';
 export * from './getNodeStatement';
 export * from './getNodeString';
 export * from './getNormalizedLabels';
+export * from './getOnCreateSetString';
+export * from './getOnMatchSetString';
 export * from './getOrderByString';
 export * from './getPropertiesWithParams';
 export * from './getRelationshipStatement';
