@@ -103,7 +103,7 @@ Use `getDataValues()` when passing data to external code or when you need to mod
     /* --> when calling the following method, the User node, the Order node and the relationship between them */
     await userWithOrder.save();
 ```
-For more examples of creating realted nodes, refer to the [Create operations](./Creating-Nodes-and-Relationships), as the same interface is used.
+For more examples of creating related nodes, refer to the [Create operations](./Creating-Nodes-and-Relationships), as the same interface is used.
 
 **Note**: Relationship configuration data (like `Orders` above) is **not** included in `dataValues` or `getDataValues()`. These only return the node's schema properties.
 
