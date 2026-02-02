@@ -154,14 +154,13 @@ export class Where {
     property: string,
     value: WhereValuesI | undefined,
   ): void => {
-    // First, check if this is any form of null check (consolidated path)
-    const nullCheckOp = Where.getNullCheckOperator(value);
-    if (nullCheckOp) {
+    // Direct null value → IS NULL (can't combine with other operators)
+    if (value === null) {
       this.identifierPropertyData.push({
         identifier,
         property,
         bindParamName: null,
-        operator: nullCheckOp,
+        operator: 'is',
       });
       return;
     }
@@ -177,19 +176,43 @@ export class Where {
       return;
     }
 
-    // Object with operator symbols
+    // Object with operator symbols - process each operator individually
     if (typeof value === 'object' && value !== null) {
       const symbols = Object.getOwnPropertySymbols(value);
       for (const { description } of symbols) {
         const operator = description as (typeof operators)[number];
         if (operator && isOperator[operator]?.(value)) {
           const operatorValue = value[Op[operator]];
-          this.addBindParamDataEntry({
-            identifier,
-            property,
-            value: operatorValue,
-            operator,
-          });
+
+          // Handle null-check operators (is, isNot, eq with null, ne with null)
+          if (operator === 'is' || operator === 'isNot') {
+            // Op.is and Op.isNot are always null checks (no bind param needed)
+            this.identifierPropertyData.push({
+              identifier,
+              property,
+              bindParamName: null,
+              operator,
+            });
+          } else if (
+            (operator === 'eq' || operator === 'ne') &&
+            operatorValue === null
+          ) {
+            // Op.eq: null → IS NULL, Op.ne: null → IS NOT NULL
+            this.identifierPropertyData.push({
+              identifier,
+              property,
+              bindParamName: null,
+              operator: operator === 'eq' ? 'is' : 'isNot',
+            });
+          } else {
+            // Regular operator with a value
+            this.addBindParamDataEntry({
+              identifier,
+              property,
+              value: operatorValue,
+              operator,
+            });
+          }
         }
       }
     }
@@ -356,50 +379,6 @@ export class Where {
     throw new NeogmaConstraintError(`invalid mode ${mode}`);
   };
 
-  /**
-   * Determines if a where value represents a null check operation.
-   * Consolidates all the different ways to express IS NULL / IS NOT NULL:
-   * - Direct `null` → 'is'
-   * - `{ [Op.is]: null }` → 'is'
-   * - `{ [Op.eq]: null }` → 'is'
-   * - `{ [Op.isNot]: null }` → 'isNot'
-   * - `{ [Op.ne]: null }` → 'isNot'
-   *
-   * @param value - The where value to check
-   * @returns 'is' for IS NULL, 'isNot' for IS NOT NULL, or null if not a null check
-   */
-  private static getNullCheckOperator(
-    value: WhereValuesI | undefined,
-  ): 'is' | 'isNot' | null {
-    // Direct null value → IS NULL
-    if (value === null) {
-      return 'is';
-    }
-
-    // Must be an object to contain operators
-    if (typeof value !== 'object' || value === null) {
-      return null;
-    }
-
-    // Check for explicit is/isNot operators
-    if (Op.is in value) {
-      return 'is';
-    }
-    if (Op.isNot in value) {
-      return 'isNot';
-    }
-
-    // Check for eq/ne with null value
-    if (Op.eq in value && value[Op.eq] === null) {
-      return 'is';
-    }
-    if (Op.ne in value && value[Op.ne] === null) {
-      return 'isNot';
-    }
-
-    return null;
-  }
-
   /** returns a Where object if params is specified, else returns null */
   public static acquire(
     params?: AnyWhereI | null,
@@ -469,25 +448,33 @@ export class Where {
       if (typeof value === 'object') {
         const symbols = Object.getOwnPropertySymbols(value);
         let hasNonEqOperator = false;
-        let hasEqOperator = false;
+        let hasEqOperatorWithNonNullValue = false;
 
         for (const symbol of symbols) {
           const operator = symbol.description as (typeof operators)[number];
           if (operator && isOperator[operator]?.(value)) {
             if (operator === 'eq') {
-              hasEqOperator = true;
+              // Op.eq with null → IS NULL, must go to nonEqParams
+              if (value[Op.eq] === null) {
+                hasNonEqOperator = true;
+              } else {
+                hasEqOperatorWithNonNullValue = true;
+              }
+            } else if (operator === 'ne' && value[Op.ne] === null) {
+              // Op.ne with null → IS NOT NULL, must go to nonEqParams
+              hasNonEqOperator = true;
             } else {
               hasNonEqOperator = true;
             }
           }
         }
 
-        // If has any non-eq operators, put entire property in nonEqParams
-        // This handles cases like { [Op.gte]: 18, [Op.lte]: 65 } or { [Op.eq]: 'a', [Op.ne]: 'b' }
+        // If has any non-eq operators (including null checks), put in nonEqParams
+        // This handles cases like { [Op.gte]: 18, [Op.lte]: 65 }, { [Op.eq]: null }, etc.
         if (hasNonEqOperator) {
           nonEqParams[property] = value;
-        } else if (hasEqOperator) {
-          // Only eq operator - can use bracket syntax
+        } else if (hasEqOperatorWithNonNullValue) {
+          // Only eq operator with non-null value - can use bracket syntax
           eqParams[property] = value;
         }
       }

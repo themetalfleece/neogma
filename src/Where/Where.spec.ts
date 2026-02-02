@@ -251,6 +251,58 @@ describe('Where', () => {
         );
       }
     });
+
+    it('supports multiple operators including null check on same property', () => {
+      // Edge case: combining Op.isNot with another operator on same property
+      // This tests that null-check handling doesn't short-circuit and drop other operators
+      const where = new Where({
+        node: {
+          status: {
+            [Op.isNot]: null,
+            [Op.ne]: 'banned',
+          },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.status IS NOT NULL');
+      expect(statement).toContain('node.status <> $status');
+
+      // Only 'banned' should be in bind params, not null
+      expect(where.getBindParam().get()).toEqual({ status: 'banned' });
+    });
+
+    it('supports Op.is with other operators on same property', () => {
+      // This is a weird edge case but should be handled correctly
+      const where = new Where({
+        node: {
+          value: {
+            [Op.is]: null,
+            [Op.eq]: 'fallback',
+          },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      expect(statement).toContain('node.value IS NULL');
+      expect(statement).toContain('node.value = $value');
+    });
+
+    it('supports Op.eq with null alongside Op.ne with non-null', () => {
+      const where = new Where({
+        node: {
+          deleted: {
+            [Op.eq]: null,
+            [Op.ne]: 'permanently',
+          },
+        },
+      });
+
+      const statement = where.getStatement('text');
+      // Op.eq: null translates to IS NULL
+      expect(statement).toContain('node.deleted IS NULL');
+      expect(statement).toContain('node.deleted <> $deleted');
+    });
   });
 
   describe('addParams', () => {
@@ -1170,6 +1222,51 @@ describe('Where', () => {
 
       expect(eqParams).toEqual({ name: 'John', status: 'active' });
       expect(nonEqParams).toEqual({ deleted: { [Op.is]: null } });
+    });
+
+    it('puts Op.eq with null in nonEqParams (translates to IS NULL)', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: { [Op.eq]: null },
+      });
+
+      // Op.eq: null should go to nonEqParams because it becomes IS NULL
+      // which can't use bracket syntax
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: { [Op.eq]: null } });
+    });
+
+    it('puts Op.ne with null in nonEqParams (translates to IS NOT NULL)', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        deleted: { [Op.ne]: null },
+      });
+
+      // Op.ne: null should go to nonEqParams because it becomes IS NOT NULL
+      // which can't use bracket syntax
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({ deleted: { [Op.ne]: null } });
+    });
+
+    it('handles mixed Op.eq with null and non-null values', () => {
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        name: { [Op.eq]: 'John' }, // non-null → eqParams
+        deleted: { [Op.eq]: null }, // null → nonEqParams
+      });
+
+      expect(eqParams).toEqual({ name: { [Op.eq]: 'John' } });
+      expect(nonEqParams).toEqual({ deleted: { [Op.eq]: null } });
+    });
+
+    it('handles property with both null check and other operators', () => {
+      // Property with Op.isNot (null check) and Op.ne (comparison)
+      // Entire property goes to nonEqParams
+      const { eqParams, nonEqParams } = Where.splitByOperator({
+        status: { [Op.isNot]: null, [Op.ne]: 'banned' },
+      });
+
+      expect(eqParams).toEqual({});
+      expect(nonEqParams).toEqual({
+        status: { [Op.isNot]: null, [Op.ne]: 'banned' },
+      });
     });
   });
 });

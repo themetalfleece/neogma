@@ -286,7 +286,7 @@ While some of the operators can be used with plain objects, some others need to 
 | `Op.contains`  | `CONTAINS`             | Substring matching             | **String only**                      |
 | `Op.is`        | `IS NULL`              | Property is null               | All types                            |
 | `Op.isNot`     | `IS NOT NULL`          | Property is not null           | All types                            |
-| `null`         | `IS NULL`              | Shorthand for `Op.is: null`    | All types                            |
+| `null`         | `IS NULL`              | Shorthand for `{ [Op.is]: null }` | All types                            |
 
 > **Type Safety Note**: When using TypeScript with typed models, operators are constrained to appropriate types. For example, `Op.contains` only accepts string values and is only valid for string properties.
 
