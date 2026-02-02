@@ -59,7 +59,7 @@ await Users.findRelationships({
 });
 ```
 
-This type safety works with all where operators (`Op.eq`, `Op.in`, `Op.gt`, `Op.isNull`, etc.) and validates both property names and value types at any nesting level.
+This type safety works with all where operators (`Op.eq`, `Op.in`, `Op.gt`, `Op.is`, etc.) and validates both property names and value types at any nesting level.
 
 ### Null vs Undefined Behavior
 
@@ -275,8 +275,8 @@ While some of the operators can be used with plain objects, some others need to 
 
 | Operator       | Cypher                 | Description                    | Available For                        |
 | -------------- | ---------------------- | ------------------------------ | ------------------------------------ |
-| `Op.eq`        | `=`                    | Equality                       | All types                            |
-| `Op.ne`        | `<>`                   | Not equal                      | All types                            |
+| `Op.eq`        | `=` / `IS NULL`        | Equality (null → IS NULL)      | All types                            |
+| `Op.ne`        | `<>` / `IS NOT NULL`   | Not equal (null → IS NOT NULL) | All types                            |
 | `Op.in`        | `property IN [values]` | Property is one of values      | All types                            |
 | `Op._in`       | `value IN property`    | Value exists in array property | All types (use for array membership) |
 | `Op.gt`        | `>`                    | Greater than                   | Scalar types only                    |
@@ -284,9 +284,9 @@ While some of the operators can be used with plain objects, some others need to 
 | `Op.lt`        | `<`                    | Less than                      | Scalar types only                    |
 | `Op.lte`       | `<=`                   | Less than or equal             | Scalar types only                    |
 | `Op.contains`  | `CONTAINS`             | Substring matching             | **String only**                      |
-| `Op.isNull`    | `IS NULL`              | Property is null               | All types                            |
-| `Op.isNotNull` | `IS NOT NULL`          | Property is not null           | All types                            |
-| `null`         | `IS NULL`              | Shorthand for `Op.isNull`      | All types                            |
+| `Op.is`        | `IS NULL`              | Property is null               | All types                            |
+| `Op.isNot`     | `IS NOT NULL`          | Property is not null           | All types                            |
+| `null`         | `IS NULL`              | Shorthand for `Op.is: null`    | All types                            |
 
 > **Type Safety Note**: When using TypeScript with typed models, operators are constrained to appropriate types. For example, `Op.contains` only accepts string values and is only valid for string properties.
 
@@ -478,13 +478,13 @@ await Users.findMany({ where: { age: { [Op.contains]: 5 } } }); // Error!
 
 ### IS NULL and IS NOT NULL
 
-Check if a property is null or not null:
+Check if a property is null or not null using `Op.is` and `Op.isNot`:
 
 ```js
 const where = new Where({
     n: {
-        deleted: { [Op.isNull]: true },
-        createdAt: { [Op.isNotNull]: true },
+        deleted: { [Op.is]: null },
+        createdAt: { [Op.isNot]: null },
     },
 });
 
@@ -492,12 +492,23 @@ console.log(where.getStatement('text'));
 // n.deleted IS NULL AND n.createdAt IS NOT NULL
 ```
 
-For convenience, you can use `null` directly as shorthand for `{ [Op.isNull]: true }`:
+For convenience, you can use `null` directly as shorthand for `{ [Op.is]: null }`:
 
 ```js
 const where = new Where({
     n: {
-        deleted: null,  // Equivalent to { [Op.isNull]: true }
+        deleted: null,  // Equivalent to { [Op.is]: null }
+    },
+});
+```
+
+You can also use `{ [Op.eq]: null }` for IS NULL and `{ [Op.ne]: null }` for IS NOT NULL:
+
+```js
+const where = new Where({
+    n: {
+        deleted: { [Op.eq]: null },   // Generates: n.deleted IS NULL
+        active: { [Op.ne]: null },    // Generates: n.active IS NOT NULL
     },
 });
 ```

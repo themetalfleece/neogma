@@ -91,15 +91,15 @@ describe('Where', () => {
       expect(where.getBindParam().get()).toEqual(expectedValues);
     });
 
-    it('generates IS NULL statement with Op.isNull', () => {
+    it('generates IS NULL statement with Op.is', () => {
       const where = new Where({
         identifier: {
-          deleted: { [Op.isNull]: true },
+          deleted: { [Op.is]: null },
         },
       });
 
       expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
-      // isNull operator should not add any bind params
+      // is operator should not add any bind params
       expect(where.getBindParam().get()).toEqual({});
     });
 
@@ -115,26 +115,48 @@ describe('Where', () => {
       expect(where.getBindParam().get()).toEqual({});
     });
 
-    it('generates IS NOT NULL statement with Op.isNotNull', () => {
+    it('generates IS NOT NULL statement with Op.isNot', () => {
       const where = new Where({
         identifier: {
-          deletedAt: { [Op.isNotNull]: true },
+          deletedAt: { [Op.isNot]: null },
         },
       });
 
       expect(where.getStatement('text')).toBe(
         'identifier.deletedAt IS NOT NULL',
       );
-      // isNotNull operator should not add any bind params
+      // isNot operator should not add any bind params
       expect(where.getBindParam().get()).toEqual({});
     });
 
-    it('combines isNull/isNotNull with other operators', () => {
+    it('translates Op.eq with null to IS NULL', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.eq]: null },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NULL');
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('translates Op.ne with null to IS NOT NULL', () => {
+      const where = new Where({
+        identifier: {
+          deleted: { [Op.ne]: null },
+        },
+      });
+
+      expect(where.getStatement('text')).toBe('identifier.deleted IS NOT NULL');
+      expect(where.getBindParam().get()).toEqual({});
+    });
+
+    it('combines is/isNot with other operators', () => {
       const where = new Where({
         node: {
           name: 'John',
-          deleted: { [Op.isNull]: true },
-          createdAt: { [Op.isNotNull]: true },
+          deleted: { [Op.is]: null },
+          createdAt: { [Op.isNot]: null },
           age: { [Op.gte]: 18 },
         },
       });
@@ -173,10 +195,10 @@ describe('Where', () => {
       });
     });
 
-    it('throws error when using isNull in object mode', () => {
+    it('throws error when using is in object mode', () => {
       const where = new Where({
         identifier: {
-          deleted: { [Op.isNull]: true },
+          deleted: { [Op.is]: null },
         },
       });
 
@@ -185,10 +207,10 @@ describe('Where', () => {
       );
     });
 
-    it('throws error when using isNotNull in object mode', () => {
+    it('throws error when using isNot in object mode', () => {
       const where = new Where({
         identifier: {
-          deletedAt: { [Op.isNotNull]: true },
+          deletedAt: { [Op.isNot]: null },
         },
       });
 
@@ -386,16 +408,16 @@ describe('Where', () => {
         expect(where.getStatement('text')).toContain('$tag IN node.tag');
       });
 
-      it('accepts valid Op.isNull', () => {
+      it('accepts valid Op.is', () => {
         const where = new Where({
-          node: { deleted: { [Op.isNull]: true } },
+          node: { deleted: { [Op.is]: null } },
         });
         expect(where.getStatement('text')).toContain('node.deleted IS NULL');
       });
 
-      it('accepts valid Op.isNotNull', () => {
+      it('accepts valid Op.isNot', () => {
         const where = new Where({
-          node: { createdAt: { [Op.isNotNull]: true } },
+          node: { createdAt: { [Op.isNot]: null } },
         });
         expect(where.getStatement('text')).toContain(
           'node.createdAt IS NOT NULL',
@@ -628,14 +650,14 @@ describe('Where', () => {
         expect(value).toEqual([]);
       });
 
-      it('accepts Op.isNull for array types', () => {
-        const value: WhereValuesI<string[]> = { [Op.isNull]: true };
-        expect(Op.isNull in value).toBe(true);
+      it('accepts Op.is for array types', () => {
+        const value: WhereValuesI<string[]> = { [Op.is]: null };
+        expect(Op.is in value).toBe(true);
       });
 
-      it('accepts Op.isNotNull for array types', () => {
-        const value: WhereValuesI<string[]> = { [Op.isNotNull]: true };
-        expect(Op.isNotNull in value).toBe(true);
+      it('accepts Op.isNot for array types', () => {
+        const value: WhereValuesI<string[]> = { [Op.isNot]: null };
+        expect(Op.isNot in value).toBe(true);
       });
 
       it('accepts boolean[] array type', () => {
@@ -922,12 +944,12 @@ describe('Where', () => {
         expect(isAnyOperator({ [Op.lte]: 100 })).toBe(true);
       });
 
-      it('returns true for Op.isNull', () => {
-        expect(isAnyOperator({ [Op.isNull]: true })).toBe(true);
+      it('returns true for Op.is', () => {
+        expect(isAnyOperator({ [Op.is]: null })).toBe(true);
       });
 
-      it('returns true for Op.isNotNull', () => {
-        expect(isAnyOperator({ [Op.isNotNull]: true })).toBe(true);
+      it('returns true for Op.isNot', () => {
+        expect(isAnyOperator({ [Op.isNot]: null })).toBe(true);
       });
 
       it('returns false for direct string value', () => {
@@ -1112,13 +1134,13 @@ describe('Where', () => {
       expect(nonEqParams).toEqual({});
     });
 
-    it('puts Op.isNull in nonEqParams', () => {
+    it('puts Op.is in nonEqParams', () => {
       const { eqParams, nonEqParams } = Where.splitByOperator({
-        deleted: { [Op.isNull]: true },
+        deleted: { [Op.is]: null },
       });
 
       expect(eqParams).toEqual({});
-      expect(nonEqParams).toEqual({ deleted: { [Op.isNull]: true } });
+      expect(nonEqParams).toEqual({ deleted: { [Op.is]: null } });
     });
 
     it('puts direct null in nonEqParams', () => {
@@ -1130,24 +1152,24 @@ describe('Where', () => {
       expect(nonEqParams).toEqual({ deleted: null });
     });
 
-    it('puts Op.isNotNull in nonEqParams', () => {
+    it('puts Op.isNot in nonEqParams', () => {
       const { eqParams, nonEqParams } = Where.splitByOperator({
-        createdAt: { [Op.isNotNull]: true },
+        createdAt: { [Op.isNot]: null },
       });
 
       expect(eqParams).toEqual({});
-      expect(nonEqParams).toEqual({ createdAt: { [Op.isNotNull]: true } });
+      expect(nonEqParams).toEqual({ createdAt: { [Op.isNot]: null } });
     });
 
-    it('handles isNull/isNotNull with other params', () => {
+    it('handles is/isNot with other params', () => {
       const { eqParams, nonEqParams } = Where.splitByOperator({
         name: 'John',
-        deleted: { [Op.isNull]: true },
+        deleted: { [Op.is]: null },
         status: 'active',
       });
 
       expect(eqParams).toEqual({ name: 'John', status: 'active' });
-      expect(nonEqParams).toEqual({ deleted: { [Op.isNull]: true } });
+      expect(nonEqParams).toEqual({ deleted: { [Op.is]: null } });
     });
   });
 });
