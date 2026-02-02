@@ -146,6 +146,29 @@ export class Where {
   }
 
   /**
+   * Determines if an operator with its value represents a null check.
+   * Returns the effective null-check operator ('is' or 'isNot'), or null if not a null check.
+   *
+   * Null check patterns:
+   * - `Op.is` → 'is' (explicit IS NULL)
+   * - `Op.isNot` → 'isNot' (explicit IS NOT NULL)
+   * - `Op.eq` with null → 'is' (equality with null becomes IS NULL)
+   * - `Op.ne` with null → 'isNot' (not-equal with null becomes IS NOT NULL)
+   */
+  private static resolveNullCheckOperator(
+    operator: (typeof operators)[number],
+    operatorValue: unknown,
+  ): 'is' | 'isNot' | null {
+    if (operator === 'is') return 'is';
+    if (operator === 'isNot') return 'isNot';
+    if (operatorValue === null) {
+      if (operator === 'eq') return 'is';
+      if (operator === 'ne') return 'isNot';
+    }
+    return null;
+  }
+
+  /**
    * Processes a single property value and adds it to identifierPropertyData.
    * Handles null checks, direct values, and operator objects.
    */
@@ -154,14 +177,9 @@ export class Where {
     property: string,
     value: WhereValuesI | undefined,
   ): void => {
-    // Direct null value → IS NULL (can't combine with other operators)
+    // Direct null value → IS NULL
     if (value === null) {
-      this.identifierPropertyData.push({
-        identifier,
-        property,
-        bindParamName: null,
-        operator: 'is',
-      });
+      this.addNullCheckEntry(identifier, property, 'is');
       return;
     }
 
@@ -177,45 +195,43 @@ export class Where {
     }
 
     // Object with operator symbols - process each operator individually
-    if (typeof value === 'object' && value !== null) {
-      const symbols = Object.getOwnPropertySymbols(value);
-      for (const { description } of symbols) {
+    if (typeof value === 'object') {
+      for (const { description } of Object.getOwnPropertySymbols(value)) {
         const operator = description as (typeof operators)[number];
-        if (operator && isOperator[operator]?.(value)) {
-          const operatorValue = value[Op[operator]];
+        if (!operator || !isOperator[operator]?.(value)) continue;
 
-          // Handle null-check operators (is, isNot, eq with null, ne with null)
-          if (operator === 'is' || operator === 'isNot') {
-            // Op.is and Op.isNot are always null checks (no bind param needed)
-            this.identifierPropertyData.push({
-              identifier,
-              property,
-              bindParamName: null,
-              operator,
-            });
-          } else if (
-            (operator === 'eq' || operator === 'ne') &&
-            operatorValue === null
-          ) {
-            // Op.eq: null → IS NULL, Op.ne: null → IS NOT NULL
-            this.identifierPropertyData.push({
-              identifier,
-              property,
-              bindParamName: null,
-              operator: operator === 'eq' ? 'is' : 'isNot',
-            });
-          } else {
-            // Regular operator with a value
-            this.addBindParamDataEntry({
-              identifier,
-              property,
-              value: operatorValue,
-              operator,
-            });
-          }
+        const operatorValue = value[Op[operator]];
+        const nullCheckOp = Where.resolveNullCheckOperator(
+          operator,
+          operatorValue,
+        );
+
+        if (nullCheckOp) {
+          this.addNullCheckEntry(identifier, property, nullCheckOp);
+        } else {
+          this.addBindParamDataEntry({
+            identifier,
+            property,
+            value: operatorValue,
+            operator,
+          });
         }
       }
     }
+  };
+
+  /** Adds a null-check entry (IS NULL or IS NOT NULL) without a bind param. */
+  private addNullCheckEntry = (
+    identifier: string,
+    property: string,
+    operator: 'is' | 'isNot',
+  ): void => {
+    this.identifierPropertyData.push({
+      identifier,
+      property,
+      bindParamName: null,
+      operator,
+    });
   };
 
   /** Adds a value to the bind param, while updating the identifierPropertyData field. */
@@ -446,35 +462,29 @@ export class Where {
 
       // Check if value is an operator object
       if (typeof value === 'object') {
-        const symbols = Object.getOwnPropertySymbols(value);
         let hasNonEqOperator = false;
-        let hasEqOperatorWithNonNullValue = false;
+        let hasEqWithValue = false;
 
-        for (const symbol of symbols) {
-          const operator = symbol.description as (typeof operators)[number];
-          if (operator && isOperator[operator]?.(value)) {
-            if (operator === 'eq') {
-              // Op.eq with null → IS NULL, must go to nonEqParams
-              if (value[Op.eq] === null) {
-                hasNonEqOperator = true;
-              } else {
-                hasEqOperatorWithNonNullValue = true;
-              }
-            } else if (operator === 'ne' && value[Op.ne] === null) {
-              // Op.ne with null → IS NOT NULL, must go to nonEqParams
-              hasNonEqOperator = true;
-            } else {
-              hasNonEqOperator = true;
-            }
+        for (const { description } of Object.getOwnPropertySymbols(value)) {
+          const operator = description as (typeof operators)[number];
+          if (!operator || !isOperator[operator]?.(value)) continue;
+
+          const operatorValue = value[Op[operator]];
+
+          // Null checks and non-eq operators go to nonEqParams
+          if (Where.resolveNullCheckOperator(operator, operatorValue)) {
+            hasNonEqOperator = true;
+          } else if (operator === 'eq') {
+            hasEqWithValue = true;
+          } else {
+            hasNonEqOperator = true;
           }
         }
 
-        // If has any non-eq operators (including null checks), put in nonEqParams
-        // This handles cases like { [Op.gte]: 18, [Op.lte]: 65 }, { [Op.eq]: null }, etc.
+        // Non-eq operators (including null checks) require WHERE clause
         if (hasNonEqOperator) {
           nonEqParams[property] = value;
-        } else if (hasEqOperatorWithNonNullValue) {
-          // Only eq operator with non-null value - can use bracket syntax
+        } else if (hasEqWithValue) {
           eqParams[property] = value;
         }
       }
