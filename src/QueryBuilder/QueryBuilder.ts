@@ -14,6 +14,8 @@ import { getLimitString } from './getLimitString';
 import { getMatchString } from './getMatchString';
 import { getNodeStatement } from './getNodeStatement';
 import { getNormalizedLabels } from './getNormalizedLabels';
+import { getOnCreateSetString } from './getOnCreateSetString';
+import { getOnMatchSetString } from './getOnMatchSetString';
 import { getOrderByString } from './getOrderByString';
 import { getPropertiesWithParams } from './getPropertiesWithParams';
 import { getRelationshipStatement } from './getRelationshipStatement';
@@ -33,6 +35,8 @@ import type {
   LimitI,
   MatchI,
   MergeI,
+  OnCreateSetI,
+  OnMatchSetI,
   OrderByI,
   ParameterI,
   RawI,
@@ -51,6 +55,8 @@ import {
   isLimitParameter,
   isMatchParameter,
   isMergeParameter,
+  isOnCreateSetParameter,
+  isOnMatchSetParameter,
   isOrderByParameter,
   isRawParameter,
   isRemoveParameter,
@@ -79,6 +85,8 @@ export type QueryBuilderParameters = {
   ForEachI: ForEachI['forEach'];
   SkipI: SkipI['skip'];
   WhereI: WhereI['where'];
+  OnCreateSetI: OnCreateSetI['onCreateSet'];
+  OnMatchSetI: OnMatchSetI['onMatchSet'];
 };
 
 export class QueryBuilder {
@@ -172,6 +180,10 @@ export class QueryBuilder {
         statementParts.push(getOrderByString(param.orderBy));
       } else if (isWhereParameter(param)) {
         statementParts.push(getWhereString(param.where, deps));
+      } else if (isOnCreateSetParameter(param)) {
+        statementParts.push(getOnCreateSetString(param.onCreateSet, deps));
+      } else if (isOnMatchSetParameter(param)) {
+        statementParts.push(getOnMatchSetString(param.onMatchSet, deps));
       }
     }
 
@@ -260,64 +272,271 @@ export class QueryBuilder {
     );
   }
 
-  /** a literal statement to use as is */
+  /**
+   * RAW statement
+   * A literal statement to use as is without any processing.
+   *
+   * @example
+   * new QueryBuilder()
+   *   .raw('MATCH (n:Person) RETURN n')
+   *   .run();
+   */
   public raw(raw: RawI['raw']): QueryBuilder {
     return this.addParams({ raw });
   }
-  /** MATCH statement */
+  /**
+   * MATCH statement
+   * Matches patterns in the graph database.
+   *
+   * @example
+   * // Match by literal string
+   * new QueryBuilder().match('(n:Person)').return('n');
+   *
+   * @example
+   * // Match by object
+   * new QueryBuilder()
+   *   .match({ identifier: 'n', label: 'Person', where: { name: 'John' } })
+   *   .return('n');
+   */
   public match(match: MatchI['match']): QueryBuilder {
     return this.addParams({ match });
   }
-  /** CREATE statement */
+  /**
+   * CREATE statement
+   * Creates nodes and relationships in the graph database.
+   *
+   * @example
+   * // Create by literal string
+   * new QueryBuilder().create('(n:Person { name: "John" })').return('n');
+   *
+   * @example
+   * // Create by object
+   * new QueryBuilder()
+   *   .create({ identifier: 'n', label: 'Person', properties: { name: 'John' } })
+   *   .return('n');
+   */
   public create(create: CreateI['create']): QueryBuilder {
     return this.addParams({ create });
   }
-  /** MERGE statement */
+  /**
+   * MERGE statement
+   * Matches existing patterns or creates new ones if they don't exist.
+   *
+   * @example
+   * // Merge by literal string
+   * new QueryBuilder().merge('(n:Person { name: "John" })').return('n');
+   *
+   * @example
+   * // Merge by object
+   * new QueryBuilder()
+   *   .merge({ identifier: 'n', label: 'Person', properties: { name: 'John' } })
+   *   .return('n');
+   */
   public merge(merge: MergeI['merge']): QueryBuilder {
     return this.addParams({ merge });
   }
-  /** SET statement */
+  /**
+   * SET statement
+   * Sets properties on nodes or relationships.
+   *
+   * @example
+   * // Set by literal string
+   * new QueryBuilder().match('(n:Person)').set('n.age = 30').return('n');
+   *
+   * @example
+   * // Set by object
+   * new QueryBuilder()
+   *   .match({ identifier: 'n', label: 'Person' })
+   *   .set({ identifier: 'n', properties: { age: 30 } })
+   *   .return('n');
+   */
   public set(set: SetI['set']): QueryBuilder {
     return this.addParams({ set });
   }
-  /** DELETE statement */
+  /**
+   * DELETE statement
+   * Deletes nodes and relationships from the graph database.
+   *
+   * @example
+   * // Delete by literal string
+   * new QueryBuilder().match('(n:Person)').delete('n');
+   *
+   * @example
+   * // Detach delete by object
+   * new QueryBuilder()
+   *   .match({ identifier: 'n', label: 'Person' })
+   *   .delete({ identifiers: ['n'], detach: true });
+   */
   public delete(deleteParam: DeleteI['delete']): QueryBuilder {
     return this.addParams({ delete: deleteParam });
   }
-  /** REMOVE statement */
+  /**
+   * REMOVE statement
+   * Removes properties or labels from nodes.
+   *
+   * @example
+   * // Remove by literal string
+   * new QueryBuilder().match('(n:Person)').remove('n.age').return('n');
+   *
+   * @example
+   * // Remove properties by object
+   * new QueryBuilder()
+   *   .match({ identifier: 'n', label: 'Person' })
+   *   .remove({ identifier: 'n', properties: ['age', 'status'] })
+   *   .return('n');
+   */
   public remove(remove: RemoveI['remove']): QueryBuilder {
     return this.addParams({ remove });
   }
-  /** RETURN statement */
+  /**
+   * RETURN statement
+   * Specifies what to return from the query.
+   *
+   * @example
+   * // Return by literal string
+   * new QueryBuilder().match('(n:Person)').return('n.name, n.age');
+   *
+   * @example
+   * // Return by array
+   * new QueryBuilder().match('(n:Person)').return(['n.name', 'n.age']);
+   */
   public return(returnParam: ReturnI['return']): QueryBuilder {
     return this.addParams({ return: returnParam });
   }
-  /** LIMIT statement */
+  /**
+   * LIMIT statement
+   * Limits the number of results returned.
+   *
+   * @example
+   * // Limit by number (uses bind param)
+   * new QueryBuilder().match('(n:Person)').return('n').limit(10);
+   *
+   * @example
+   * // Limit by literal string
+   * new QueryBuilder().match('(n:Person)').return('n').limit('toInteger(rand() * 10)');
+   */
   public limit(limit: LimitI['limit']): QueryBuilder {
     return this.addParams({ limit });
   }
-  /** WITH statement */
+  /**
+   * WITH statement
+   * Passes results from one part of the query to the next.
+   *
+   * @example
+   * // With by literal string
+   * new QueryBuilder().match('(n:Person)').with('n, count(*) as total').return('total');
+   *
+   * @example
+   * // With by array
+   * new QueryBuilder().match('(n:Person)').with(['n', 'count(*) as total']).return('total');
+   */
   public with(withParam: WithI['with']): QueryBuilder {
     return this.addParams({ with: withParam });
   }
-  /** ORDER BY statement */
+  /**
+   * ORDER BY statement
+   * Orders the results by specified properties.
+   *
+   * @example
+   * // Order by literal string
+   * new QueryBuilder().match('(n:Person)').return('n').orderBy('n.name ASC');
+   *
+   * @example
+   * // Order by object
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .return('n')
+   *   .orderBy({ identifier: 'n', property: 'name', direction: 'DESC' });
+   */
   public orderBy(orderBy: OrderByI['orderBy']): QueryBuilder {
     return this.addParams({ orderBy });
   }
-  /** UNWIND statement */
+  /**
+   * UNWIND statement
+   * Expands a list into individual rows.
+   *
+   * @example
+   * // Unwind by literal string
+   * new QueryBuilder().unwind('[1, 2, 3] as x').return('x');
+   *
+   * @example
+   * // Unwind by object
+   * new QueryBuilder().unwind({ value: '$list', as: 'item' }).return('item');
+   */
   public unwind(unwind: UnwindI['unwind']): QueryBuilder {
     return this.addParams({ unwind });
   }
-  /** FOR EACH statement */
+  /**
+   * FOREACH statement
+   * Iterates over a list and performs update operations.
+   *
+   * @example
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .forEach('(x IN n.emails | CREATE (:Email { address: x }))');
+   */
   public forEach(forEach: ForEachI['forEach']): QueryBuilder {
     return this.addParams({ forEach });
   }
-  /** SKIP statement */
+  /**
+   * SKIP statement
+   * Skips the specified number of results.
+   *
+   * @example
+   * // Skip by number (uses bind param)
+   * new QueryBuilder().match('(n:Person)').return('n').skip(5).limit(10);
+   *
+   * @example
+   * // Skip by literal string
+   * new QueryBuilder().match('(n:Person)').return('n').skip('toInteger(rand() * 10)');
+   */
   public skip(skip: SkipI['skip']): QueryBuilder {
     return this.addParams({ skip });
   }
-  /** WHERE statement */
+  /**
+   * WHERE statement
+   * Filters results based on conditions.
+   *
+   * @example
+   * // Where by literal string
+   * new QueryBuilder().match('(n:Person)').where('n.age > 18').return('n');
+   *
+   * @example
+   * // Where by object
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .where({ n: { age: { [Op.gt]: 18 } } })
+   *   .return('n');
+   */
   public where(where: WhereI['where']): QueryBuilder {
     return this.addParams({ where });
+  }
+  /**
+   * ON CREATE SET statement
+   * Used with MERGE to specify properties to set when a new node is created.
+   *
+   * @example
+   * // Using with MERGE to set properties on create
+   * new QueryBuilder()
+   *   .merge({ identifier: 'n', label: 'Person', properties: { name: 'John' } })
+   *   .onCreateSet({ identifier: 'n', properties: { created: new Date().toISOString() } })
+   *   .return('n');
+   */
+  public onCreateSet(onCreateSet: OnCreateSetI['onCreateSet']): QueryBuilder {
+    return this.addParams({ onCreateSet });
+  }
+  /**
+   * ON MATCH SET statement
+   * Used with MERGE to specify properties to set when an existing node is matched.
+   *
+   * @example
+   * // Using with MERGE to set properties on match
+   * new QueryBuilder()
+   *   .merge({ identifier: 'n', label: 'Person', properties: { name: 'John' } })
+   *   .onMatchSet({ identifier: 'n', properties: { lastSeen: new Date().toISOString() } })
+   *   .return('n');
+   */
+  public onMatchSet(onMatchSet: OnMatchSetI['onMatchSet']): QueryBuilder {
+    return this.addParams({ onMatchSet });
   }
 }

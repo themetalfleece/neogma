@@ -1,6 +1,15 @@
 import type { NeogmaModel } from '../ModelFactory';
 import type { Neo4jSupportedProperties } from '../QueryRunner/QueryRunner.types';
 import type { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
+import type { OnCreateSetI, OnCreateSetObjectI } from './getOnCreateSetString';
+import type { OnMatchSetI, OnMatchSetObjectI } from './getOnMatchSetString';
+
+export type {
+  OnCreateSetI,
+  OnCreateSetObjectI,
+  OnMatchSetI,
+  OnMatchSetObjectI,
+};
 
 /** returns the given type, while making the given properties required */
 type RequiredProperties<T, P extends keyof T> = T & {
@@ -23,6 +32,8 @@ export type ParameterI =
   | SkipI
   | WithI
   | WhereI
+  | OnCreateSetI
+  | OnMatchSetI
   | null
   | undefined;
 
@@ -307,6 +318,20 @@ export const isForEachParameter = (
   forEach: ParameterI,
 ): forEach is ForEachI => {
   return !!(forEach as ForEachI).forEach;
+};
+
+/** ON CREATE SET parameter type guard */
+export const isOnCreateSetParameter = (
+  param: ParameterI,
+): param is OnCreateSetI => {
+  return !!(param as OnCreateSetI).onCreateSet;
+};
+
+/** ON MATCH SET parameter type guard */
+export const isOnMatchSetParameter = (
+  param: ParameterI,
+): param is OnMatchSetI => {
+  return !!(param as OnMatchSetI).onMatchSet;
 };
 
 /** node type which will be used for matching */
