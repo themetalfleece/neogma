@@ -2,7 +2,7 @@
 import { typeCheck } from '../ModelFactory/testHelpers';
 import { randomSuffix, trimWhitespace } from '../utils/string';
 import type { WhereValuesI } from '.';
-import { isAnyOperator, Op, Where } from '.';
+import { isAnyOperator, isOperator, Op, Where } from '.';
 
 describe('Where', () => {
   describe('contructor', () => {
@@ -1028,6 +1028,38 @@ describe('Where', () => {
         expect(isAnyOperator({ foo: 'bar' } as unknown as WhereValuesI)).toBe(
           false,
         );
+      });
+    });
+
+    describe('isOperator type guard strictness', () => {
+      it('isOperator.is returns true only when value is null', () => {
+        expect(isOperator.is({ [Op.is]: null })).toBe(true);
+        // Invalid: Op.is with non-null value should return false at runtime
+        // Cast to unknown to bypass TypeScript's compile-time checks
+        expect(
+          isOperator.is({ [Op.is]: true } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(
+          isOperator.is({ [Op.is]: 'string' } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(isOperator.is({ [Op.is]: 0 } as unknown as WhereValuesI)).toBe(
+          false,
+        );
+      });
+
+      it('isOperator.isNot returns true only when value is null', () => {
+        expect(isOperator.isNot({ [Op.isNot]: null })).toBe(true);
+        // Invalid: Op.isNot with non-null value should return false at runtime
+        // Cast to unknown to bypass TypeScript's compile-time checks
+        expect(
+          isOperator.isNot({ [Op.isNot]: true } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(
+          isOperator.isNot({ [Op.isNot]: 'string' } as unknown as WhereValuesI),
+        ).toBe(false);
+        expect(
+          isOperator.isNot({ [Op.isNot]: 0 } as unknown as WhereValuesI),
+        ).toBe(false);
       });
     });
   });

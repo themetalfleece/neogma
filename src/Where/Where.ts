@@ -28,27 +28,27 @@ const isNeo4jSupportedTypes = (
     return false;
   }
 
-  const isSupportedSingleType = (value: WhereValuesI): boolean => {
+  const isSupportedSingleType = (v: WhereValuesI): boolean => {
     return (
-      value instanceof Literal ||
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean' ||
-      neo4jDriver.isInt(value) ||
-      neo4jDriver.isPoint(value) ||
-      neo4jDriver.isDate(value) ||
-      neo4jDriver.isTime(value) ||
-      neo4jDriver.isLocalTime(value) ||
-      neo4jDriver.isDateTime(value) ||
-      neo4jDriver.isLocalDateTime(value) ||
-      neo4jDriver.isDuration(value)
+      v instanceof Literal ||
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean' ||
+      neo4jDriver.isInt(v) ||
+      neo4jDriver.isPoint(v) ||
+      neo4jDriver.isDate(v) ||
+      neo4jDriver.isTime(v) ||
+      neo4jDriver.isLocalTime(v) ||
+      neo4jDriver.isDateTime(v) ||
+      neo4jDriver.isLocalDateTime(v) ||
+      neo4jDriver.isDuration(v)
     );
   };
 
   if (Array.isArray(value)) {
     // For direct array values, check each element is a supported single type.
     // Note: Nested arrays (Neo4jSingleTypes[][]) come from Op.in extraction, not direct values.
-    return value.every((element) => isSupportedSingleType(element));
+    return value.every((el) => isSupportedSingleType(el));
   }
 
   return isSupportedSingleType(value);
@@ -195,7 +195,8 @@ export class Where {
     }
 
     // Object with operator symbols - process each operator individually
-    if (typeof value === 'object') {
+    // Note: null already handled above, undefined is falsy, so this handles operator objects
+    if (value && typeof value === 'object') {
       for (const { description } of Object.getOwnPropertySymbols(value)) {
         const operator = description as (typeof operators)[number];
         if (!operator || !isOperator[operator]?.(value)) continue;
@@ -326,13 +327,7 @@ export class Where {
      */
     const isReverseOperator = (
       operator: Where['identifierPropertyData'][0]['operator'],
-    ) => {
-      if (operator === '_in') {
-        return true;
-      }
-
-      return false;
-    };
+    ): boolean => operator === '_in';
 
     if (mode === 'text') {
       for (const bindParamData of this.identifierPropertyData) {
