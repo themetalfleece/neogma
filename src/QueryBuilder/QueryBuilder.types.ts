@@ -34,6 +34,7 @@ export type ParameterI =
   | WhereI
   | OnCreateSetI
   | OnMatchSetI
+  | CallI
   | null
   | undefined;
 
@@ -318,6 +319,15 @@ export const isForEachParameter = (
   forEach: ParameterI,
 ): forEach is ForEachI => {
   return !!(forEach as ForEachI).forEach;
+};
+
+/** CALL subquery parameter */
+export type CallI = {
+  /** CALL subquery - wraps the content in CALL { ... } */
+  call: string;
+};
+export const isCallParameter = (call: ParameterI): call is CallI => {
+  return !!(call as CallI).call;
 };
 
 /** ON CREATE SET parameter type guard */

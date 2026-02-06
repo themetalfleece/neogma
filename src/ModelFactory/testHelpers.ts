@@ -32,13 +32,82 @@ export async function closeNeogma(): Promise<void> {
   }
 }
 
+// ============ Supplier Model Types ============
+export type SupplierAttributesI = {
+  name: string;
+  id: string;
+  country?: string;
+};
+
+export type SuppliersRelatedNodesI = object;
+export type SuppliersMethodsI = object;
+export type SuppliersStaticsI = object;
+
+export type SuppliersInstance = NeogmaInstance<
+  SupplierAttributesI,
+  SuppliersRelatedNodesI,
+  SuppliersMethodsI
+>;
+
+export type SuppliersModel = NeogmaModel<
+  SupplierAttributesI,
+  SuppliersRelatedNodesI,
+  SuppliersMethodsI,
+  SuppliersStaticsI
+>;
+
+// ============ Product Model Types ============
+export type ProductAttributesI = {
+  name: string;
+  id: string;
+  price?: number;
+};
+
+export interface ProductsRelatedNodesI {
+  Supplier: ModelRelatedNodesI<
+    SuppliersModel,
+    SuppliersInstance,
+    object,
+    object
+  >;
+}
+
+export type ProductsMethodsI = object;
+export type ProductsStaticsI = object;
+
+export type ProductsInstance = NeogmaInstance<
+  ProductAttributesI,
+  ProductsRelatedNodesI,
+  ProductsMethodsI
+>;
+
+export type ProductsModel = NeogmaModel<
+  ProductAttributesI,
+  ProductsRelatedNodesI,
+  ProductsMethodsI,
+  ProductsStaticsI
+>;
+
 // ============ Order Model Types ============
 export type OrderAttributesI = {
   name: string;
   id: string;
+  status?: string;
 };
 
-export type OrdersRelatedNodesI = object;
+export interface OrdersRelatedNodesI {
+  Products: ModelRelatedNodesI<
+    ProductsModel,
+    ProductsInstance,
+    {
+      Quantity: number;
+    },
+    {
+      quantity: number;
+    }
+  >;
+}
+
 export type OrdersMethodsI = object;
 export type OrdersStaticsI = object;
 
@@ -97,10 +166,117 @@ export type UsersModel = NeogmaModel<
 // ============ Model Factory Functions ============
 
 /**
- * Creates a simple Orders model for testing.
+ * Creates a simple Suppliers model for testing.
  */
-export function createOrdersModel(neogmaInstance?: Neogma): OrdersModel {
+export function createSuppliersModel(neogmaInstance?: Neogma): SuppliersModel {
   const n = neogmaInstance ?? getNeogma();
+  return ModelFactory<
+    SupplierAttributesI,
+    SuppliersRelatedNodesI,
+    SuppliersStaticsI,
+    SuppliersMethodsI
+  >(
+    {
+      label: 'Supplier',
+      schema: {
+        name: {
+          type: 'string',
+          minLength: 3,
+          required: true,
+        },
+        id: {
+          type: 'string',
+          required: true,
+        },
+        country: {
+          type: 'string',
+          required: false,
+        },
+      },
+      primaryKeyField: 'id',
+      statics: {},
+      methods: {},
+    },
+    n,
+  );
+}
+
+/**
+ * Creates a Products model with relationship to Suppliers for testing.
+ */
+export function createProductsModel(
+  suppliers: SuppliersModel,
+  neogmaInstance?: Neogma,
+): ProductsModel {
+  const n = neogmaInstance ?? getNeogma();
+  return ModelFactory<
+    ProductAttributesI,
+    ProductsRelatedNodesI,
+    ProductsStaticsI,
+    ProductsMethodsI
+  >(
+    {
+      label: 'Product',
+      schema: {
+        name: {
+          type: 'string',
+          minLength: 3,
+          required: true,
+        },
+        id: {
+          type: 'string',
+          required: true,
+        },
+        price: {
+          type: 'number',
+          required: false,
+        },
+      },
+      relationships: {
+        Supplier: {
+          model: suppliers,
+          direction: 'out',
+          name: 'SUPPLIED_BY',
+        },
+      },
+      primaryKeyField: 'id',
+      statics: {},
+      methods: {},
+    },
+    n,
+  );
+}
+
+/**
+ * Creates an Orders model with optional relationship to Products for testing.
+ * @param neogmaInstance - The Neogma instance to use
+ * @param products - Optional Products model to create relationship with
+ */
+export function createOrdersModel(
+  neogmaInstance?: Neogma,
+  products?: ProductsModel,
+): OrdersModel {
+  const n = neogmaInstance ?? getNeogma();
+  const relationships: OrdersModel['relationships'] = {};
+
+  if (products) {
+    relationships.Products = {
+      model: products,
+      direction: 'out',
+      name: 'HAS_ITEM',
+      properties: {
+        Quantity: {
+          property: 'quantity',
+          schema: {
+            type: 'number',
+            minimum: 1,
+            required: true,
+          },
+        },
+      },
+    };
+  }
+
   return ModelFactory<
     OrderAttributesI,
     OrdersRelatedNodesI,
@@ -119,7 +295,12 @@ export function createOrdersModel(neogmaInstance?: Neogma): OrdersModel {
           type: 'string',
           required: true,
         },
+        status: {
+          type: 'string',
+          required: false,
+        },
       },
+      relationships,
       primaryKeyField: 'id',
       statics: {},
       methods: {},

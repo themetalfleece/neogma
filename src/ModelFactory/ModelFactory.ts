@@ -411,6 +411,8 @@ export const ModelFactory = <
         schemaKeys,
         getLabel: Model.getLabel,
         buildFromRecord: Model.buildFromRecord,
+        getRelationshipByAlias: Model.getRelationshipByAlias,
+        getRelationshipModel: Model.getRelationshipModel,
       };
       return findManyFn(ctx, params);
     }
@@ -424,6 +426,8 @@ export const ModelFactory = <
         schemaKeys,
         getLabel: Model.getLabel,
         buildFromRecord: Model.buildFromRecord,
+        getRelationshipByAlias: Model.getRelationshipByAlias,
+        getRelationshipModel: Model.getRelationshipModel,
       };
       return findOneFn(ctx, params);
     }

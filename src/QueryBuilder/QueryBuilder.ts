@@ -29,6 +29,7 @@ import { getVariableLengthRelationshipString } from './getVariableLengthRelation
 import { getWhereString } from './getWhereString';
 import { getWithString } from './getWithString';
 import type {
+  CallI,
   CreateI,
   DeleteI,
   ForEachI,
@@ -49,6 +50,7 @@ import type {
   WithI,
 } from './QueryBuilder.types';
 import {
+  isCallParameter,
   isCreateParameter,
   isDeleteParameter,
   isForEachParameter,
@@ -87,6 +89,7 @@ export type QueryBuilderParameters = {
   WhereI: WhereI['where'];
   OnCreateSetI: OnCreateSetI['onCreateSet'];
   OnMatchSetI: OnMatchSetI['onMatchSet'];
+  CallI: CallI['call'];
 };
 
 export class QueryBuilder {
@@ -184,6 +187,8 @@ export class QueryBuilder {
         statementParts.push(getOnCreateSetString(param.onCreateSet, deps));
       } else if (isOnMatchSetParameter(param)) {
         statementParts.push(getOnMatchSetString(param.onMatchSet, deps));
+      } else if (isCallParameter(param)) {
+        statementParts.push(`CALL {\n${param.call}\n}`);
       }
     }
 
@@ -538,5 +543,32 @@ export class QueryBuilder {
    */
   public onMatchSet(onMatchSet: OnMatchSetI['onMatchSet']): QueryBuilder {
     return this.addParams({ onMatchSet });
+  }
+  /**
+   * CALL subquery statement
+   * Wraps the content in a CALL { ... } block.
+   *
+   * @example
+   * // Call with a literal subquery string
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .call('WITH n MATCH (n)-[:KNOWS]->(friend) RETURN count(friend) as friendCount')
+   *   .return('n, friendCount');
+   *
+   * @example
+   * // Call with another QueryBuilder (extracts its statement)
+   * const subquery = new QueryBuilder()
+   *   .with('n')
+   *   .match({ related: [{ identifier: 'n' }, { direction: 'out', name: 'KNOWS' }, { identifier: 'friend' }] })
+   *   .return('count(friend) as friendCount');
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .call(subquery)
+   *   .return('n, friendCount');
+   */
+  public call(call: CallI['call'] | QueryBuilder): QueryBuilder {
+    const callStatement =
+      call instanceof QueryBuilder ? call.getStatement() : call;
+    return this.addParams({ call: callStatement });
   }
 }
