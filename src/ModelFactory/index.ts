@@ -22,3 +22,9 @@ export type {
   RelationshipLoadConfig,
   RelationshipsLoadConfig,
 } from './findMany/eagerLoading.types';
+
+// Export reserved name constants for reference
+export {
+  RESERVED_INSTANCE_PROPERTIES,
+  RESERVED_RELATIONSHIP_ALIASES,
+} from './validation';

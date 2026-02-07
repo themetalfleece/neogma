@@ -3,7 +3,6 @@ import clone from 'clone';
 import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../QueryRunner';
-import { assertValidCypherIdentifier } from '../utils/cypher';
 // Import operations from new directories
 import type { BuildContext } from './build';
 import {
@@ -82,6 +81,10 @@ import {
 } from './utils';
 import type { ValidateContext } from './validate';
 import { validate as validateFn } from './validate';
+import {
+  validateRelationshipAlias,
+  validateSchemaPropertyName,
+} from './validation';
 
 /**
  * Creates a Model class for interacting with Neo4j nodes of a specific type.
@@ -177,10 +180,13 @@ export const ModelFactory = <
   // Validate relationship aliases at model definition time to prevent Cypher injection.
   // Aliases are used directly in query construction (e.g., as identifiers and return fields).
   for (const alias in _relationships) {
-    assertValidCypherIdentifier(
-      alias,
-      `relationship alias in model "${modelName}"`,
-    );
+    validateRelationshipAlias(alias, modelName);
+  }
+
+  // Validate schema property names at model definition time to prevent conflicts
+  // with internal instance properties and methods.
+  for (const propertyName of schemaKeys) {
+    validateSchemaPropertyName(propertyName, modelName);
   }
 
   // Define the Model class

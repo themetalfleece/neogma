@@ -119,7 +119,9 @@ describe('getDeleteString', () => {
     it('treats array with empty string as invalid', () => {
       const qb = new QueryBuilder();
       expect(() =>
-        qb.delete({ identifiers: ['n', ''] } as Parameters<typeof qb.delete>[0]),
+        qb.delete({ identifiers: ['n', ''] } as Parameters<
+          typeof qb.delete
+        >[0]),
       ).toThrow('invalid delete configuration');
     });
   });

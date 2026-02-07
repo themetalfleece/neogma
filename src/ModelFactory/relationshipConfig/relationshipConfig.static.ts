@@ -3,9 +3,9 @@ import revalidator from 'revalidator';
 import { NeogmaInstanceValidationError } from '../../Errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import { assertValidCypherIdentifier } from '../../utils/cypher';
 import type { NeogmaModel, RelationshipsI } from '../model.types';
 import type { AnyObject, IValidationSchema } from '../shared.types';
+import { validateRelationshipAlias } from '../validation';
 import type { RelationshipConfigContext } from './relationshipConfig.types';
 
 /**
@@ -16,12 +16,7 @@ export function addRelationships<RelatedNodesToAssociateI extends AnyObject>(
   relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
 ): void {
   for (const key in relationships) {
-    // Validate alias is a safe Cypher identifier to prevent injection attacks.
-    // Aliases are used directly in query construction (e.g., as identifiers and return fields).
-    assertValidCypherIdentifier(
-      key,
-      `relationship alias in model "${ctx.modelName}"`,
-    );
+    validateRelationshipAlias(key, ctx.modelName);
     ctx.relationships[key] = relationships[key];
   }
 }

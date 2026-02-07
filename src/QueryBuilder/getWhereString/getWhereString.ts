@@ -12,7 +12,7 @@ import type {
  * instance or object format `{ identifier: { property: value } }` for safe queries.
  *
  * @example
- * // SAFE: Object format - property names are validated, values use BindParam
+ * // SAFE: Object format - identifiers are escaped if needed, values use BindParam
  * getWhereString({ n: { name: 'John', age: 25 } }, deps);
  * // => "WHERE n.name = $name AND n.age = $age"
  *

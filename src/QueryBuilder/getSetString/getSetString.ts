@@ -9,7 +9,7 @@ import type { GetSetStringDeps, GetSetStringSet } from './getSetString.types';
  * format `{ identifier, properties }` for safe queries.
  *
  * @example
- * // SAFE: Object format - property names are validated, values use BindParam
+ * // SAFE: Object format - identifiers are escaped if needed, values use BindParam
  * getSetString({ identifier: 'n', properties: { name: 'John', age: 25 } }, deps);
  * // => "SET n.name = $name, n.age = $age"
  *
