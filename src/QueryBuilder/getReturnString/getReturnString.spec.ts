@@ -40,6 +40,50 @@ describe('getReturnString', () => {
     expectBindParamEquals(queryBuilder, {});
   });
 
+  describe('escaping behavior', () => {
+    it('escapes identifiers with special characters', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'my-node' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN `my-node`');
+    });
+
+    it('escapes properties with special characters', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'n', property: 'my-property' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN n.`my-property`');
+    });
+
+    it('escapes both identifier and property when both have special characters', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'my node', property: 'first name' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN `my node`.`first name`');
+    });
+
+    it('does not escape valid identifiers', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'validNode', property: 'valid_prop' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN validNode.valid_prop');
+    });
+
+    it('escapes backticks in identifiers', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'test`node' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN `test``node`');
+    });
+
+    it('escapes identifiers starting with numbers', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: '123node', property: '456prop' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN `123node`.`456prop`');
+    });
+  });
+
   describe('type safety', () => {
     it('accepts valid return string parameter', () => {
       const qb = new QueryBuilder();

@@ -28,6 +28,32 @@ describe('getUnwindString', () => {
     expectBindParamEquals(queryBuilder, {});
   });
 
+  describe('escaping behavior', () => {
+    it('escapes as identifier with special characters', () => {
+      const queryBuilder = new QueryBuilder().unwind({
+        value: '$items',
+        as: 'my-item',
+      });
+      expectStatementEquals(queryBuilder, 'UNWIND $items AS `my-item`');
+    });
+
+    it('does not escape valid as identifier', () => {
+      const queryBuilder = new QueryBuilder().unwind({
+        value: '$items',
+        as: 'validItem',
+      });
+      expectStatementEquals(queryBuilder, 'UNWIND $items AS validItem');
+    });
+
+    it('escapes as identifier starting with number', () => {
+      const queryBuilder = new QueryBuilder().unwind({
+        value: '[1, 2, 3]',
+        as: '123item',
+      });
+      expectStatementEquals(queryBuilder, 'UNWIND [1, 2, 3] AS `123item`');
+    });
+  });
+
   describe('type safety', () => {
     it('accepts valid unwind string parameter', () => {
       const qb = new QueryBuilder();

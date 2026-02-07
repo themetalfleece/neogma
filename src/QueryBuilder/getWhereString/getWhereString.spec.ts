@@ -125,7 +125,8 @@ describe('getWhereString', () => {
     it('rejects where with array parameter', () => {
       const qb = new QueryBuilder();
       // @ts-expect-error - where requires string or where object, not array
-      void qb.where(['a', 'b']);
+      // Runtime validation now throws for invalid identifier (array indices are "0", "1", etc.)
+      expect(() => qb.where(['a', 'b'])).toThrow(/Invalid identifier/);
     });
 
     it('rejects where with boolean parameter', () => {

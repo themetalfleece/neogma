@@ -157,23 +157,35 @@ describe('getNodeStatement', () => {
 
   describe('type safety', () => {
     it('rejects number identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not number
-      void getNodeStatement({ identifier: 123 });
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not number
+        getNodeStatement({ identifier: 123 });
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects number label', () => {
-      // @ts-expect-error - label must be string or undefined, not number
-      void getNodeStatement({ label: 456 });
+      const _typeCheck = () => {
+        // @ts-expect-error - label must be string or undefined, not number
+        getNodeStatement({ label: 456 });
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects boolean identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not boolean
-      void getNodeStatement({ identifier: true });
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not boolean
+        getNodeStatement({ identifier: true });
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects array identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not array
-      void getNodeStatement({ identifier: ['n'] });
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not array
+        getNodeStatement({ identifier: ['n'] });
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects number inner', () => {

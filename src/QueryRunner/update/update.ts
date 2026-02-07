@@ -2,6 +2,7 @@ import type { QueryResult } from 'neo4j-driver';
 
 import type { Literal } from '../../Literal';
 import { QueryBuilder } from '../../QueryBuilder';
+import { escapeIfNeeded } from '../../utils/cypher';
 import type { AnyWhereI } from '../../Where/Where';
 import { Where } from '../../Where/Where';
 import type {
@@ -84,7 +85,7 @@ export const update = async <T extends UpdateSupportedProperties>(
   });
 
   if (params.return) {
-    queryBuilder.return(identifier);
+    queryBuilder.return(escapeIfNeeded(identifier));
   }
 
   return deps.runQueryBuilder(queryBuilder, params.session);

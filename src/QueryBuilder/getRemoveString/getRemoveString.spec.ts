@@ -34,8 +34,87 @@ describe('getRemoveString', () => {
       labels: ['l1', 'l2'],
     });
 
-    expectStatementEquals(queryBuilder, `REMOVE a:l1:l2`);
+    // Labels are now escaped with backticks to prevent injection
+    expectStatementEquals(queryBuilder, 'REMOVE a:`l1`:`l2`');
     expectBindParamEquals(queryBuilder, {});
+  });
+
+  describe('security', () => {
+    it('escapes property names with special characters', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        properties: ['name; DELETE (n)'],
+      });
+      // Property is escaped with backticks
+      expectStatementEquals(queryBuilder, 'REMOVE n.`name; DELETE (n)`');
+    });
+
+    it('escapes property names with backticks', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        properties: ['`injection`'],
+      });
+      // Backticks are escaped by doubling them
+      expectStatementEquals(queryBuilder, 'REMOVE n.```injection```');
+    });
+
+    it('escapes property names starting with numbers', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        properties: ['123prop'],
+      });
+      expectStatementEquals(queryBuilder, 'REMOVE n.`123prop`');
+    });
+
+    it('escapes labels with backticks to prevent injection', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        labels: ['Label`Injection'],
+      });
+      // Backticks are escaped by doubling them
+      expectStatementEquals(queryBuilder, 'REMOVE n:`Label``Injection`');
+    });
+
+    it('escapes labels with special characters', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        labels: ['My Label'],
+      });
+      // Spaces are handled by backtick escaping
+      expectStatementEquals(queryBuilder, 'REMOVE n:`My Label`');
+    });
+
+    it('does not escape valid property names with underscores', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        properties: ['my_valid_prop'],
+      });
+      expectStatementEquals(queryBuilder, 'REMOVE n.my_valid_prop');
+    });
+
+    it('escapes identifier with special characters for properties', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'my-node',
+        properties: ['name'],
+      });
+      expectStatementEquals(queryBuilder, 'REMOVE `my-node`.name');
+    });
+
+    it('escapes identifier with special characters for labels', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'my-node',
+        labels: ['Label'],
+      });
+      expectStatementEquals(queryBuilder, 'REMOVE `my-node`:`Label`');
+    });
+
+    it('escapes identifier starting with number', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: '123node',
+        properties: ['name'],
+      });
+      expectStatementEquals(queryBuilder, 'REMOVE `123node`.name');
+    });
   });
 
   describe('type safety', () => {
@@ -54,7 +133,8 @@ describe('getRemoveString', () => {
     it('accepts valid remove labels object', () => {
       const qb = new QueryBuilder();
       qb.remove({ identifier: 'n', labels: ['Label1', 'Label2'] });
-      expect(qb.getStatement()).toContain('REMOVE n:Label1:Label2');
+      // Labels are now escaped with backticks
+      expect(qb.getStatement()).toContain('REMOVE n:`Label1`:`Label2`');
     });
 
     it('rejects invalid remove parameter type', () => {

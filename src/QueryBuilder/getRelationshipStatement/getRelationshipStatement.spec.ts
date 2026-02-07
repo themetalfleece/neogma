@@ -283,19 +283,25 @@ describe('getRelationshipStatement', () => {
     });
 
     it('rejects number identifier', () => {
-      void getRelationshipStatement({
-        direction: 'out',
-        // @ts-expect-error - identifier must be string or undefined
-        identifier: 123,
-      });
+      const _typeCheck = () => {
+        getRelationshipStatement({
+          direction: 'out',
+          // @ts-expect-error - identifier must be string or undefined
+          identifier: 123,
+        });
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects number name', () => {
-      void getRelationshipStatement({
-        direction: 'out',
-        // @ts-expect-error - name must be string or undefined
-        name: 456,
-      });
+      const _typeCheck = () => {
+        getRelationshipStatement({
+          direction: 'out',
+          // @ts-expect-error - name must be string or undefined
+          name: 456,
+        });
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects string minHops', () => {

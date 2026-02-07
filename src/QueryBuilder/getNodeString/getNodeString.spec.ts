@@ -219,33 +219,50 @@ describe('getNodeString', () => {
 
   describe('type safety', () => {
     it('rejects invalid node type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - node must be string or object, not number
-      void getNodeString(123, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - node must be string or object, not number
+        getNodeString(123, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid identifier type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - identifier must be string, not number
-      void getNodeString({ identifier: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - identifier must be string, not number
+        getNodeString({ identifier: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid label type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - label must be string, not number
-      void getNodeString({ label: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - label must be string, not number
+        getNodeString({ label: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
-    it('rejects invalid where type', () => {
+    it('escapes where when invalid type passed', () => {
       const deps = createDeps();
       // @ts-expect-error - where must be object, not string
-      void getNodeString({ where: 'invalid' }, deps);
+      // When a string is passed, JS iterates it with indices as property names
+      // These are escaped since they start with numbers (not valid identifiers)
+      const result = getNodeString({ where: 'invalid' }, deps);
+      // The string "invalid" is treated as { 0: 'i', 1: 'n', ... } - indices get escaped
+      expect(result.statement).toContain('`0`');
     });
 
-    it('rejects invalid properties type', () => {
+    it('escapes properties when invalid type passed', () => {
       const deps = createDeps();
       // @ts-expect-error - properties must be object, not string
-      void getNodeString({ properties: 'invalid' }, deps);
+      // When a string is passed, JS iterates it as an object with indices "0", "1", etc.
+      // These are escaped since they start with numbers (not valid identifiers)
+      const result = getNodeString({ properties: 'invalid' }, deps);
+      // The string "invalid" is treated as { 0: 'i', 1: 'n', ... } - indices get escaped
+      expect(result.statement).toContain('`0`');
     });
   });
 });

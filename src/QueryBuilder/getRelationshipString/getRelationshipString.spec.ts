@@ -322,15 +322,21 @@ describe('getRelationshipString', () => {
     });
 
     it('rejects invalid identifier type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - identifier must be string, not number
-      void getRelationshipString({ direction: 'out', identifier: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - identifier must be string, not number
+        getRelationshipString({ direction: 'out', identifier: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid name type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - name must be string, not number
-      void getRelationshipString({ direction: 'out', name: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - name must be string, not number
+        getRelationshipString({ direction: 'out', name: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid minHops type', () => {
@@ -345,10 +351,16 @@ describe('getRelationshipString', () => {
       void getRelationshipString({ direction: 'out', maxHops: '5' }, deps);
     });
 
-    it('rejects invalid where type', () => {
+    it('escapes where when invalid type passed', () => {
       const deps = createDeps();
-      // @ts-expect-error - where must be object, not string
-      void getRelationshipString({ direction: 'out', where: 'invalid' }, deps);
+      // When a string is passed, JS iterates it with indices as property names
+      // These are escaped since they start with numbers (not valid identifiers)
+      const result = getRelationshipString(
+        { direction: 'out', where: 'invalid' as any },
+        deps,
+      );
+      // The string "invalid" is treated as { 0: 'i', 1: 'n', ... } - indices get escaped
+      expect(result.statement).toContain('`0`');
     });
   });
 });

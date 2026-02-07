@@ -38,6 +38,37 @@ describe('getDeleteString', () => {
     expectBindParamEquals(queryBuilder, {});
   });
 
+  describe('escaping behavior', () => {
+    it('escapes identifiers with special characters', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: ['my-node'],
+      });
+      expectStatementEquals(queryBuilder, 'DELETE `my-node`');
+    });
+
+    it('escapes multiple identifiers with special characters', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: ['my-node', '123abc'],
+        detach: true,
+      });
+      expectStatementEquals(queryBuilder, 'DETACH DELETE `my-node`, `123abc`');
+    });
+
+    it('does not escape valid identifiers', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: ['validNode', 'another_node'],
+      });
+      expectStatementEquals(queryBuilder, 'DELETE validNode, another_node');
+    });
+
+    it('escapes single identifier with special characters', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: 'my node',
+      });
+      expectStatementEquals(queryBuilder, 'DELETE `my node`');
+    });
+  });
+
   describe('type safety', () => {
     it('accepts valid delete string parameter', () => {
       const qb = new QueryBuilder();

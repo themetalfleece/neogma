@@ -192,6 +192,61 @@ describe('getPropertiesWithParams', () => {
     });
   });
 
+  describe('security', () => {
+    it('escapes property names with special characters', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams(
+        { 'name; DELETE (n)': 'value' },
+        bindParam,
+      );
+      // Property is escaped with backticks
+      expect(result).toBe('{ `name; DELETE (n)`: $name; DELETE (n) }');
+    });
+
+    it('escapes property names with backticks', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams(
+        { '`injection`': 'value' },
+        bindParam,
+      );
+      // Backticks are escaped by doubling them
+      expect(result).toBe('{ ```injection```: $`injection` }');
+    });
+
+    it('escapes property names starting with numbers', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams({ '123prop': 'value' }, bindParam);
+      expect(result).toBe('{ `123prop`: $123prop }');
+    });
+
+    it('escapes property names with spaces', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams({ 'my prop': 'value' }, bindParam);
+      expect(result).toBe('{ `my prop`: $my prop }');
+    });
+
+    it('escapes property names with dashes', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams({ 'my-prop': 'value' }, bindParam);
+      expect(result).toBe('{ `my-prop`: $my-prop }');
+    });
+
+    it('does not escape valid property names with underscores', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams(
+        { my_valid_prop: 'value' },
+        bindParam,
+      );
+      expect(result).toBe('{ my_valid_prop: $my_valid_prop }');
+    });
+
+    it('does not escape valid property names starting with underscore', () => {
+      const bindParam = new BindParam();
+      const result = getPropertiesWithParams({ _internal: 'value' }, bindParam);
+      expect(result).toBe('{ _internal: $_internal }');
+    });
+  });
+
   describe('type safety', () => {
     it('rejects undefined data', () => {
       const _typeCheck = () => {

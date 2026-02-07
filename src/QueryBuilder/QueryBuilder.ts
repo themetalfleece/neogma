@@ -281,10 +281,21 @@ export class QueryBuilder {
    * RAW statement
    * A literal statement to use as is without any processing.
    *
+   * **SECURITY WARNING**: This method does not sanitize or parameterize input.
+   * Never pass user-provided input directly to this method, as it can lead to
+   * Cypher injection attacks. Only use with trusted, hardcoded strings or
+   * values that have been validated and sanitized by your application.
+   *
    * @example
+   * // SAFE: Using hardcoded string
    * new QueryBuilder()
    *   .raw('MATCH (n:Person) RETURN n')
    *   .run();
+   *
+   * @example
+   * // UNSAFE: Never do this with user input!
+   * // const userInput = req.body.query;
+   * // new QueryBuilder().raw(userInput).run(); // VULNERABLE TO INJECTION
    */
   public raw(raw: RawI['raw']): QueryBuilder {
     return this.addParams({ raw });

@@ -371,9 +371,12 @@ describe('getMatchString', () => {
     });
 
     it('rejects match object with invalid property types', () => {
-      const qb = new QueryBuilder();
-      // @ts-expect-error - identifier must be string, not number
-      void qb.match({ identifier: 123 });
+      const _typeCheck = () => {
+        const qb = new QueryBuilder();
+        // @ts-expect-error - identifier must be string, not number
+        qb.match({ identifier: 123 });
+      };
+      expect(_typeCheck).toBeDefined();
     });
   });
 

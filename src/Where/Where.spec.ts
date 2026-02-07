@@ -1301,4 +1301,51 @@ describe('Where', () => {
       });
     });
   });
+
+  describe('injection prevention', () => {
+    it('escapes property names with special characters', () => {
+      const where = new Where({
+        node: { 'prop}: DELETE (n); //': 'value' },
+      });
+      // Property is escaped with backticks
+      expect(where.getStatement('text')).toContain(
+        'node.`prop}: DELETE (n); //`',
+      );
+    });
+
+    it('rejects identifier names with special characters', () => {
+      expect(() => {
+        new Where({
+          'node}: DELETE (n); //': { prop: 'value' },
+        });
+      }).toThrow(
+        /Invalid identifier.*Identifiers must contain only alphanumeric/,
+      );
+    });
+
+    it('escapes property names starting with numbers', () => {
+      const where = new Where({
+        node: { '123prop': 'value' },
+      });
+      // Property is escaped with backticks
+      expect(where.getStatement('text')).toContain('node.`123prop`');
+    });
+
+    it('does not escape valid property names with underscores', () => {
+      const where = new Where({
+        node: { my_prop: 'value' },
+      });
+      // Valid property is not escaped
+      expect(where.getStatement('text')).toContain('node.my_prop');
+      expect(where.getStatement('text')).not.toContain('`my_prop`');
+    });
+
+    it('accepts valid identifier names with underscores', () => {
+      expect(() => {
+        new Where({
+          my_node: { prop: 'value' },
+        });
+      }).not.toThrow();
+    });
+  });
 });

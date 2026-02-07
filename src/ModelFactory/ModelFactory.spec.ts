@@ -1006,7 +1006,7 @@ describe('relationship alias validation', () => {
         neogma,
       );
     }).toThrow(
-      /Invalid relationship alias "123Invalid".*Aliases must contain only alphanumeric characters and underscores/,
+      /Invalid identifier "123Invalid".*Identifiers must contain only alphanumeric characters and underscores/,
     );
   });
 
@@ -1029,7 +1029,7 @@ describe('relationship alias validation', () => {
         neogma,
       );
     }).toThrow(
-      /Invalid relationship alias "my-orders".*Aliases must contain only alphanumeric characters and underscores/,
+      /Invalid identifier "my-orders".*Identifiers must contain only alphanumeric characters and underscores/,
     );
   });
 
@@ -1052,7 +1052,7 @@ describe('relationship alias validation', () => {
         neogma,
       );
     }).toThrow(
-      /Invalid relationship alias "my orders".*Aliases must contain only alphanumeric characters and underscores/,
+      /Invalid identifier "my orders".*Identifiers must contain only alphanumeric characters and underscores/,
     );
   });
 
@@ -1074,7 +1074,7 @@ describe('relationship alias validation', () => {
         },
         neogma,
       );
-    }).toThrow(/Invalid relationship alias/);
+    }).toThrow(/Invalid identifier/);
   });
 
   it('rejects invalid alias when using addRelationships', () => {
@@ -1097,7 +1097,7 @@ describe('relationship alias validation', () => {
         },
       } as any);
     }).toThrow(
-      /Invalid relationship alias "bad-alias".*Aliases must contain only alphanumeric characters and underscores/,
+      /Invalid identifier "bad-alias".*Identifiers must contain only alphanumeric characters and underscores/,
     );
   });
 

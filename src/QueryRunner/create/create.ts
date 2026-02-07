@@ -1,6 +1,7 @@
 import type { QueryResult } from 'neo4j-driver';
 
 import { QueryBuilder } from '../../QueryBuilder';
+import { escapeIfNeeded } from '../../utils/cypher';
 import type { Runnable } from '../QueryRunner.types';
 
 export interface CreateParams<T> {
@@ -29,6 +30,7 @@ export const create = async <T>(
 ): Promise<QueryResult> => {
   const { label, data: options } = params;
   const identifier = params.identifier || deps.defaultIdentifier;
+  const safeIdentifier = escapeIfNeeded(identifier);
 
   const queryBuilder = new QueryBuilder()
     .unwind('$options as data')
@@ -36,8 +38,8 @@ export const create = async <T>(
       identifier,
       label,
     })
-    .set(`${identifier} += data`)
-    .return(identifier);
+    .set(`${safeIdentifier} += data`)
+    .return(safeIdentifier);
 
   // we won't use the queryBuilder bindParams as we've used "options" as a literal
   const parameters = { options };

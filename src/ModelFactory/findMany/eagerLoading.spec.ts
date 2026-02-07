@@ -647,31 +647,6 @@ describe('findMany with relationships (eager loading)', () => {
         }),
       ).rejects.toThrow(NeogmaNotFoundError);
     });
-
-    it('throws NeogmaError when order property contains invalid characters', async () => {
-      const neogma = getNeogma();
-      const Orders = createOrdersModel(neogma);
-      const Users = createUsersModel(Orders, neogma);
-
-      await expect(
-        Users.findMany({
-          relationships: {
-            Orders: {
-              order: [
-                {
-                  on: 'target',
-                  // Bypass TypeScript to test runtime validation
-                  property: 'name} RETURN n //' as any,
-                  direction: 'ASC',
-                },
-              ],
-            },
-          },
-        }),
-      ).rejects.toThrow(
-        /Invalid order property.*Properties must contain only alphanumeric/,
-      );
-    });
   });
 
   describe('edge cases', () => {

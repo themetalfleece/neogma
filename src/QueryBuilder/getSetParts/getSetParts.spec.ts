@@ -292,6 +292,122 @@ describe('getSetParts', () => {
     });
   });
 
+  describe('security', () => {
+    it('escapes property names with special characters', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { 'name; DELETE (n)': 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      // Property is escaped with backticks
+      expect(result.parts).toEqual([
+        'n.`name; DELETE (n)` = $name; DELETE (n)',
+      ]);
+    });
+
+    it('escapes property names with backticks', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { '`injection`': 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      // Backticks are escaped by doubling them
+      expect(result.parts).toEqual(['n.```injection``` = $`injection`']);
+    });
+
+    it('escapes property names starting with numbers', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { '123prop': 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['n.`123prop` = $123prop']);
+    });
+
+    it('escapes property names with spaces', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { 'my prop': 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['n.`my prop` = $my prop']);
+    });
+
+    it('escapes property names with dashes', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { 'my-prop': 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['n.`my-prop` = $my-prop']);
+    });
+
+    it('does not escape valid property names with underscores', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { my_valid_prop: 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['n.my_valid_prop = $my_valid_prop']);
+    });
+
+    it('does not escape valid property names starting with underscore', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { _internal: 'value' },
+        identifier: 'n',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['n._internal = $_internal']);
+    });
+
+    it('escapes identifier with special characters', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { name: 'value' },
+        identifier: 'my-node',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['`my-node`.name = $name']);
+    });
+
+    it('escapes identifier starting with number', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { name: 'value' },
+        identifier: '123node',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['`123node`.name = $name']);
+    });
+
+    it('does not escape valid identifier', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { name: 'value' },
+        identifier: 'validNode',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['validNode.name = $name']);
+    });
+
+    it('escapes both identifier and property with special characters', () => {
+      const bindParam = new BindParam();
+      const result = getSetParts({
+        data: { 'my-prop': 'value' },
+        identifier: 'my-node',
+        bindParam,
+      });
+      expect(result.parts).toEqual(['`my-node`.`my-prop` = $my-prop']);
+    });
+  });
+
   describe('type safety', () => {
     it('rejects missing data', () => {
       const _typeCheck = () => {

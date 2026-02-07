@@ -1,8 +1,7 @@
 import { BindParam } from '../../BindParam/BindParam';
-import { NeogmaError } from '../../Errors';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import { isValidCypherIdentifier } from '../../utils/string';
+import { escapeIfNeeded } from '../../utils/cypher';
 import type { WhereParamsI } from '../../Where';
 import type { WhereParamsByIdentifierI } from '../../Where';
 import type { AnyObject } from '../shared.types';
@@ -125,10 +124,11 @@ function buildRelationshipSubquery(
 ): QueryBuilder {
   const subqueryBuilder = new QueryBuilder(bindParam);
 
-  // WITH parent
-  subqueryBuilder.with(parentIdentifier);
+  // WITH parent (escape for safe use in WITH clause)
+  subqueryBuilder.with(escapeIfNeeded(parentIdentifier));
 
   // OPTIONAL MATCH using related pattern
+  // Note: identifiers in match objects are escaped by getIdentifierWithLabel
   subqueryBuilder.match({
     related: [
       { identifier: parentIdentifier },
@@ -167,49 +167,35 @@ function buildRelationshipSubquery(
     subqueryBuilder.call(nestedSubquery);
   }
 
+  // Escape identifiers for safe use in Cypher
+  const safeTargetId = escapeIfNeeded(level.targetIdentifier);
+  const safeRelId = escapeIfNeeded(level.relationshipIdentifier);
+  const safeAlias = escapeIfNeeded(level.alias);
+
   // Build the collect fields
-  const collectFields = [
-    `node: ${level.targetIdentifier}`,
-    `relationship: ${level.relationshipIdentifier}`,
-  ];
+  const collectFields = [`node: ${safeTargetId}`, `relationship: ${safeRelId}`];
 
   // Add nested collections to the COLLECT
   for (const nested of level.nestedLevels) {
-    collectFields.push(`${nested.alias}: ${nested.alias}`);
+    const safeNestedAlias = escapeIfNeeded(nested.alias);
+    collectFields.push(`${safeNestedAlias}: ${safeNestedAlias}`);
   }
 
   const entryExpr = `{ ${collectFields.join(', ')} }`;
 
   // ORDER BY must come before aggregation. Use a separate WITH if ordering is specified.
   if (level.order && level.order.length > 0) {
-    // Validate order properties are safe Cypher identifiers to prevent injection.
-    // TypeScript provides compile-time safety, but runtime validation protects against
-    // bypasses (e.g., GraphQL APIs, dynamic property names).
-    for (const o of level.order) {
-      if (!isValidCypherIdentifier(o.property)) {
-        throw new NeogmaError(
-          `Invalid order property "${o.property}" for relationship "${level.alias}". ` +
-            `Properties must contain only alphanumeric characters and underscores, and cannot start with a number.`,
-        );
-      }
-    }
-
     // Build identifiers needed for WITH clause (includes nested aliases)
-    const nestedAliases = level.nestedLevels.map((n) => n.alias);
-    const withIdentifiers = [
-      level.targetIdentifier,
-      level.relationshipIdentifier,
-      ...nestedAliases,
-    ];
+    const nestedAliases = level.nestedLevels.map((n) =>
+      escapeIfNeeded(n.alias),
+    );
+    const withIdentifiers = [safeTargetId, safeRelId, ...nestedAliases];
 
     subqueryBuilder.with(withIdentifiers);
 
     subqueryBuilder.orderBy(
       level.order.map((o) => ({
-        identifier:
-          o.on === 'target'
-            ? level.targetIdentifier
-            : level.relationshipIdentifier,
+        identifier: o.on === 'target' ? safeTargetId : safeRelId,
         property: o.property,
         direction: o.direction,
       })),
@@ -218,7 +204,7 @@ function buildRelationshipSubquery(
 
   // Aggregate with COLLECT. CASE returns null when target is null (OPTIONAL MATCH with no match).
   subqueryBuilder.with(
-    `COLLECT(CASE WHEN ${level.targetIdentifier} IS NOT NULL THEN ${entryExpr} END) AS __collected`,
+    `COLLECT(CASE WHEN ${safeTargetId} IS NOT NULL THEN ${entryExpr} END) AS __collected`,
   );
 
   // Filter out nulls and apply skip/limit via list slicing
@@ -234,7 +220,7 @@ function buildRelationshipSubquery(
     }
   }
 
-  subqueryBuilder.return(`${listExpr} AS ${level.alias}`);
+  subqueryBuilder.return(`${listExpr} AS ${safeAlias}`);
 
   return subqueryBuilder;
 }
@@ -322,12 +308,12 @@ export function buildEagerLoadQuery<
     queryBuilder.limit(rootLimit);
   }
 
-  // 7. RETURN clause
+  // 7. RETURN clause (escape identifiers for safe use)
   const returnIdentifiers = [
     rootIdentifier,
     ...relationshipLevels.map((l) => l.alias),
   ];
-  queryBuilder.return(returnIdentifiers);
+  queryBuilder.return(returnIdentifiers.map((id) => escapeIfNeeded(id)));
 
   return {
     statement: queryBuilder.getStatement(),

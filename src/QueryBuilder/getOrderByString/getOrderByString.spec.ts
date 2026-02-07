@@ -94,6 +94,71 @@ describe('getOrderByString', () => {
     expectBindParamEquals(queryBuilder, {});
   });
 
+  describe('security', () => {
+    it('escapes property names with special characters', () => {
+      const queryBuilder = new QueryBuilder().orderBy({
+        identifier: 'n',
+        property: 'name; DELETE (n)',
+      });
+      // Property is escaped with backticks
+      expectStatementEquals(queryBuilder, 'ORDER BY n.`name; DELETE (n)`');
+    });
+
+    it('escapes property names with backticks', () => {
+      const queryBuilder = new QueryBuilder().orderBy({
+        identifier: 'n',
+        property: '`injection`',
+      });
+      // Backticks are escaped by doubling them
+      expectStatementEquals(queryBuilder, 'ORDER BY n.```injection```');
+    });
+
+    it('escapes property names starting with numbers', () => {
+      const queryBuilder = new QueryBuilder().orderBy({
+        identifier: 'n',
+        property: '123prop',
+      });
+      expectStatementEquals(queryBuilder, 'ORDER BY n.`123prop`');
+    });
+
+    it('escapes identifier with special characters', () => {
+      const queryBuilder = new QueryBuilder().orderBy({
+        identifier: 'n; DELETE (m)',
+        property: 'name',
+      });
+      // Identifier is escaped with backticks
+      expectStatementEquals(queryBuilder, 'ORDER BY `n; DELETE (m)`.name');
+    });
+
+    it('escapes property in array element', () => {
+      const queryBuilder = new QueryBuilder().orderBy([
+        {
+          identifier: 'n',
+          property: 'bad-prop',
+        },
+      ]);
+      expectStatementEquals(queryBuilder, 'ORDER BY n.`bad-prop`');
+    });
+
+    it('does not escape valid property names with underscores', () => {
+      const queryBuilder = new QueryBuilder().orderBy({
+        identifier: 'n',
+        property: 'my_valid_prop',
+        direction: 'ASC',
+      });
+      expectStatementEquals(queryBuilder, 'ORDER BY n.my_valid_prop ASC');
+    });
+
+    it('does not escape property names starting with underscore', () => {
+      const queryBuilder = new QueryBuilder().orderBy({
+        identifier: 'n',
+        property: '_internal',
+        direction: 'DESC',
+      });
+      expectStatementEquals(queryBuilder, 'ORDER BY n._internal DESC');
+    });
+  });
+
   describe('type safety', () => {
     it('accepts valid orderBy string parameter', () => {
       const qb = new QueryBuilder();

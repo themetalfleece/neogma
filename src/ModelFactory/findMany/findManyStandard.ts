@@ -2,6 +2,7 @@ import { BindParam } from '../../BindParam/BindParam';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import { escapeIfNeeded } from '../../utils/cypher';
 import { Where } from '../../Where';
 import type { AnyObject } from '../shared.types';
 import type { FindManyWithRelationshipsResult } from './eagerLoading.types';
@@ -63,7 +64,7 @@ export async function findManyStandard<
     queryBuilder.where(rootWhere);
   }
 
-  queryBuilder.return(rootIdentifier);
+  queryBuilder.return(escapeIfNeeded(rootIdentifier));
 
   if (params?.order) {
     queryBuilder.orderBy(

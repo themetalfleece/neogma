@@ -39,11 +39,33 @@ const appendWhereClause = (
   return `${matchPart} WHERE ${whereStatements.join(' AND ')}`;
 };
 
-/** Returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1` */
+/**
+ * Returns a string in the format `MATCH (a:Node) WHERE a.p1 = $v1`.
+ *
+ * **SECURITY WARNING**: String parameters are inserted directly into the query
+ * without validation. Never pass user-provided input as strings. Use the object
+ * format with `identifier`, `label`, and `where` for safe queries.
+ *
+ * @example
+ * // SAFE: Object format - identifier and label are validated, where uses BindParam
+ * getMatchString({ identifier: 'n', label: 'User', where: { name: 'John' } }, deps);
+ * // => "MATCH (n:User) WHERE n.name = $name"
+ *
+ * @example
+ * // SAFE: Related format - nodes and relationships use validated identifiers
+ * getMatchString({ related: [{ identifier: 'a' }, { direction: 'out' }, { identifier: 'b' }] }, deps);
+ * // => "MATCH (a)-->(b)"
+ *
+ * @example
+ * // UNSAFE: String format - no validation, use only with trusted input
+ * getMatchString('(n:User)-[:KNOWS]->(m:User)', deps);
+ * // => "MATCH (n:User)-[:KNOWS]->(m:User)"
+ */
 export const getMatchString = (
   match: GetMatchStringMatch,
   deps: GetMatchStringDeps,
 ): string => {
+  // String input: escape hatch for complex patterns - no validation
   if (typeof match === 'string') {
     return `MATCH ${match}`;
   }

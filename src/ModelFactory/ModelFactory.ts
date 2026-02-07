@@ -1,10 +1,9 @@
 import clone from 'clone';
 
-import { NeogmaError } from '../Errors';
 import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../QueryRunner';
-import { isValidCypherIdentifier } from '../utils/string';
+import { assertValidCypherIdentifier } from '../utils/cypher';
 // Import operations from new directories
 import type { BuildContext } from './build';
 import {
@@ -178,12 +177,10 @@ export const ModelFactory = <
   // Validate relationship aliases at model definition time to prevent Cypher injection.
   // Aliases are used directly in query construction (e.g., as identifiers and return fields).
   for (const alias in _relationships) {
-    if (!isValidCypherIdentifier(alias)) {
-      throw new NeogmaError(
-        `Invalid relationship alias "${alias}" in model "${modelName}". ` +
-          `Aliases must contain only alphanumeric characters and underscores, and cannot start with a number.`,
-      );
-    }
+    assertValidCypherIdentifier(
+      alias,
+      `relationship alias in model "${modelName}"`,
+    );
   }
 
   // Define the Model class

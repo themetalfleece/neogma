@@ -17,7 +17,8 @@ describe('getIdentifierWithLabel', () => {
       expect(result).toBe('myNode:Person');
     });
 
-    it('handles label with spaces', () => {
+    it('passes through label with spaces (labels expected to be pre-escaped)', () => {
+      // Labels are expected to be already escaped by getLabel()/getNormalizedLabels
       const result = getIdentifierWithLabel('n', 'My Label');
       expect(result).toBe('n:My Label');
     });
@@ -86,35 +87,81 @@ describe('getIdentifierWithLabel', () => {
     });
   });
 
+  describe('escaping behavior', () => {
+    it('escapes identifier with special characters', () => {
+      const result = getIdentifierWithLabel('my-node', 'Label');
+      expect(result).toBe('`my-node`:Label');
+    });
+
+    it('does not escape valid identifier', () => {
+      const result = getIdentifierWithLabel('validNode', 'Label');
+      expect(result).toBe('validNode:Label');
+    });
+
+    it('escapes identifier starting with number', () => {
+      const result = getIdentifierWithLabel('123node', 'Label');
+      expect(result).toBe('`123node`:Label');
+    });
+
+    it('passes through pre-escaped labels unchanged', () => {
+      // When using getLabel(), labels come pre-escaped with backticks
+      const result = getIdentifierWithLabel('n', '`My Label`');
+      expect(result).toBe('n:`My Label`');
+    });
+
+    it('escapes identifier but not label (labels expected pre-escaped)', () => {
+      const result = getIdentifierWithLabel('my-node', '`My Label`');
+      expect(result).toBe('`my-node`:`My Label`');
+    });
+  });
+
   describe('type safety', () => {
     it('rejects number identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not number
-      void getIdentifierWithLabel(123, 'Label');
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not number
+        getIdentifierWithLabel(123, 'Label');
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects number label', () => {
-      // @ts-expect-error - label must be string or undefined, not number
-      void getIdentifierWithLabel('n', 123);
+      const _typeCheck = () => {
+        // @ts-expect-error - label must be string or undefined, not number
+        getIdentifierWithLabel('n', 123);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects object identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not object
-      void getIdentifierWithLabel({ id: 'n' }, 'Label');
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not object
+        getIdentifierWithLabel({ id: 'n' }, 'Label');
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects array identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not array
-      void getIdentifierWithLabel(['n'], 'Label');
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not array
+        getIdentifierWithLabel(['n'], 'Label');
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects boolean identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not boolean
-      void getIdentifierWithLabel(true, 'Label');
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not boolean
+        getIdentifierWithLabel(true, 'Label');
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects null identifier', () => {
-      // @ts-expect-error - identifier must be string or undefined, not null
-      void getIdentifierWithLabel(null, 'Label');
+      const _typeCheck = () => {
+        // @ts-expect-error - identifier must be string or undefined, not null
+        getIdentifierWithLabel(null, 'Label');
+      };
+      expect(_typeCheck).toBeDefined();
     });
   });
 });
