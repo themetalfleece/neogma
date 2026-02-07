@@ -2,8 +2,8 @@ import { BindParam } from '../../BindParam/BindParam';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { escapeIfNeeded } from '../../utils/cypher';
-import type { WhereParamsI } from '../../Where';
-import type { WhereParamsByIdentifierI } from '../../Where';
+import type { WhereParamsByIdentifierI, WhereParamsI } from '../../Where';
+import { Where } from '../../Where';
 import type { AnyObject } from '../shared.types';
 import type {
   EagerLoadQueryResult,
@@ -145,7 +145,11 @@ function buildRelationshipSubquery(
     optional: true,
   });
 
-  // WHERE clause for target and relationship using object format
+  // Build filter condition for CASE WHEN (instead of WHERE to preserve parent rows)
+  // WHERE after OPTIONAL MATCH can drop parent rows when no matches pass the filter.
+  // By moving the condition into CASE WHEN, we ensure parents with no matching
+  // relationships get an empty array instead of being dropped.
+  let filterCondition = '';
   if (level.where?.target || level.where?.relationship) {
     const whereParams: WhereParamsByIdentifierI = {};
     if (level.where.target) {
@@ -154,7 +158,8 @@ function buildRelationshipSubquery(
     if (level.where.relationship) {
       whereParams[level.relationshipIdentifier] = level.where.relationship;
     }
-    subqueryBuilder.where(whereParams);
+    const whereClause = new Where(whereParams, bindParam);
+    filterCondition = `AND (${whereClause.getStatement('text')})`;
   }
 
   // Handle nested relationships recursively BEFORE aggregation
@@ -202,22 +207,22 @@ function buildRelationshipSubquery(
     );
   }
 
-  // Aggregate with COLLECT. CASE returns null when target is null (OPTIONAL MATCH with no match).
+  // Aggregate with COLLECT. CASE returns null when target is null or doesn't match filter.
+  // Filter condition is embedded in CASE WHEN to preserve parent rows with empty arrays.
+  const filterPart = filterCondition ? ` ${filterCondition}` : '';
   subqueryBuilder.with(
-    `COLLECT(CASE WHEN ${safeTargetId} IS NOT NULL THEN ${entryExpr} END) AS __collected`,
+    `COLLECT(CASE WHEN ${safeTargetId} IS NOT NULL${filterPart} THEN ${entryExpr} END) AS __collected`,
   );
 
   // Filter out nulls and apply skip/limit via list slicing
   let listExpr = `[x IN __collected WHERE x IS NOT NULL]`;
 
   // Apply skip and limit using list slicing
-  if (level.skip || level.limit) {
-    const skipVal = level.skip || 0;
-    if (level.limit) {
-      listExpr = `${listExpr}[${skipVal}..${skipVal + level.limit}]`;
-    } else {
-      listExpr = `${listExpr}[${skipVal}..]`;
-    }
+  const skipVal = typeof level.skip === 'number' ? level.skip : 0;
+  if (typeof level.limit === 'number') {
+    listExpr = `${listExpr}[${skipVal}..${skipVal + level.limit}]`;
+  } else if (typeof level.skip === 'number') {
+    listExpr = `${listExpr}[${skipVal}..]`;
   }
 
   subqueryBuilder.return(`${listExpr} AS ${safeAlias}`);
