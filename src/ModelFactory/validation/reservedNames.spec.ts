@@ -1,6 +1,7 @@
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { NeogmaError } from '../../Errors/NeogmaError';
 import {
+  PROTOTYPE_POLLUTION_KEYS,
   RESERVED_INSTANCE_PROPERTIES,
   RESERVED_RELATIONSHIP_ALIASES,
   validateRelationshipAlias,
@@ -8,6 +9,18 @@ import {
 } from './reservedNames';
 
 describe('Reserved Names Validation', () => {
+  describe('PROTOTYPE_POLLUTION_KEYS', () => {
+    it('should include __proto__, constructor, and prototype', () => {
+      expect(PROTOTYPE_POLLUTION_KEYS).toContain('__proto__');
+      expect(PROTOTYPE_POLLUTION_KEYS).toContain('constructor');
+      expect(PROTOTYPE_POLLUTION_KEYS).toContain('prototype');
+    });
+
+    it('should have exactly 3 keys', () => {
+      expect(PROTOTYPE_POLLUTION_KEYS.length).toBe(3);
+    });
+  });
+
   describe('RESERVED_RELATIONSHIP_ALIASES', () => {
     it('should include node, relationship, and __collected', () => {
       expect(RESERVED_RELATIONSHIP_ALIASES).toContain('node');
@@ -15,13 +28,26 @@ describe('Reserved Names Validation', () => {
       expect(RESERVED_RELATIONSHIP_ALIASES).toContain('__collected');
     });
 
+    it('should include prototype pollution keys', () => {
+      for (const key of PROTOTYPE_POLLUTION_KEYS) {
+        expect(RESERVED_RELATIONSHIP_ALIASES).toContain(key);
+      }
+    });
+
     it('should be readonly', () => {
       const aliases: readonly string[] = RESERVED_RELATIONSHIP_ALIASES;
-      expect(aliases.length).toBe(3);
+      // 3 original + 3 prototype pollution keys
+      expect(aliases.length).toBe(6);
     });
   });
 
   describe('RESERVED_INSTANCE_PROPERTIES', () => {
+    it('should include prototype pollution keys', () => {
+      for (const key of PROTOTYPE_POLLUTION_KEYS) {
+        expect(RESERVED_INSTANCE_PROPERTIES).toContain(key);
+      }
+    });
+
     it('should include internal state properties', () => {
       expect(RESERVED_INSTANCE_PROPERTIES).toContain('__existsInDatabase');
       expect(RESERVED_INSTANCE_PROPERTIES).toContain('__relationshipData');
@@ -74,6 +100,14 @@ describe('Reserved Names Validation', () => {
       expect(() =>
         validateRelationshipAlias('__collected', 'TestModel'),
       ).toThrow(NeogmaConstraintError);
+    });
+
+    it('should throw NeogmaConstraintError for prototype pollution keys', () => {
+      for (const key of PROTOTYPE_POLLUTION_KEYS) {
+        expect(() => validateRelationshipAlias(key, 'TestModel')).toThrow(
+          NeogmaConstraintError,
+        );
+      }
     });
 
     it('should throw NeogmaError for invalid Cypher identifiers', () => {
@@ -135,6 +169,14 @@ describe('Reserved Names Validation', () => {
     it('should throw NeogmaConstraintError for all reserved properties', () => {
       for (const reserved of RESERVED_INSTANCE_PROPERTIES) {
         expect(() => validateSchemaPropertyName(reserved, 'TestModel')).toThrow(
+          NeogmaConstraintError,
+        );
+      }
+    });
+
+    it('should throw NeogmaConstraintError for prototype pollution keys', () => {
+      for (const key of PROTOTYPE_POLLUTION_KEYS) {
+        expect(() => validateSchemaPropertyName(key, 'TestModel')).toThrow(
           NeogmaConstraintError,
         );
       }

@@ -185,7 +185,11 @@ export type DeleteLiteralI = {
 export const isDeleteWithLiteral = (
   _param: DeleteI['delete'],
 ): _param is DeleteLiteralI => {
-  return typeof _param === 'object' && _param !== null && 'literal' in _param;
+  if (typeof _param !== 'object' || _param === null || !('literal' in _param)) {
+    return false;
+  }
+  const literal = (_param as DeleteLiteralI).literal;
+  return typeof literal === 'string' && literal.trim().length > 0;
 };
 
 /** SET parameter */

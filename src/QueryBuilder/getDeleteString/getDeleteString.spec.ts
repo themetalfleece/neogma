@@ -124,5 +124,19 @@ describe('getDeleteString', () => {
         >[0]),
       ).toThrow('invalid delete configuration');
     });
+
+    it('treats empty literal as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ literal: '' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow('invalid delete configuration');
+    });
+
+    it('treats whitespace-only literal as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ literal: '   ' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow('invalid delete configuration');
+    });
   });
 });

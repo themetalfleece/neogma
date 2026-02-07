@@ -2,10 +2,21 @@ import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { assertValidCypherIdentifier } from '../../utils/cypher';
 
 /**
+ * Reserved names that could cause prototype pollution if used as object keys.
+ * These are blocked across all contexts.
+ */
+export const PROTOTYPE_POLLUTION_KEYS = [
+  '__proto__',
+  'constructor',
+  'prototype',
+] as const;
+
+/**
  * Reserved relationship alias names that conflict with internal keys used
  * in eager loading queries. These cannot be used as relationship aliases.
  */
 export const RESERVED_RELATIONSHIP_ALIASES = [
+  ...PROTOTYPE_POLLUTION_KEYS,
   'node',
   'relationship',
   '__collected',
@@ -16,6 +27,8 @@ export const RESERVED_RELATIONSHIP_ALIASES = [
  * and methods. These cannot be used as schema property names.
  */
 export const RESERVED_INSTANCE_PROPERTIES = [
+  // Prototype pollution protection
+  ...PROTOTYPE_POLLUTION_KEYS,
   // Internal state properties
   '__existsInDatabase',
   '__relationshipData',

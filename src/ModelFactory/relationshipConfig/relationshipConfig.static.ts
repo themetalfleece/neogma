@@ -15,10 +15,12 @@ export function addRelationships<RelatedNodesToAssociateI extends AnyObject>(
   ctx: RelationshipConfigContext<RelatedNodesToAssociateI>,
   relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
 ): void {
-  for (const key in relationships) {
+  // Validate all keys first before modifying ctx
+  for (const key of Object.keys(relationships)) {
     validateRelationshipAlias(key, ctx.modelName);
-    ctx.relationships[key] = relationships[key];
   }
+  // Use Object.assign to safely merge validated relationships
+  Object.assign(ctx.relationships, relationships);
 }
 
 /**
