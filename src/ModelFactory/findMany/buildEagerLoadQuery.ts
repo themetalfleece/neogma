@@ -333,12 +333,12 @@ export function buildEagerLoadQuery<
   }
 
   // 5. SKIP for root using native method
-  if (rootSkip) {
+  if (rootSkip !== undefined) {
     queryBuilder.skip(rootSkip);
   }
 
   // 6. LIMIT for root using native method
-  if (rootLimit) {
+  if (rootLimit !== undefined) {
     queryBuilder.limit(rootLimit);
   }
 

@@ -78,12 +78,12 @@ export async function findManyStandard<
     );
   }
 
-  if (params?.skip) {
-    queryBuilder.skip(+params.skip);
+  if (params?.skip !== undefined) {
+    queryBuilder.skip(params.skip);
   }
 
-  if (params?.limit) {
-    queryBuilder.limit(+params.limit);
+  if (params?.limit !== undefined) {
+    queryBuilder.limit(params.limit);
   }
 
   const res = await queryBuilder.run(ctx.queryRunner, params?.session);

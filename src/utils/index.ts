@@ -7,3 +7,4 @@ export {
   isValidCypherIdentifier,
   sanitizeParamName,
 } from './cypher';
+export { isEmptyObject, isPlainObject } from './object';
