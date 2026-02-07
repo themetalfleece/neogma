@@ -182,12 +182,26 @@ describe('Reserved Names Validation', () => {
       }
     });
 
-    it('should throw NeogmaError for invalid Cypher identifiers', () => {
+    it('should allow property names that require escaping', () => {
+      // Property names with dashes, spaces, etc. are allowed
+      // The query builder will escape them as needed
       expect(() =>
-        validateSchemaPropertyName('123invalid', 'TestModel'),
-      ).toThrow(NeogmaError);
-      expect(() => validateSchemaPropertyName('has-dash', 'TestModel')).toThrow(
-        NeogmaError,
+        validateSchemaPropertyName('has-dash', 'TestModel'),
+      ).not.toThrow();
+      expect(() =>
+        validateSchemaPropertyName('has space', 'TestModel'),
+      ).not.toThrow();
+      expect(() =>
+        validateSchemaPropertyName('123startsWithNumber', 'TestModel'),
+      ).not.toThrow();
+    });
+
+    it('should throw NeogmaConstraintError for empty property names', () => {
+      expect(() => validateSchemaPropertyName('', 'TestModel')).toThrow(
+        NeogmaConstraintError,
+      );
+      expect(() => validateSchemaPropertyName('   ', 'TestModel')).toThrow(
+        NeogmaConstraintError,
       );
     });
 

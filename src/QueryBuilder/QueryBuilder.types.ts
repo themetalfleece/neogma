@@ -58,7 +58,18 @@ export type MatchI = {
   match: string | MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
 };
 export const isMatchParameter = (param: ParameterI): param is MatchI => {
-  return typeof param === 'object' && param !== null && 'match' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'match')) {
+    return false;
+  }
+  const match = (param as MatchI).match;
+  // match can be string or object (MatchNodeI, MatchRelatedI, etc.)
+  return (
+    (typeof match === 'string' && match.length > 0) ||
+    (typeof match === 'object' && match !== null)
+  );
 };
 /** matching a single node */
 export type MatchNodeI = NodeForMatchI & {
@@ -118,7 +129,17 @@ export type CreateI = {
   create: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
 };
 export const isCreateParameter = (param: ParameterI): param is CreateI => {
-  return typeof param === 'object' && param !== null && 'create' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'create')) {
+    return false;
+  }
+  const create = (param as CreateI).create;
+  return (
+    (typeof create === 'string' && create.length > 0) ||
+    (typeof create === 'object' && create !== null)
+  );
 };
 /** creating a node */
 export type CreateNodeI = NodeForCreateI;
@@ -155,7 +176,17 @@ export type MergeI = {
   merge: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
 };
 export const isMergeParameter = (param: ParameterI): param is MergeI => {
-  return typeof param === 'object' && param !== null && 'merge' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'merge')) {
+    return false;
+  }
+  const merge = (param as MergeI).merge;
+  return (
+    (typeof merge === 'string' && merge.length > 0) ||
+    (typeof merge === 'object' && merge !== null)
+  );
 };
 
 /** DELETE parameter */
@@ -164,7 +195,17 @@ export type DeleteI = {
   delete: string | DeleteByIdentifierI | DeleteLiteralI;
 };
 export const isDeleteParameter = (param: ParameterI): param is DeleteI => {
-  return typeof param === 'object' && param !== null && 'delete' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'delete')) {
+    return false;
+  }
+  const del = (param as DeleteI).delete;
+  return (
+    (typeof del === 'string' && del.length > 0) ||
+    (typeof del === 'object' && del !== null)
+  );
 };
 /** deletes the given identifiers */
 export type DeleteByIdentifierI = {
@@ -415,7 +456,14 @@ export type CallI = {
   call: string;
 };
 export const isCallParameter = (call: ParameterI): call is CallI => {
-  return typeof call === 'object' && call !== null && 'call' in call;
+  if (typeof call !== 'object' || call === null) {
+    return false;
+  }
+  if (!Object.hasOwn(call, 'call')) {
+    return false;
+  }
+  const callValue = (call as CallI).call;
+  return typeof callValue === 'string' && callValue.trim().length > 0;
 };
 
 /** ON CREATE SET parameter type guard */

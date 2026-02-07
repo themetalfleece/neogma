@@ -88,26 +88,26 @@ export function validateRelationshipAlias(
 /**
  * Validates a schema property name.
  *
- * Checks that the property name:
- * 1. Is a valid Cypher identifier (alphanumeric + underscore, not starting with number)
- * 2. Is not a reserved name that conflicts with instance properties/methods
+ * Checks that the property name is not a reserved name that conflicts with
+ * instance properties/methods. Property names that require escaping in Cypher
+ * (spaces, dashes, etc.) are allowed - the query builder handles escaping.
  *
  * @param propertyName - The property name to validate
  * @param modelName - The model name for error messages
- * @throws NeogmaError if the property name is not a valid Cypher identifier
- * @throws NeogmaConstraintError if the property name is a reserved name
+ * @throws NeogmaConstraintError if the property name is empty or a reserved name
  */
 export function validateSchemaPropertyName(
   propertyName: string,
   modelName: string,
 ): void {
-  // Validate as Cypher identifier first
-  assertValidCypherIdentifier(
-    propertyName,
-    `schema property in model "${modelName}"`,
-  );
+  // Validate non-empty
+  if (!propertyName || propertyName.trim().length === 0) {
+    throw new NeogmaConstraintError(
+      `Schema property name in model "${modelName}" cannot be empty`,
+    );
+  }
 
-  // Check for reserved names
+  // Check for reserved names (includes prototype pollution keys)
   if (reservedInstancePropertySet.has(propertyName)) {
     throw new NeogmaConstraintError(
       `Schema property "${propertyName}" in model "${modelName}" is reserved. ` +
