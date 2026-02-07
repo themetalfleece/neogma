@@ -17,9 +17,14 @@ describe('getIdentifierWithLabel', () => {
       expect(result).toBe('myNode:Person');
     });
 
-    it('passes through pre-escaped label with spaces', () => {
-      // Labels must be pre-escaped via getLabel()/getNormalizedLabels/escapeCypherIdentifier
-      // Passing unescaped labels with spaces produces invalid Cypher
+    it('auto-escapes label with spaces', () => {
+      // Raw labels with special characters are automatically escaped
+      const result = getIdentifierWithLabel('n', 'My Label');
+      expect(result).toBe('n:`My Label`');
+    });
+
+    it('passes through pre-escaped label with spaces (no double-escaping)', () => {
+      // Pre-escaped labels from getLabel() are not double-escaped
       const result = getIdentifierWithLabel('n', '`My Label`');
       expect(result).toBe('n:`My Label`');
     });
@@ -104,15 +109,41 @@ describe('getIdentifierWithLabel', () => {
       expect(result).toBe('`123node`:Label');
     });
 
-    it('passes through pre-escaped labels unchanged', () => {
+    it('passes through pre-escaped labels unchanged (no double-escaping)', () => {
       // When using getLabel(), labels come pre-escaped with backticks
       const result = getIdentifierWithLabel('n', '`My Label`');
       expect(result).toBe('n:`My Label`');
     });
 
-    it('escapes identifier but not label (labels expected pre-escaped)', () => {
+    it('auto-escapes raw labels with special characters', () => {
+      // Raw labels are automatically escaped if needed
+      const result = getIdentifierWithLabel('n', 'My Label');
+      expect(result).toBe('n:`My Label`');
+    });
+
+    it('escapes both identifier and raw label', () => {
+      const result = getIdentifierWithLabel('my-node', 'My Label');
+      expect(result).toBe('`my-node`:`My Label`');
+    });
+
+    it('escapes identifier with pre-escaped label', () => {
       const result = getIdentifierWithLabel('my-node', '`My Label`');
       expect(result).toBe('`my-node`:`My Label`');
+    });
+
+    it('does not escape valid labels', () => {
+      const result = getIdentifierWithLabel('n', 'Person');
+      expect(result).toBe('n:Person');
+    });
+
+    it('escapes label starting with number', () => {
+      const result = getIdentifierWithLabel('n', '123Label');
+      expect(result).toBe('n:`123Label`');
+    });
+
+    it('escapes labels with backticks in them', () => {
+      const result = getIdentifierWithLabel('n', 'Label`Injection');
+      expect(result).toBe('n:`Label``Injection`');
     });
   });
 

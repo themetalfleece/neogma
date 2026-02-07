@@ -3,6 +3,8 @@ import {
   assertValidCypherIdentifier,
   escapeCypherIdentifier,
   escapeIfNeeded,
+  escapeLabelIfNeeded,
+  isAlreadyEscaped,
   isValidCypherIdentifier,
   sanitizeParamName,
 } from './cypher';
@@ -199,6 +201,117 @@ describe('cypher utilities', () => {
           '`name; DROP DATABASE`',
         );
         expect(escapeIfNeeded('prop} RETURN n //')).toBe('`prop} RETURN n //`');
+      });
+    });
+  });
+
+  describe('isAlreadyEscaped', () => {
+    describe('properly escaped identifiers', () => {
+      it('returns true for simple escaped names', () => {
+        expect(isAlreadyEscaped('`Person`')).toBe(true);
+        expect(isAlreadyEscaped('`name`')).toBe(true);
+      });
+
+      it('returns true for escaped names with spaces', () => {
+        expect(isAlreadyEscaped('`My Label`')).toBe(true);
+        expect(isAlreadyEscaped('`first name`')).toBe(true);
+      });
+
+      it('returns true for escaped names with doubled internal backticks', () => {
+        expect(isAlreadyEscaped('`a``b`')).toBe(true);
+        expect(isAlreadyEscaped('`test``injection`')).toBe(true);
+        expect(isAlreadyEscaped('`a``b``c`')).toBe(true);
+      });
+
+      it('returns true for escaped empty string', () => {
+        expect(isAlreadyEscaped('``')).toBe(true);
+      });
+    });
+
+    describe('not properly escaped', () => {
+      it('returns false for unescaped identifiers', () => {
+        expect(isAlreadyEscaped('Person')).toBe(false);
+        expect(isAlreadyEscaped('name')).toBe(false);
+        expect(isAlreadyEscaped('My Label')).toBe(false);
+      });
+
+      it('returns false for incomplete escaping', () => {
+        expect(isAlreadyEscaped('`incomplete')).toBe(false);
+        expect(isAlreadyEscaped('incomplete`')).toBe(false);
+      });
+
+      it('returns false for improperly escaped internal backticks', () => {
+        // Single internal backtick is not properly escaped
+        expect(isAlreadyEscaped('`a`b`')).toBe(false);
+        expect(isAlreadyEscaped('`test`injection`')).toBe(false);
+      });
+
+      it('returns false for empty string', () => {
+        expect(isAlreadyEscaped('')).toBe(false);
+      });
+    });
+  });
+
+  describe('escapeLabelIfNeeded', () => {
+    describe('raw valid labels - no escaping', () => {
+      it('returns valid labels unchanged', () => {
+        expect(escapeLabelIfNeeded('Person')).toBe('Person');
+        expect(escapeLabelIfNeeded('User')).toBe('User');
+        expect(escapeLabelIfNeeded('MyLabel')).toBe('MyLabel');
+        expect(escapeLabelIfNeeded('Label_1')).toBe('Label_1');
+      });
+    });
+
+    describe('raw invalid labels - escapes', () => {
+      it('escapes labels with spaces', () => {
+        expect(escapeLabelIfNeeded('My Label')).toBe('`My Label`');
+        expect(escapeLabelIfNeeded('First Name')).toBe('`First Name`');
+      });
+
+      it('escapes labels starting with numbers', () => {
+        expect(escapeLabelIfNeeded('123Label')).toBe('`123Label`');
+      });
+
+      it('escapes labels with special characters', () => {
+        expect(escapeLabelIfNeeded('My-Label')).toBe('`My-Label`');
+        expect(escapeLabelIfNeeded('Label!')).toBe('`Label!`');
+      });
+
+      it('escapes and doubles internal backticks', () => {
+        expect(escapeLabelIfNeeded('Label`Injection')).toBe(
+          '`Label``Injection`',
+        );
+      });
+    });
+
+    describe('pre-escaped labels - idempotent (no double-escaping)', () => {
+      it('returns pre-escaped valid labels unchanged', () => {
+        expect(escapeLabelIfNeeded('`Person`')).toBe('`Person`');
+        expect(escapeLabelIfNeeded('`User`')).toBe('`User`');
+      });
+
+      it('returns pre-escaped labels with spaces unchanged', () => {
+        expect(escapeLabelIfNeeded('`My Label`')).toBe('`My Label`');
+        expect(escapeLabelIfNeeded('`First Name`')).toBe('`First Name`');
+      });
+
+      it('returns pre-escaped labels with doubled backticks unchanged', () => {
+        expect(escapeLabelIfNeeded('`Label``Injection`')).toBe(
+          '`Label``Injection`',
+        );
+      });
+    });
+
+    describe('integration with getLabel output', () => {
+      // Simulates labels coming from model.getLabel() which always escapes
+      it('handles labels that are already backtick-wrapped', () => {
+        const fromGetLabel = '`Person`';
+        expect(escapeLabelIfNeeded(fromGetLabel)).toBe('`Person`');
+      });
+
+      it('handles labels with spaces from getLabel', () => {
+        const fromGetLabel = '`My Label`';
+        expect(escapeLabelIfNeeded(fromGetLabel)).toBe('`My Label`');
       });
     });
   });

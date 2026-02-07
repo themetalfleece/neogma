@@ -1,5 +1,5 @@
 import { NeogmaConstraintError } from '../../Errors';
-import { escapeCypherIdentifier, escapeIfNeeded } from '../../utils/cypher';
+import { escapeIfNeeded, escapeLabelIfNeeded } from '../../utils/cypher';
 import { isRemoveLabels, isRemoveProperties } from '../QueryBuilder.types';
 import type { GetRemoveStringRemove } from './getRemoveString.types';
 
@@ -10,15 +10,23 @@ import type { GetRemoveStringRemove } from './getRemoveString.types';
  * without validation. Never pass user-provided input as strings. Use the object
  * format for safe queries.
  *
+ * Labels can be passed as raw strings or pre-escaped (from `getLabel()`).
+ * Both formats are handled correctly without double-escaping.
+ *
  * @example
  * // SAFE: Properties object - property names are escaped if needed
  * getRemoveString({ identifier: 'n', properties: ['tempProp', 'oldData'] });
  * // => "REMOVE n.tempProp, n.oldData"
  *
  * @example
- * // SAFE: Labels object - labels are escaped with backticks
+ * // SAFE: Labels object - raw labels are escaped if needed
  * getRemoveString({ identifier: 'n', labels: ['TempLabel', 'My Label'] });
- * // => "REMOVE n:`TempLabel`:`My Label`"
+ * // => "REMOVE n:TempLabel:`My Label`"
+ *
+ * @example
+ * // SAFE: Pre-escaped labels work correctly (no double-escaping)
+ * getRemoveString({ identifier: 'n', labels: ['`My Label`'] });
+ * // => "REMOVE n:`My Label`"
  *
  * @example
  * // UNSAFE: String format - no validation, use only with trusted input
@@ -48,7 +56,7 @@ export const getRemoveString = (remove: GetRemoveStringRemove): string => {
       : [remove.labels];
 
     const safeIdentifier = escapeIfNeeded(remove.identifier);
-    const escapedLabels = labels.map((l) => escapeCypherIdentifier(l));
+    const escapedLabels = labels.map((l) => escapeLabelIfNeeded(l));
     return `REMOVE ${safeIdentifier}:${escapedLabels.join(':')}`;
   }
 

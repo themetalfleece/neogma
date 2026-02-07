@@ -34,8 +34,8 @@ describe('getRemoveString', () => {
       labels: ['l1', 'l2'],
     });
 
-    // Labels are now escaped with backticks to prevent injection
-    expectStatementEquals(queryBuilder, 'REMOVE a:`l1`:`l2`');
+    // Valid labels are not escaped
+    expectStatementEquals(queryBuilder, 'REMOVE a:l1:l2');
     expectBindParamEquals(queryBuilder, {});
   });
 
@@ -105,7 +105,17 @@ describe('getRemoveString', () => {
         identifier: 'my-node',
         labels: ['Label'],
       });
-      expectStatementEquals(queryBuilder, 'REMOVE `my-node`:`Label`');
+      // Identifier is escaped, Label is a valid identifier so not escaped
+      expectStatementEquals(queryBuilder, 'REMOVE `my-node`:Label');
+    });
+
+    it('does not double-escape pre-escaped labels', () => {
+      const queryBuilder = new QueryBuilder().remove({
+        identifier: 'n',
+        labels: ['`My Label`'],
+      });
+      // Pre-escaped labels are returned unchanged (idempotent)
+      expectStatementEquals(queryBuilder, 'REMOVE n:`My Label`');
     });
 
     it('escapes identifier starting with number', () => {
@@ -133,8 +143,8 @@ describe('getRemoveString', () => {
     it('accepts valid remove labels object', () => {
       const qb = new QueryBuilder();
       qb.remove({ identifier: 'n', labels: ['Label1', 'Label2'] });
-      // Labels are now escaped with backticks
-      expect(qb.getStatement()).toContain('REMOVE n:`Label1`:`Label2`');
+      // Valid labels are not escaped
+      expect(qb.getStatement()).toContain('REMOVE n:Label1:Label2');
     });
 
     it('rejects invalid remove parameter type', () => {

@@ -1,24 +1,20 @@
-import { escapeIfNeeded } from '../../utils/cypher';
+import { escapeIfNeeded, escapeLabelIfNeeded } from '../../utils/cypher';
 
 /**
  * Returns a string to be used in a query, regardless if any of the identifier or label are null.
- * Identifiers are escaped if they contain special characters.
+ * Identifiers and labels are escaped if they contain special characters.
  *
- * **IMPORTANT**: The `label` parameter is inserted as-is without escaping.
- * Callers MUST pass a Cypher-safe token, such as:
- * - The output of `getLabel()` (from a model, which uses `getNormalizedLabels`)
- * - The output of `escapeCypherIdentifier()` for raw labels
- *
- * Passing unescaped labels containing special characters (spaces, colons, backticks, etc.)
- * will produce invalid Cypher or potential injection vulnerabilities.
+ * Labels can be passed as:
+ * - Raw labels like `'Person'` or `'My Label'` (will be escaped if needed)
+ * - Pre-escaped labels from `getLabel()` like `` `Person` `` (will not be double-escaped)
  *
  * @example
  * ```typescript
- * // Using model.getLabel() (already escaped)
+ * // Using model.getLabel() (already escaped) - no double-escaping
  * getIdentifierWithLabel('n', Model.getLabel()); // -> 'n:`ModelLabel`'
  *
- * // Using escapeCypherIdentifier() for raw labels
- * getIdentifierWithLabel('n', escapeCypherIdentifier('My Label')); // -> 'n:`My Label`'
+ * // Raw label with spaces - auto-escaped
+ * getIdentifierWithLabel('n', 'My Label'); // -> 'n:`My Label`'
  *
  * // Valid identifier (no escaping needed)
  * getIdentifierWithLabel('n', 'Person'); // -> 'n:Person'
@@ -29,7 +25,6 @@ export const getIdentifierWithLabel = (
   label?: string,
 ): string => {
   const safeIdentifier = identifier ? escapeIfNeeded(identifier) : '';
-  // Labels are expected to already be escaped by getLabel()/getNormalizedLabels
-  const safeLabel = label ? ':' + label : '';
+  const safeLabel = label ? ':' + escapeLabelIfNeeded(label) : '';
   return `${safeIdentifier}${safeLabel}`;
 };

@@ -149,9 +149,10 @@ describe('getNodeStatement', () => {
       expect(result).toBe('(node1)');
     });
 
-    it('handles label with spaces', () => {
+    it('handles label with spaces (auto-escaped)', () => {
+      // Labels with spaces are automatically escaped with backticks
       const result = getNodeStatement({ label: 'My Label' });
-      expect(result).toBe('(:My Label)');
+      expect(result).toBe('(:`My Label`)');
     });
   });
 

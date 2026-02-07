@@ -57,12 +57,34 @@ export const escapeCypherIdentifier = (identifier: string): string => {
 };
 
 /**
+ * Checks if an identifier is already properly escaped with backticks.
+ * A properly escaped identifier starts and ends with a backtick, and any
+ * internal backticks are doubled (the Cypher escape sequence for backticks).
+ *
+ * @param identifier - The identifier to check
+ * @returns true if the identifier is already properly escaped, false otherwise
+ *
+ * @example
+ * ```typescript
+ * isAlreadyEscaped('`Person`')     // true - properly escaped
+ * isAlreadyEscaped('`My Label`')   // true - properly escaped
+ * isAlreadyEscaped('`a``b`')       // true - internal backtick is doubled
+ * isAlreadyEscaped('Person')       // false - not escaped
+ * isAlreadyEscaped('`incomplete')  // false - missing closing backtick
+ * ```
+ */
+export const isAlreadyEscaped = (identifier: string): boolean => {
+  // Pattern: starts with `, ends with `, contains only doubled backticks or non-backtick chars
+  // This ensures internal backticks are properly escaped (doubled)
+  return /^`(?:``|[^`])*`$/.test(identifier);
+};
+
+/**
  * Escapes a Cypher identifier only if it contains special characters.
  * Returns the original identifier unchanged if it's already valid.
  *
- * Use this for property names, identifiers, and other query parts where
- * you want to preserve the original format for valid identifiers but
- * safely escape invalid ones.
+ * Use this for property names, variable identifiers, and other query parts
+ * that are never pre-escaped.
  *
  * @param identifier - The identifier to conditionally escape
  * @returns The original identifier if valid, or escaped with backticks if not
@@ -81,6 +103,42 @@ export const escapeIfNeeded = (identifier: string): string =>
   isValidCypherIdentifier(identifier)
     ? identifier
     : escapeCypherIdentifier(identifier);
+
+/**
+ * Escapes a label/relationship type if needed, handling both raw and pre-escaped values.
+ *
+ * This function is idempotent - it works correctly whether you pass:
+ * - A raw label like "Person" or "My Label"
+ * - A pre-escaped label from `getLabel()` like "`Person`" or "`My Label`"
+ *
+ * Use this for labels that may come from either user input or from `getLabel()`.
+ *
+ * @param label - The label to conditionally escape (can be raw or pre-escaped)
+ * @returns The properly escaped label
+ *
+ * @example
+ * ```typescript
+ * // Raw labels are escaped if needed
+ * escapeLabelIfNeeded('Person')      // 'Person' (unchanged - valid)
+ * escapeLabelIfNeeded('My Label')    // '`My Label`' (escaped - contains space)
+ *
+ * // Pre-escaped labels are returned unchanged (no double-escaping)
+ * escapeLabelIfNeeded('`Person`')    // '`Person`' (unchanged - already escaped)
+ * escapeLabelIfNeeded('`My Label`')  // '`My Label`' (unchanged - already escaped)
+ * ```
+ */
+export const escapeLabelIfNeeded = (label: string): string => {
+  // Already properly escaped - return as-is
+  if (isAlreadyEscaped(label)) {
+    return label;
+  }
+  // Valid identifier - no escaping needed
+  if (isValidCypherIdentifier(label)) {
+    return label;
+  }
+  // Needs escaping
+  return escapeCypherIdentifier(label);
+};
 
 /**
  * Validates a property name and throws a NeogmaError if invalid.
