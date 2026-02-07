@@ -1313,13 +1313,13 @@ describe('Where', () => {
       );
     });
 
-    it('rejects identifier names with special characters', () => {
-      expect(() => {
-        new Where({
-          'node}: DELETE (n); //': { prop: 'value' },
-        });
-      }).toThrow(
-        /Invalid identifier.*Identifiers must contain only alphanumeric/,
+    it('escapes identifier names with special characters', () => {
+      const where = new Where({
+        'node}: DELETE (n); //': { prop: 'value' },
+      });
+      // Identifier is escaped with backticks, preventing injection
+      expect(where.getStatement('text')).toContain(
+        '`node}: DELETE (n); //`.prop',
       );
     });
 

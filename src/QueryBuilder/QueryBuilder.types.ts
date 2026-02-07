@@ -44,7 +44,7 @@ export type RawI = {
   raw: string;
 };
 export const isRawParameter = (param: ParameterI): param is RawI => {
-  return !!(param as RawI).raw;
+  return typeof param === 'object' && param !== null && 'raw' in param;
 };
 
 /** MATCH parameter */
@@ -53,7 +53,7 @@ export type MatchI = {
   match: string | MatchNodeI | MatchRelatedI | MatchMultipleI | MatchLiteralI;
 };
 export const isMatchParameter = (param: ParameterI): param is MatchI => {
-  return !!(param as MatchI).match;
+  return typeof param === 'object' && param !== null && 'match' in param;
 };
 /** matching a single node */
 export type MatchNodeI = NodeForMatchI & {
@@ -70,7 +70,7 @@ export type MatchRelatedI = {
 export const isMatchRelated = (
   param: MatchI['match'],
 ): param is MatchRelatedI => {
-  return !!(param as MatchRelatedI).related;
+  return typeof param === 'object' && param !== null && 'related' in param;
 };
 /** matching multiple nodes */
 export type MatchMultipleI = {
@@ -82,7 +82,7 @@ export type MatchMultipleI = {
 export const isMatchMultiple = (
   param: MatchI['match'],
 ): param is MatchMultipleI => {
-  return !!(param as MatchMultipleI).multiple;
+  return typeof param === 'object' && param !== null && 'multiple' in param;
 };
 /** a literal string for matching */
 export type MatchLiteralI = {
@@ -94,7 +94,7 @@ export type MatchLiteralI = {
 export const isMatchLiteral = (
   param: MatchI['match'],
 ): param is MatchLiteralI => {
-  return !!(param as MatchLiteralI).literal;
+  return typeof param === 'object' && param !== null && 'literal' in param;
 };
 
 /** CREATE parameter */
@@ -103,7 +103,7 @@ export type CreateI = {
   create: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
 };
 export const isCreateParameter = (param: ParameterI): param is CreateI => {
-  return !!(param as CreateI).create;
+  return typeof param === 'object' && param !== null && 'create' in param;
 };
 /** creating a node */
 export type CreateNodeI = NodeForCreateI;
@@ -115,7 +115,7 @@ export type CreateRelatedI = {
 export const isCreateRelated = (
   param: CreateI['create'],
 ): param is CreateRelatedI => {
-  return !!(param as CreateRelatedI).related;
+  return typeof param === 'object' && param !== null && 'related' in param;
 };
 /** creating multiple nodes */
 export type CreateMultipleI = {
@@ -125,7 +125,7 @@ export type CreateMultipleI = {
 export const isCreateMultiple = (
   param: CreateI['create'],
 ): param is CreateMultipleI => {
-  return !!(param as CreateMultipleI).multiple;
+  return typeof param === 'object' && param !== null && 'multiple' in param;
 };
 
 /** MERGE parameter. Using the same types as CREATE */
@@ -134,7 +134,7 @@ export type MergeI = {
   merge: string | CreateNodeI | CreateRelatedI | CreateMultipleI;
 };
 export const isMergeParameter = (param: ParameterI): param is MergeI => {
-  return !!(param as MergeI).merge;
+  return typeof param === 'object' && param !== null && 'merge' in param;
 };
 
 /** DELETE parameter */
@@ -143,7 +143,7 @@ export type DeleteI = {
   delete: string | DeleteByIdentifierI | DeleteLiteralI;
 };
 export const isDeleteParameter = (param: ParameterI): param is DeleteI => {
-  return !!(param as DeleteI).delete;
+  return typeof param === 'object' && param !== null && 'delete' in param;
 };
 /** deletes the given identifiers */
 export type DeleteByIdentifierI = {
@@ -155,8 +155,9 @@ export type DeleteByIdentifierI = {
 export const isDeleteWithIdentifier = (
   _param: DeleteI['delete'],
 ): _param is DeleteByIdentifierI => {
-  const param = _param as DeleteByIdentifierI;
-  return !!param.identifiers;
+  return (
+    typeof _param === 'object' && _param !== null && 'identifiers' in _param
+  );
 };
 /** deletes by using the given literal */
 export type DeleteLiteralI = {
@@ -168,8 +169,7 @@ export type DeleteLiteralI = {
 export const isDeleteWithLiteral = (
   _param: DeleteI['delete'],
 ): _param is DeleteLiteralI => {
-  const param = _param as DeleteLiteralI;
-  return !!param.literal;
+  return typeof _param === 'object' && _param !== null && 'literal' in _param;
 };
 
 /** SET parameter */
@@ -178,7 +178,7 @@ export type SetI = {
   set: string | SetObjectI;
 };
 export const isSetParameter = (param: ParameterI): param is SetI => {
-  return !!(param as SetI).set;
+  return typeof param === 'object' && param !== null && 'set' in param;
 };
 export type SetObjectI = {
   /** identifier whose properties will be set */
@@ -193,7 +193,7 @@ export type RemoveI = {
   remove: string | RemovePropertiesI | RemoveLabelsI; // TODO also array of Properties|Labels
 };
 export const isRemoveParameter = (param: ParameterI): param is RemoveI => {
-  return !!(param as RemoveI).remove;
+  return typeof param === 'object' && param !== null && 'remove' in param;
 };
 /** removes properties of an identifier */
 export type RemovePropertiesI = {
@@ -205,8 +205,12 @@ export type RemovePropertiesI = {
 export const isRemoveProperties = (
   _param: RemoveI['remove'],
 ): _param is RemovePropertiesI => {
-  const param = _param as RemovePropertiesI;
-  return !!(param.properties && param.identifier);
+  return (
+    typeof _param === 'object' &&
+    _param !== null &&
+    'properties' in _param &&
+    'identifier' in _param
+  );
 };
 /** removes labels of an identifier */
 export type RemoveLabelsI = {
@@ -218,8 +222,12 @@ export type RemoveLabelsI = {
 export const isRemoveLabels = (
   _param: RemoveI['remove'],
 ): _param is RemoveLabelsI => {
-  const param = _param as RemoveLabelsI;
-  return !!(param.labels && param.identifier);
+  return (
+    typeof _param === 'object' &&
+    _param !== null &&
+    'labels' in _param &&
+    'identifier' in _param
+  );
 };
 
 /** RETURN parameter */
@@ -228,7 +236,7 @@ export type ReturnI = {
   return: string | string[] | ReturnObjectI;
 };
 export const isReturnParameter = (param: ParameterI): param is ReturnI => {
-  return !!(param as ReturnI).return;
+  return typeof param === 'object' && param !== null && 'return' in param;
 };
 export type ReturnObjectI = Array<{
   /** identifier to return */
@@ -250,19 +258,19 @@ export const isReturnObject = (
 /** LIMIT parameter */
 export type LimitI = { limit: string | number };
 export const isLimitParameter = (limit: ParameterI): limit is LimitI => {
-  return !!(limit as LimitI).limit;
+  return typeof limit === 'object' && limit !== null && 'limit' in limit;
 };
 
 /** SKIP parameter */
 export type SkipI = { skip: string | number };
 export const isSkipParameter = (skip: ParameterI): skip is SkipI => {
-  return !!(skip as SkipI).skip;
+  return typeof skip === 'object' && skip !== null && 'skip' in skip;
 };
 
 /** WITH parameter */
 export type WithI = { with: string | string[] };
 export const isWithParameter = (wth: ParameterI): wth is WithI => {
-  return !!(wth as WithI).with;
+  return typeof wth === 'object' && wth !== null && 'with' in wth;
 };
 
 /** ORDER BY parameter */
@@ -283,7 +291,9 @@ export type OrderByObjectI = {
 export const isOrderByParameter = (
   orderBy: ParameterI,
 ): orderBy is OrderByI => {
-  return !!(orderBy as OrderByI).orderBy;
+  return (
+    typeof orderBy === 'object' && orderBy !== null && 'orderBy' in orderBy
+  );
 };
 
 /** UNWIND parameter */
@@ -298,7 +308,7 @@ export type UnwindObjectI = {
   as: string;
 };
 export const isUnwindParameter = (unwind: ParameterI): unwind is UnwindI => {
-  return !!(unwind as UnwindI).unwind;
+  return typeof unwind === 'object' && unwind !== null && 'unwind' in unwind;
 };
 
 /** WHERE parameter */
@@ -307,7 +317,7 @@ export type WhereI = {
   where: string | Where | WhereParamsByIdentifierI;
 };
 export const isWhereParameter = (where: ParameterI): where is WhereI => {
-  return !!(where as WhereI).where;
+  return typeof where === 'object' && where !== null && 'where' in where;
 };
 
 /** FOR EACH parameter */
@@ -318,7 +328,9 @@ export type ForEachI = {
 export const isForEachParameter = (
   forEach: ParameterI,
 ): forEach is ForEachI => {
-  return !!(forEach as ForEachI).forEach;
+  return (
+    typeof forEach === 'object' && forEach !== null && 'forEach' in forEach
+  );
 };
 
 /** CALL subquery parameter */
@@ -327,21 +339,21 @@ export type CallI = {
   call: string;
 };
 export const isCallParameter = (call: ParameterI): call is CallI => {
-  return !!(call as CallI).call;
+  return typeof call === 'object' && call !== null && 'call' in call;
 };
 
 /** ON CREATE SET parameter type guard */
 export const isOnCreateSetParameter = (
   param: ParameterI,
 ): param is OnCreateSetI => {
-  return !!(param as OnCreateSetI).onCreateSet;
+  return typeof param === 'object' && param !== null && 'onCreateSet' in param;
 };
 
 /** ON MATCH SET parameter type guard */
 export const isOnMatchSetParameter = (
   param: ParameterI,
 ): param is OnMatchSetI => {
-  return !!(param as OnMatchSetI).onMatchSet;
+  return typeof param === 'object' && param !== null && 'onMatchSet' in param;
 };
 
 /** node type which will be used for matching */
@@ -385,23 +397,43 @@ export type NodeForCreateWithModelI = {
 export const isNodeWithWhere = (
   node: NodeForMatchObjectI | NodeForCreateObjectI,
 ): node is RequiredProperties<NodeForMatchObjectI, 'where'> => {
-  return !!(node as NodeForMatchObjectI).where;
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    'where' in node &&
+    node.where != null
+  );
 };
 export const isNodeWithLabel = (
   node: NodeForMatchObjectI | NodeForCreateObjectI,
 ): node is NodeForCreateWithLabelI => {
-  return !!(node as NodeForMatchObjectI | NodeForCreateWithLabelI).label;
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    'label' in node &&
+    node.label != null
+  );
 };
 export const isNodeWithModel = (
   node: NodeForMatchObjectI | NodeForCreateObjectI,
 ): node is NodeForCreateWithModelI => {
-  return !!(node as NodeForMatchObjectI | NodeForCreateWithModelI).model;
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    'model' in node &&
+    node.model != null
+  );
 };
 
 export const isNodeWithProperties = (
   node: NodeForMatchObjectI | NodeForCreateObjectI,
 ): node is RequiredProperties<NodeForCreateObjectI, 'properties'> => {
-  return !!(node as NodeForCreateObjectI).properties;
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    'properties' in node &&
+    node.properties != null
+  );
 };
 
 /** relationship type used for matching */
@@ -439,7 +471,12 @@ export type RelationshipForCreateObjectI = {
 export const isRelationshipWithWhere = (
   relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
 ): relationship is RequiredProperties<RelationshipForMatchObjectI, 'where'> => {
-  return !!(relationship as RelationshipForMatchObjectI).where;
+  return (
+    typeof relationship === 'object' &&
+    relationship !== null &&
+    'where' in relationship &&
+    relationship.where != null
+  );
 };
 export const isRelationshipWithProperties = (
   relationship: RelationshipForMatchObjectI | RelationshipForCreateObjectI,
@@ -447,11 +484,20 @@ export const isRelationshipWithProperties = (
   RelationshipForCreateObjectI,
   'properties'
 > => {
-  return !!(relationship as RelationshipForCreateObjectI).properties;
+  return (
+    typeof relationship === 'object' &&
+    relationship !== null &&
+    'properties' in relationship &&
+    relationship.properties != null
+  );
 };
 export const isRelationship = (
   _relationship: RelationshipForMatchI | NodeForMatchI,
 ): _relationship is RelationshipForMatchI => {
-  const relationship = _relationship as RelationshipForMatchI;
-  return typeof relationship === 'string' || !!relationship.direction;
+  return (
+    typeof _relationship === 'string' ||
+    (typeof _relationship === 'object' &&
+      _relationship !== null &&
+      'direction' in _relationship)
+  );
 };

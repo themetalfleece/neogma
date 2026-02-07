@@ -1,12 +1,12 @@
 import { neo4jDriver } from '..';
 import { BindParam } from '../BindParam/BindParam';
-import { NeogmaConstraintError, NeogmaError } from '../Errors';
+import { NeogmaConstraintError } from '../Errors';
 import { Literal } from '../Literal';
 import type {
   BindableWhereValue,
   Neo4jSupportedTypes,
 } from '../QueryRunner/QueryRunner.types';
-import { escapeIfNeeded, isValidCypherIdentifier } from '../utils/cypher';
+import { escapeIfNeeded } from '../utils/cypher';
 import type {
   operators,
   WhereParamsByIdentifierI,
@@ -178,16 +178,6 @@ export class Where {
     property: string,
     value: WhereValuesI | undefined,
   ): void => {
-    // Validate identifier is a safe Cypher identifier to prevent injection.
-    // Identifiers must match declared variables in the query scope.
-    // Note: Empty identifiers are allowed for internal use cases (e.g., anonymous nodes).
-    if (identifier && !isValidCypherIdentifier(identifier)) {
-      throw new NeogmaError(
-        `Invalid identifier "${identifier}" in WHERE clause. ` +
-          `Identifiers must contain only alphanumeric characters and underscores, and cannot start with a number.`,
-      );
-    }
-
     // Direct null value → IS NULL
     if (value === null) {
       this.addNullCheckEntry(identifier, property, 'is');
@@ -343,12 +333,13 @@ export class Where {
     if (mode === 'text') {
       for (const bindParamData of this.identifierPropertyData) {
         const { bindParamName } = bindParamData;
+        const safeIdentifier = escapeIfNeeded(bindParamData.identifier);
         const safeProperty = escapeIfNeeded(bindParamData.property);
 
         // Handle operators that don't need a parameter (is, isNot)
         if (isNoParamOperator(bindParamData.operator)) {
           statementParts.push(
-            `${bindParamData.identifier}.${safeProperty} ${operatorForStatement(bindParamData.operator)}`,
+            `${safeIdentifier}.${safeProperty} ${operatorForStatement(bindParamData.operator)}`,
           );
           continue;
         }
@@ -363,13 +354,13 @@ export class Where {
             [
               name,
               operatorForStatement(bindParamData.operator),
-              `${bindParamData.identifier}.${safeProperty}`,
+              `${safeIdentifier}.${safeProperty}`,
             ].join(' '),
           );
         } else {
           statementParts.push(
             [
-              `${bindParamData.identifier}.${safeProperty}`,
+              `${safeIdentifier}.${safeProperty}`,
               operatorForStatement(bindParamData.operator),
               name,
             ].join(' '),

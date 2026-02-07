@@ -4,6 +4,7 @@ import {
   escapeCypherIdentifier,
   escapeIfNeeded,
   isValidCypherIdentifier,
+  sanitizeParamName,
 } from './cypher';
 
 describe('cypher utilities', () => {
@@ -269,6 +270,59 @@ describe('cypher utilities', () => {
           NeogmaError,
         );
       });
+    });
+  });
+
+  describe('sanitizeParamName', () => {
+    it('returns valid names unchanged', () => {
+      expect(sanitizeParamName('name')).toBe('name');
+      expect(sanitizeParamName('first_name')).toBe('first_name');
+      expect(sanitizeParamName('prop1')).toBe('prop1');
+      expect(sanitizeParamName('_private')).toBe('_private');
+    });
+
+    it('replaces dashes with underscores', () => {
+      expect(sanitizeParamName('my-prop')).toBe('my_prop');
+      expect(sanitizeParamName('a-b-c')).toBe('a_b_c');
+    });
+
+    it('replaces spaces with underscores', () => {
+      expect(sanitizeParamName('my prop')).toBe('my_prop');
+      expect(sanitizeParamName('a b c')).toBe('a_b_c');
+    });
+
+    it('prepends underscore if starting with number', () => {
+      expect(sanitizeParamName('123abc')).toBe('_123abc');
+      expect(sanitizeParamName('1')).toBe('_1');
+    });
+
+    it('replaces special characters with underscores', () => {
+      expect(sanitizeParamName('name; DELETE (n)')).toBe('name__DELETE__n_');
+      expect(sanitizeParamName('prop`: injection')).toBe('prop___injection');
+    });
+
+    it('handles backticks', () => {
+      expect(sanitizeParamName('`injection`')).toBe('_injection_');
+    });
+
+    it('returns param for empty strings', () => {
+      expect(sanitizeParamName('')).toBe('param');
+    });
+
+    it('produces valid Cypher parameter names', () => {
+      // All sanitized names should be valid identifiers
+      const testCases = [
+        'name',
+        'my-prop',
+        '123abc',
+        'a b c',
+        'name; DELETE',
+        '`injection`',
+      ];
+      for (const testCase of testCases) {
+        const sanitized = sanitizeParamName(testCase);
+        expect(isValidCypherIdentifier(sanitized)).toBe(true);
+      }
     });
   });
 });

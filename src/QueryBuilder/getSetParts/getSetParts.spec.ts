@@ -293,58 +293,63 @@ describe('getSetParts', () => {
   });
 
   describe('security', () => {
-    it('escapes property names with special characters', () => {
+    it('escapes property names and sanitizes param names with special characters', () => {
       const bindParam = new BindParam();
       const result = getSetParts({
         data: { 'name; DELETE (n)': 'value' },
         identifier: 'n',
         bindParam,
       });
-      // Property is escaped with backticks
+      // Property is escaped with backticks, param name is sanitized
       expect(result.parts).toEqual([
-        'n.`name; DELETE (n)` = $name; DELETE (n)',
+        'n.`name; DELETE (n)` = $name__DELETE__n_',
       ]);
+      expect(bindParam.get()).toHaveProperty('name__DELETE__n_', 'value');
     });
 
-    it('escapes property names with backticks', () => {
+    it('escapes property names and sanitizes param names with backticks', () => {
       const bindParam = new BindParam();
       const result = getSetParts({
         data: { '`injection`': 'value' },
         identifier: 'n',
         bindParam,
       });
-      // Backticks are escaped by doubling them
-      expect(result.parts).toEqual(['n.```injection``` = $`injection`']);
+      // Backticks are escaped by doubling them, param name is sanitized
+      expect(result.parts).toEqual(['n.```injection``` = $_injection_']);
+      expect(bindParam.get()).toHaveProperty('_injection_', 'value');
     });
 
-    it('escapes property names starting with numbers', () => {
+    it('escapes property names and sanitizes param names starting with numbers', () => {
       const bindParam = new BindParam();
       const result = getSetParts({
         data: { '123prop': 'value' },
         identifier: 'n',
         bindParam,
       });
-      expect(result.parts).toEqual(['n.`123prop` = $123prop']);
+      expect(result.parts).toEqual(['n.`123prop` = $_123prop']);
+      expect(bindParam.get()).toHaveProperty('_123prop', 'value');
     });
 
-    it('escapes property names with spaces', () => {
+    it('escapes property names and sanitizes param names with spaces', () => {
       const bindParam = new BindParam();
       const result = getSetParts({
         data: { 'my prop': 'value' },
         identifier: 'n',
         bindParam,
       });
-      expect(result.parts).toEqual(['n.`my prop` = $my prop']);
+      expect(result.parts).toEqual(['n.`my prop` = $my_prop']);
+      expect(bindParam.get()).toHaveProperty('my_prop', 'value');
     });
 
-    it('escapes property names with dashes', () => {
+    it('escapes property names and sanitizes param names with dashes', () => {
       const bindParam = new BindParam();
       const result = getSetParts({
         data: { 'my-prop': 'value' },
         identifier: 'n',
         bindParam,
       });
-      expect(result.parts).toEqual(['n.`my-prop` = $my-prop']);
+      expect(result.parts).toEqual(['n.`my-prop` = $my_prop']);
+      expect(bindParam.get()).toHaveProperty('my_prop', 'value');
     });
 
     it('does not escape valid property names with underscores', () => {
@@ -404,7 +409,8 @@ describe('getSetParts', () => {
         identifier: 'my-node',
         bindParam,
       });
-      expect(result.parts).toEqual(['`my-node`.`my-prop` = $my-prop']);
+      expect(result.parts).toEqual(['`my-node`.`my-prop` = $my_prop']);
+      expect(bindParam.get()).toHaveProperty('my_prop', 'value');
     });
   });
 

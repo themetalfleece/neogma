@@ -110,3 +110,44 @@ export const assertValidCypherIdentifier = (
     );
   }
 };
+
+/**
+ * Sanitizes a string to be a valid Cypher parameter name.
+ * Parameter names must be valid identifiers (alphanumeric + underscore, not starting with number).
+ *
+ * - Replaces invalid characters with underscores
+ * - Prepends underscore if starting with a number
+ * - Returns 'param' for empty strings
+ *
+ * @param name - The string to sanitize
+ * @returns A valid Cypher parameter name
+ *
+ * @example
+ * ```typescript
+ * sanitizeParamName('name')           // 'name'
+ * sanitizeParamName('my-prop')        // 'my_prop'
+ * sanitizeParamName('123abc')         // '_123abc'
+ * sanitizeParamName('a; DELETE')      // 'a__DELETE'
+ * sanitizeParamName('`injection`')    // '_injection_'
+ * ```
+ */
+export const sanitizeParamName = (name: string): string => {
+  if (!name) {
+    return 'param';
+  }
+
+  // Replace all non-alphanumeric/underscore characters with underscores
+  let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  // If starts with a number, prepend underscore
+  if (/^\d/.test(sanitized)) {
+    sanitized = '_' + sanitized;
+  }
+
+  // If empty after sanitization (shouldn't happen but be safe)
+  if (!sanitized) {
+    return 'param';
+  }
+
+  return sanitized;
+};
