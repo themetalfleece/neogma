@@ -25,6 +25,8 @@ interface BuildEagerLoadQueryParams<
   rootOrder?: Array<[string, 'ASC' | 'DESC']>;
   rootLimit?: number;
   rootSkip?: number;
+  /** Set of valid schema keys for filtering order properties */
+  schemaKeys: Set<string>;
   relationships: RelationshipsLoadConfig<RelatedNodesToAssociateI>;
   ctx: FindWithRelationshipsContext<
     Properties,
@@ -102,6 +104,17 @@ function parseRelationshipConfig<
 
 /**
  * Builds a CALL subquery for a single relationship level using QueryBuilder.
+ *
+ * The query structure:
+ * 1. OPTIONAL MATCH to get related nodes (may return nulls)
+ * 2. WHERE clause for filtering
+ * 3. Handle nested CALL subqueries for nested relationships
+ * 4. WITH + ORDER BY (before aggregation, if ordering specified)
+ * 5. WITH COLLECT(...) to aggregate results
+ * 6. Filter nulls and apply skip/limit via list slicing
+ *
+ * This ensures root nodes with no relationships return an empty array
+ * instead of being dropped from results.
  */
 function buildRelationshipSubquery(
   level: RelationshipLevel,
@@ -142,14 +155,41 @@ function buildRelationshipSubquery(
     subqueryBuilder.where(whereParams);
   }
 
-  // WITH clause to handle null filtering
-  subqueryBuilder.with([level.targetIdentifier, level.relationshipIdentifier]);
-  subqueryBuilder.where(
-    `${level.targetIdentifier} IS NOT NULL AND ${level.relationshipIdentifier} IS NOT NULL`,
-  );
+  // Handle nested relationships recursively BEFORE aggregation
+  for (const nested of level.nestedLevels) {
+    const nestedSubquery = buildRelationshipSubquery(
+      nested,
+      bindParam,
+      level.targetIdentifier,
+    );
+    subqueryBuilder.call(nestedSubquery);
+  }
 
-  // ORDER BY using object format
+  // Build the collect fields
+  const collectFields = [
+    `node: ${level.targetIdentifier}`,
+    `relationship: ${level.relationshipIdentifier}`,
+  ];
+
+  // Add nested collections to the COLLECT
+  for (const nested of level.nestedLevels) {
+    collectFields.push(`${nested.alias}: ${nested.alias}`);
+  }
+
+  const entryExpr = `{ ${collectFields.join(', ')} }`;
+
+  // ORDER BY must come before aggregation. Use a separate WITH if ordering is specified.
   if (level.order && level.order.length > 0) {
+    // Build identifiers needed for WITH clause (includes nested aliases)
+    const nestedAliases = level.nestedLevels.map((n) => n.alias);
+    const withIdentifiers = [
+      level.targetIdentifier,
+      level.relationshipIdentifier,
+      ...nestedAliases,
+    ];
+
+    subqueryBuilder.with(withIdentifiers);
+
     subqueryBuilder.orderBy(
       level.order.map((o) => ({
         identifier:
@@ -162,40 +202,25 @@ function buildRelationshipSubquery(
     );
   }
 
-  // SKIP using native method
-  if (level.skip) {
-    subqueryBuilder.skip(level.skip);
-  }
-
-  // LIMIT using native method
-  if (level.limit) {
-    subqueryBuilder.limit(level.limit);
-  }
-
-  // Handle nested relationships recursively
-  for (const nested of level.nestedLevels) {
-    const nestedSubquery = buildRelationshipSubquery(
-      nested,
-      bindParam,
-      level.targetIdentifier,
-    );
-    subqueryBuilder.call(nestedSubquery);
-  }
-
-  // RETURN COLLECT(...)
-  const collectFields = [
-    `node: ${level.targetIdentifier}`,
-    `relationship: ${level.relationshipIdentifier}`,
-  ];
-
-  // Add nested collections to the COLLECT
-  for (const nested of level.nestedLevels) {
-    collectFields.push(`${nested.alias}: ${nested.alias}`);
-  }
-
-  subqueryBuilder.return(
-    `COLLECT({ ${collectFields.join(', ')} }) AS ${level.alias}`,
+  // Aggregate with COLLECT. CASE returns null when target is null (OPTIONAL MATCH with no match).
+  subqueryBuilder.with(
+    `COLLECT(CASE WHEN ${level.targetIdentifier} IS NOT NULL THEN ${entryExpr} END) AS __collected`,
   );
+
+  // Filter out nulls and apply skip/limit via list slicing
+  let listExpr = `[x IN __collected WHERE x IS NOT NULL]`;
+
+  // Apply skip and limit using list slicing
+  if (level.skip || level.limit) {
+    const skipVal = level.skip || 0;
+    if (level.limit) {
+      listExpr = `${listExpr}[${skipVal}..${skipVal + level.limit}]`;
+    } else {
+      listExpr = `${listExpr}[${skipVal}..]`;
+    }
+  }
+
+  subqueryBuilder.return(`${listExpr} AS ${level.alias}`);
 
   return subqueryBuilder;
 }
@@ -223,6 +248,7 @@ export function buildEagerLoadQuery<
     rootOrder,
     rootLimit,
     rootSkip,
+    schemaKeys,
     relationships,
     ctx,
   } = params;
@@ -258,15 +284,18 @@ export function buildEagerLoadQuery<
     queryBuilder.call(subquery);
   }
 
-  // 4. ORDER BY for root using object format
+  // 4. ORDER BY for root using object format (filter by schema keys like findManyStandard)
   if (rootOrder && rootOrder.length > 0) {
-    queryBuilder.orderBy(
-      rootOrder.map(([prop, dir]) => ({
-        identifier: rootIdentifier,
-        property: prop,
-        direction: dir,
-      })),
-    );
+    const filteredOrder = rootOrder.filter(([field]) => schemaKeys.has(field));
+    if (filteredOrder.length > 0) {
+      queryBuilder.orderBy(
+        filteredOrder.map(([prop, dir]) => ({
+          identifier: rootIdentifier,
+          property: prop,
+          direction: dir,
+        })),
+      );
+    }
   }
 
   // 5. SKIP for root using native method

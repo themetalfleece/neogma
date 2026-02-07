@@ -649,6 +649,173 @@ describe('findMany with relationships (eager loading)', () => {
     });
   });
 
+  describe('edge cases', () => {
+    it('returns all root nodes even when some have no relationships', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      // Create two users - one with relationships, one without
+      const userWithOrders = await Users.createOne({
+        id: uuid(),
+        name: 'User With Orders',
+      });
+      const userWithoutOrders = await Users.createOne({
+        id: uuid(),
+        name: 'User Without Orders',
+      });
+
+      const order = await Orders.createOne({
+        id: uuid(),
+        name: 'Test Order',
+      });
+
+      await userWithOrders.relateTo({
+        alias: 'Orders',
+        where: { id: order.id },
+        properties: { Rating: 5 },
+      });
+
+      // Find both users with relationships
+      const results = await Users.findMany({
+        where: {
+          id: { [Op.in]: [userWithOrders.id, userWithoutOrders.id] },
+        },
+        relationships: {
+          Orders: {},
+        },
+      });
+
+      // Both users should be returned
+      expect(results.length).toBe(2);
+
+      const userWith = results.find((u) => u.id === userWithOrders.id);
+      const userWithout = results.find((u) => u.id === userWithoutOrders.id);
+
+      expect(userWith).toBeTruthy();
+      expect(userWithout).toBeTruthy();
+
+      // User with orders should have the order
+      const ordersWithData = (userWith as any).Orders as Array<{
+        node: any;
+        relationship: any;
+      }>;
+      expect(ordersWithData.length).toBe(1);
+      expect(ordersWithData[0].node.id).toBe(order.id);
+
+      // User without orders should have empty array (not undefined or missing)
+      const ordersWithoutData = (userWithout as any).Orders as Array<{
+        node: any;
+        relationship: any;
+      }>;
+      expect(ordersWithoutData).toBeDefined();
+      expect(Array.isArray(ordersWithoutData)).toBe(true);
+      expect(ordersWithoutData.length).toBe(0);
+    });
+
+    it('returns root node with empty array when relationship where filters out all matches', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      const user = await Users.createOne({
+        id: uuid(),
+        name: 'Test User',
+      });
+
+      const activeOrder = await Orders.createOne({
+        id: uuid(),
+        name: 'Active Order',
+        status: 'active',
+      });
+
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: activeOrder.id },
+        properties: { Rating: 3 },
+      });
+
+      // Search for pending orders (none exist)
+      const results = await Users.findMany({
+        where: { id: user.id },
+        relationships: {
+          Orders: {
+            where: {
+              target: { status: 'pending' },
+            },
+          },
+        },
+      });
+
+      // User should still be returned
+      expect(results.length).toBe(1);
+      expect(results[0].id).toBe(user.id);
+
+      // Orders should be empty array (not dropped)
+      const ordersData = (results[0] as any).Orders as Array<{
+        node: any;
+        relationship: any;
+      }>;
+      expect(ordersData).toBeDefined();
+      expect(Array.isArray(ordersData)).toBe(true);
+      expect(ordersData.length).toBe(0);
+    });
+
+    it('returns root node with empty array when nested relationship has no matches', async () => {
+      const neogma = getNeogma();
+      const Suppliers = createSuppliersModel(neogma);
+      const Products = createProductsModel(Suppliers, neogma);
+      const Orders = createOrdersModel(neogma, Products);
+      const Users = createUsersModel(Orders, neogma);
+
+      // Create user -> order (no products)
+      const user = await Users.createOne({
+        id: uuid(),
+        name: 'Test User',
+      });
+      const order = await Orders.createOne({
+        id: uuid(),
+        name: 'Empty Order',
+      });
+
+      await user.relateTo({
+        alias: 'Orders',
+        where: { id: order.id },
+        properties: { Rating: 4 },
+      });
+
+      // Find with nested relationships (Products will be empty)
+      const results = await Users.findMany({
+        where: { id: user.id },
+        relationships: {
+          Orders: {
+            relationships: {
+              Products: {},
+            },
+          },
+        },
+      });
+
+      expect(results.length).toBe(1);
+
+      const ordersData = (results[0] as any).Orders as Array<{
+        node: any;
+        relationship: any;
+      }>;
+      expect(ordersData.length).toBe(1);
+      expect(ordersData[0].node.id).toBe(order.id);
+
+      // Products should be empty array (not undefined)
+      const productsData = ordersData[0].node.Products as Array<{
+        node: any;
+        relationship: any;
+      }>;
+      expect(productsData).toBeDefined();
+      expect(Array.isArray(productsData)).toBe(true);
+      expect(productsData.length).toBe(0);
+    });
+  });
+
   describe('type safety', () => {
     it('validates relationship alias names at compile time', () => {
       const neogma = getNeogma();

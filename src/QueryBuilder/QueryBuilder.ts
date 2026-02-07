@@ -567,6 +567,18 @@ export class QueryBuilder {
    *   .return('n, friendCount');
    */
   public call(call: CallI['call'] | QueryBuilder): QueryBuilder {
+    // Validate that subquery QueryBuilder shares the same BindParam as the parent.
+    // Otherwise, parameters auto-bound in the subquery will not be present
+    // in the parent's BindParam, causing runtime failures.
+    if (
+      call instanceof QueryBuilder &&
+      call.getBindParam() !== this.bindParam
+    ) {
+      throw new NeogmaError(
+        'Subquery passed to QueryBuilder.call must use the same BindParam instance as the parent QueryBuilder. ' +
+          'Create the subquery with `new QueryBuilder(parentBuilder.getBindParam())` to share bind parameters.',
+      );
+    }
     const callStatement =
       call instanceof QueryBuilder ? call.getStatement() : call;
     return this.addParams({ call: callStatement });

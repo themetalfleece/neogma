@@ -176,13 +176,14 @@ describe('QueryBuilder', () => {
       expectBindParamEquals(queryBuilder, {});
     });
 
-    it('generates a CALL subquery with another QueryBuilder', () => {
-      const subquery = new QueryBuilder()
+    it('generates a CALL subquery with another QueryBuilder (shared BindParam)', () => {
+      const queryBuilder = new QueryBuilder();
+      const subquery = new QueryBuilder(queryBuilder.getBindParam())
         .with('n')
         .match({ literal: '(n)-[:KNOWS]->(friend)', optional: false })
         .return('count(friend) as friendCount');
 
-      const queryBuilder = new QueryBuilder()
+      queryBuilder
         .match({ identifier: 'n', label: 'Person' })
         .call(subquery)
         .return(['n', 'friendCount']);
@@ -194,19 +195,22 @@ describe('QueryBuilder', () => {
       expectBindParamEquals(queryBuilder, {});
     });
 
-    it('generates nested CALL subqueries', () => {
-      const innerSubquery = new QueryBuilder()
+    it('generates nested CALL subqueries (shared BindParam)', () => {
+      const queryBuilder = new QueryBuilder();
+      const bindParam = queryBuilder.getBindParam();
+
+      const innerSubquery = new QueryBuilder(bindParam)
         .with('friend')
         .match({ literal: '(friend)-[:WORKS_AT]->(company)', optional: true })
         .return('collect(company) as companies');
 
-      const outerSubquery = new QueryBuilder()
+      const outerSubquery = new QueryBuilder(bindParam)
         .with('n')
         .match({ literal: '(n)-[:KNOWS]->(friend)', optional: true })
         .call(innerSubquery)
         .return('collect({ friend: friend, companies: companies }) as friends');
 
-      const queryBuilder = new QueryBuilder()
+      queryBuilder
         .match({ identifier: 'n', label: 'Person' })
         .call(outerSubquery)
         .return(['n', 'friends']);
@@ -216,6 +220,17 @@ describe('QueryBuilder', () => {
       expect(queryBuilder.getStatement()).toContain('RETURN n, friends');
     });
 
+    it('throws error when subquery uses different BindParam', () => {
+      const queryBuilder = new QueryBuilder();
+      const subquery = new QueryBuilder() // Different BindParam instance
+        .with('n')
+        .return('n');
+
+      expect(() => queryBuilder.call(subquery)).toThrow(
+        'Subquery passed to QueryBuilder.call must use the same BindParam instance as the parent QueryBuilder',
+      );
+    });
+
     describe('type safety', () => {
       it('accepts valid call string parameter', () => {
         const qb = new QueryBuilder();
@@ -223,9 +238,11 @@ describe('QueryBuilder', () => {
         expect(qb.getStatement()).toContain('CALL {');
       });
 
-      it('accepts QueryBuilder as parameter', () => {
-        const subquery = new QueryBuilder().with('n').return('n');
+      it('accepts QueryBuilder as parameter with shared BindParam', () => {
         const qb = new QueryBuilder();
+        const subquery = new QueryBuilder(qb.getBindParam())
+          .with('n')
+          .return('n');
         qb.call(subquery);
         expect(qb.getStatement()).toContain('CALL {');
       });

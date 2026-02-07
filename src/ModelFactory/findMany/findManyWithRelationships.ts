@@ -64,6 +64,7 @@ export async function findManyWithRelationships<
     rootOrder: params.order,
     rootLimit: params.limit,
     rootSkip: params.skip,
+    schemaKeys: ctx.schemaKeys,
     relationships: params.relationships,
     ctx: {
       queryRunner: ctx.queryRunner,

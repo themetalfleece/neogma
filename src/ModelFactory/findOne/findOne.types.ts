@@ -12,8 +12,8 @@ export interface FindOneParams<
   where?: WhereParamsI<Properties>;
   order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
   /**
-   * Returns an array of the plain properties, instead of Instances.
-   * When `relationships` is provided, includes them on each plain object.
+   * Returns the plain properties of the result, instead of an Instance.
+   * When `relationships` is provided, includes them on the plain object.
    */
   plain?: boolean;
   /** throws an error if the node is not found */
