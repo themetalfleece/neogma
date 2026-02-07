@@ -245,24 +245,20 @@ describe('getNodeString', () => {
       expect(_typeCheck).toBeDefined();
     });
 
-    it('escapes where when invalid type passed', () => {
+    it('ignores where when invalid type passed', () => {
       const deps = createDeps();
       // @ts-expect-error - where must be object, not string
-      // When a string is passed, JS iterates it with indices as property names
-      // These are escaped since they start with numbers (not valid identifiers)
       const result = getNodeString({ where: 'invalid' }, deps);
-      // The string "invalid" is treated as { 0: 'i', 1: 'n', ... } - indices get escaped
-      expect(result.statement).toContain('`0`');
+      // The string is not treated as an object - it's ignored entirely
+      expect(result.statement).toBe('()');
     });
 
-    it('escapes properties when invalid type passed', () => {
+    it('ignores properties when invalid type passed', () => {
       const deps = createDeps();
       // @ts-expect-error - properties must be object, not string
-      // When a string is passed, JS iterates it as an object with indices "0", "1", etc.
-      // These are escaped since they start with numbers (not valid identifiers)
       const result = getNodeString({ properties: 'invalid' }, deps);
-      // The string "invalid" is treated as { 0: 'i', 1: 'n', ... } - indices get escaped
-      expect(result.statement).toContain('`0`');
+      // The string is not treated as an object - it's ignored entirely
+      expect(result.statement).toBe('()');
     });
   });
 });

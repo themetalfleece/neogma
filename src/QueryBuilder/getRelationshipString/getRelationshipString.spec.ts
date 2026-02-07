@@ -351,16 +351,14 @@ describe('getRelationshipString', () => {
       void getRelationshipString({ direction: 'out', maxHops: '5' }, deps);
     });
 
-    it('escapes where when invalid type passed', () => {
+    it('ignores where when invalid type passed', () => {
       const deps = createDeps();
-      // When a string is passed, JS iterates it with indices as property names
-      // These are escaped since they start with numbers (not valid identifiers)
       const result = getRelationshipString(
         { direction: 'out', where: 'invalid' as any },
         deps,
       );
-      // The string "invalid" is treated as { 0: 'i', 1: 'n', ... } - indices get escaped
-      expect(result.statement).toContain('`0`');
+      // The string is not treated as an object - it's ignored entirely
+      expect(result.statement).toBe('-[]->');
     });
   });
 });
