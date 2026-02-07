@@ -4,9 +4,8 @@ import { escapeIfNeeded, escapeLabelIfNeeded } from '../../utils/cypher';
  * Returns a string to be used in a query, regardless if any of the identifier or label are null.
  * Both identifiers and labels are escaped if they contain special characters.
  *
- * Both parameters support idempotent escaping - pre-escaped values will not be double-escaped:
- * - Raw values like `'my-prop'` or `'My Label'` will be escaped if needed
- * - Pre-escaped values like `` `my-prop` `` will be returned unchanged
+ * Labels support idempotent escaping - pre-escaped labels from `getLabel()` will not be double-escaped.
+ * Identifiers should always be passed as raw values (not pre-escaped).
  *
  * @example
  * ```typescript
@@ -19,8 +18,8 @@ import { escapeIfNeeded, escapeLabelIfNeeded } from '../../utils/cypher';
  * // Valid identifier (no escaping needed)
  * getIdentifierWithLabel('n', 'Person'); // -> 'n:Person'
  *
- * // Pre-escaped identifier - no double-escaping
- * getIdentifierWithLabel('`my-node`', 'Person'); // -> '`my-node`:Person'
+ * // Identifier with special characters - auto-escaped
+ * getIdentifierWithLabel('my-node', 'Person'); // -> '`my-node`:Person'
  * ```
  */
 export const getIdentifierWithLabel = (

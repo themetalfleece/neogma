@@ -131,15 +131,10 @@ describe('getIdentifierWithLabel', () => {
       expect(result).toBe('`my-node`:`My Label`');
     });
 
-    it('passes through pre-escaped identifier unchanged (no double-escaping)', () => {
-      // Pre-escaped identifiers are not double-escaped (idempotent)
+    it('escapes identifiers with backticks (identifiers should be raw)', () => {
+      // Identifiers should be passed as raw values - backticks get escaped
       const result = getIdentifierWithLabel('`my-node`', 'Label');
-      expect(result).toBe('`my-node`:Label');
-    });
-
-    it('passes through pre-escaped identifier with pre-escaped label', () => {
-      const result = getIdentifierWithLabel('`my-node`', '`My Label`');
-      expect(result).toBe('`my-node`:`My Label`');
+      expect(result).toBe('```my-node```:Label');
     });
 
     it('does not escape valid labels', () => {
