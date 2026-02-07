@@ -17,12 +17,13 @@ const queryBuilder = new QueryBuilder()
     .return(['n', 'related']);
 
 console.log(queryBuilder.getStatement());
-// MATCH (n:`Node`) CALL {
-//         WITH n
-//         MATCH (n)-[:RELATES_TO]->(m:Related)
-//         RETURN collect(m) AS related
-//     } RETURN n, related
 ```
+
+```cypher
+MATCH (n:Node) CALL { WITH n MATCH (n)-[:RELATES_TO]->(m:Related) RETURN collect(m) AS related } RETURN n, related
+```
+
+> **Note**: `getStatement()` collapses whitespace for a compact single-line output.
 
 ## Call with a QueryBuilder instance
 You can pass another `QueryBuilder` instance to the `call` method. The subquery's statement will be extracted and wrapped in a CALL block. Both QueryBuilder instances share the same `BindParam` for consistent parameter binding.
@@ -49,11 +50,10 @@ const queryBuilder = new QueryBuilder(bindParam)
     .return(['parent', 'children']);
 
 console.log(queryBuilder.getStatement());
-// MATCH (parent:`Parent`) CALL {
-// WITH parent
-// MATCH (parent)-[:HAS_CHILD]->(child:`Child`)
-// RETURN collect(child) AS children
-// } RETURN parent, children
+```
+
+```cypher
+MATCH (parent:Parent) CALL { WITH parent MATCH (parent)-[:HAS_CHILD]->(child:Child) RETURN collect(child) AS children } RETURN parent, children
 ```
 
 ## Nested Call subqueries
@@ -94,15 +94,10 @@ const queryBuilder = new QueryBuilder(bindParam)
     .return(['parent', 'children']);
 
 console.log(queryBuilder.getStatement());
-// MATCH (parent:`Parent`) CALL {
-// WITH parent
-// MATCH (parent)-[:HAS_CHILD]->(child:`Child`)
-// CALL {
-// WITH child
-// MATCH (child)-[:HAS_ITEM]->(item:`Item`)
-// RETURN collect(item) AS items
-// } RETURN collect({ node: child, items: items }) AS children
-// } RETURN parent, children
+```
+
+```cypher
+MATCH (parent:Parent) CALL { WITH parent MATCH (parent)-[:HAS_CHILD]->(child:Child) CALL { WITH child MATCH (child)-[:HAS_ITEM]->(item:Item) RETURN collect(item) AS items } RETURN collect({ node: child, items: items }) AS children } RETURN parent, children
 ```
 
 ## Use Cases

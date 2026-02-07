@@ -95,6 +95,12 @@ export type OrderAttributesI = {
   status?: string;
 };
 
+/**
+ * OrdersRelatedNodesI defines Products as a required type for proper type inference
+ * in tests that use nested relationships. Note that createOrdersModel() only adds
+ * the Products relationship when the optional `products` argument is provided.
+ * Tests using Products should pass the products argument to createOrdersModel().
+ */
 export interface OrdersRelatedNodesI {
   Products: ModelRelatedNodesI<
     ProductsModel,
@@ -390,7 +396,6 @@ export function createUsersModel(
  * );
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const typeCheck = (_fn: () => void): void => {};
 
 // Re-export for convenience

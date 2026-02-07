@@ -1,3 +1,4 @@
+import { NeogmaError } from '../../Errors';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
@@ -52,8 +53,16 @@ export async function findManyWithRelationships<
 
   // Validate that the context has the required methods for eager loading
   if (!ctx.getRelationshipByAlias || !ctx.getRelationshipModel) {
-    throw new Error(
-      'Context is missing getRelationshipByAlias or getRelationshipModel for eager loading',
+    const missing: string[] = [];
+    if (!ctx.getRelationshipByAlias) {
+      missing.push('getRelationshipByAlias');
+    }
+    if (!ctx.getRelationshipModel) {
+      missing.push('getRelationshipModel');
+    }
+
+    throw new NeogmaError(
+      `Context is missing required methods for eager loading: ${missing.join(', ')}`,
     );
   }
 
@@ -83,7 +92,7 @@ export async function findManyWithRelationships<
   );
 
   if (params.throwIfNoneFound && result.records.length === 0) {
-    throw new NeogmaNotFoundError('No nodes were found', {
+    throw new NeogmaNotFoundError('No node was found', {
       label: ctx.getLabel(),
     });
   }
