@@ -7,4 +7,3 @@ export {
   isValidCypherIdentifier,
   sanitizeParamName,
 } from './cypher';
-export { randomSuffix, trimWhitespace } from './string';

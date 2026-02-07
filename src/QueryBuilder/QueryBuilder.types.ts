@@ -1,5 +1,6 @@
 import type { NeogmaModel } from '../ModelFactory';
 import type { Neo4jSupportedProperties } from '../QueryRunner/QueryRunner.types';
+import { isPlainObject } from '../utils/object';
 import type { Where, WhereParamsByIdentifierI, WhereParamsI } from '../Where';
 import type { OnCreateSetI, OnCreateSetObjectI } from './getOnCreateSetString';
 import type { OnMatchSetI, OnMatchSetObjectI } from './getOnMatchSetString';
@@ -452,7 +453,7 @@ export const isNodeWithWhere = (
     typeof node === 'object' &&
     node !== null &&
     'where' in node &&
-    node.where != null
+    isPlainObject(node.where)
   );
 };
 export const isNodeWithLabel = (
@@ -483,7 +484,7 @@ export const isNodeWithProperties = (
     typeof node === 'object' &&
     node !== null &&
     'properties' in node &&
-    node.properties != null
+    isPlainObject(node.properties)
   );
 };
 
@@ -526,7 +527,7 @@ export const isRelationshipWithWhere = (
     typeof relationship === 'object' &&
     relationship !== null &&
     'where' in relationship &&
-    relationship.where != null
+    isPlainObject(relationship.where)
   );
 };
 export const isRelationshipWithProperties = (
@@ -539,7 +540,7 @@ export const isRelationshipWithProperties = (
     typeof relationship === 'object' &&
     relationship !== null &&
     'properties' in relationship &&
-    relationship.properties != null
+    isPlainObject(relationship.properties)
   );
 };
 export const isRelationship = (
