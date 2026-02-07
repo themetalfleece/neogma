@@ -539,11 +539,26 @@ export const isRemoveLabels = (
   );
 };
 
+/** Single return element - either a raw string or an object with identifier */
+export type ReturnElementI =
+  | string
+  | {
+      /** identifier to return */
+      identifier: string;
+      /** returns only this property of the identifier */
+      property?: string;
+    };
+
 /** RETURN parameter */
 export type ReturnI = {
-  /** RETURN parameter */
-  return: string | string[] | ReturnObjectI;
+  /** RETURN parameter - string, or array of strings/objects (can be mixed) */
+  return: string | ReturnElementI[];
 };
+
+/**
+ * Type guard for ReturnI.
+ * @throws NeogmaConstraintError if array contains invalid elements
+ */
 export const isReturnParameter = (param: ParameterI): param is ReturnI => {
   if (typeof param !== 'object' || param === null) {
     return false;
@@ -556,23 +571,39 @@ export const isReturnParameter = (param: ParameterI): param is ReturnI => {
   if (typeof ret === 'string') {
     return ret.length > 0;
   }
-  // return can be non-empty array of strings or ReturnObjectI
+  // return can be non-empty array of strings and/or objects (mixed allowed)
   if (Array.isArray(ret)) {
     if (ret.length === 0) {
       return false;
     }
-    // Check if it's an array of strings or ReturnObjectI
-    return ret.every(
-      (item) =>
-        (typeof item === 'string' && item.length > 0) ||
-        (typeof item === 'object' &&
-          item !== null &&
-          typeof (item as { identifier: string }).identifier === 'string' &&
-          (item as { identifier: string }).identifier.length > 0),
-    );
+    // Validate each element individually
+    for (let i = 0; i < ret.length; i++) {
+      const item = ret[i];
+      if (typeof item === 'string') {
+        if (item.length === 0) {
+          throw new NeogmaConstraintError(
+            `Invalid 'return' array element at index ${i}: expected a non-empty string`,
+          );
+        }
+      } else if (typeof item === 'object' && item !== null) {
+        const identifier = (item as { identifier: string }).identifier;
+        if (typeof identifier !== 'string' || identifier.length === 0) {
+          throw new NeogmaConstraintError(
+            `Invalid 'return' array element at index ${i}: 'identifier' must be a non-empty string`,
+          );
+        }
+      } else {
+        throw new NeogmaConstraintError(
+          `Invalid 'return' array element at index ${i}: expected a string or object, got ${item === null ? 'null' : typeof item}`,
+        );
+      }
+    }
+    return true;
   }
   return false;
 };
+
+/** Array of return objects (all objects, no strings) */
 export type ReturnObjectI = Array<{
   /** identifier to return */
   identifier: string;

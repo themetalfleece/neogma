@@ -6,7 +6,7 @@
  * Cypher injection when handling user-provided input.
  */
 
-import { NeogmaError } from '../Errors/NeogmaError';
+import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 
 /**
  * Validates that a string is a safe Cypher identifier.
@@ -165,12 +165,12 @@ export const escapeLabelIfNeeded = (label: string): string => {
 };
 
 /**
- * Validates a property name and throws a NeogmaError if invalid.
+ * Validates a property name and throws a NeogmaConstraintError if invalid.
  * This is a convenience function that combines validation with error throwing.
  *
  * @param property - The property name to validate
  * @param context - Description of where the property is used (for error messages)
- * @throws NeogmaError if the property name is invalid
+ * @throws NeogmaConstraintError if the property name is invalid
  *
  * @example
  * ```typescript
@@ -186,7 +186,7 @@ export const assertValidCypherIdentifier = (
   context: string,
 ): void => {
   if (!isValidCypherIdentifier(identifier)) {
-    throw new NeogmaError(
+    throw new NeogmaConstraintError(
       `Invalid identifier "${identifier}" in ${context}. ` +
         `Identifiers must contain only alphanumeric characters and underscores, and cannot start with a number.`,
     );

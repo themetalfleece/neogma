@@ -84,6 +84,45 @@ describe('getReturnString', () => {
     });
   });
 
+  describe('mixed arrays', () => {
+    it('handles mixed array with strings and objects', () => {
+      const queryBuilder = new QueryBuilder().return([
+        'count(n) AS total',
+        { identifier: 'm', property: 'name' },
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN count(n) AS total, m.name');
+    });
+
+    it('handles mixed array with objects then strings', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'n' },
+        'collect(m) AS items',
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN n, collect(m) AS items');
+    });
+
+    it('escapes object identifiers in mixed array but not strings', () => {
+      const queryBuilder = new QueryBuilder().return([
+        'raw-expression', // strings are raw - no escaping
+        { identifier: 'my-node' }, // objects are escaped
+      ]);
+      expectStatementEquals(queryBuilder, 'RETURN raw-expression, `my-node`');
+    });
+
+    it('handles complex mixed array', () => {
+      const queryBuilder = new QueryBuilder().return([
+        { identifier: 'n', property: 'id' },
+        'count(*) AS count',
+        { identifier: 'my node', property: 'first name' },
+        'collect(DISTINCT m.type) AS types',
+      ]);
+      expectStatementEquals(
+        queryBuilder,
+        'RETURN n.id, count(*) AS count, `my node`.`first name`, collect(DISTINCT m.type) AS types',
+      );
+    });
+  });
+
   describe('type safety', () => {
     it('accepts valid return string parameter', () => {
       const qb = new QueryBuilder();
@@ -101,6 +140,12 @@ describe('getReturnString', () => {
       const qb = new QueryBuilder();
       qb.return([{ identifier: 'n' }, { identifier: 'm', property: 'name' }]);
       expect(qb.getStatement()).toContain('RETURN n, m.name');
+    });
+
+    it('accepts mixed array', () => {
+      const qb = new QueryBuilder();
+      qb.return(['n', { identifier: 'm' }]);
+      expect(qb.getStatement()).toContain('RETURN n, m');
     });
 
     it('rejects invalid return parameter type', () => {

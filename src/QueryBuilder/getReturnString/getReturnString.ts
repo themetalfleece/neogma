@@ -1,13 +1,18 @@
 import { escapeIfNeeded } from '../../utils/cypher';
-import { isReturnObject } from '../QueryBuilder.types';
 import type { GetReturnStringReturn } from './getReturnString.types';
 
 /**
  * Generates a RETURN clause string.
  *
- * **SECURITY WARNING**: String parameters and string array elements are inserted
- * directly into the query without validation. Never pass user-provided input as
- * strings. Use the object format `[{ identifier, property }]` for safe queries.
+ * Supports three formats:
+ * - **String**: Raw Cypher expression (no escaping, use for complex expressions)
+ * - **String array**: Raw Cypher expressions joined by comma
+ * - **Object array**: `{ identifier, property? }` - identifiers/properties are escaped
+ * - **Mixed array**: Combination of strings and objects
+ *
+ * **SECURITY WARNING**: String elements are inserted directly into the query
+ * without validation. Never pass user-provided input as strings. Use object
+ * format `{ identifier, property }` for safe, escaped queries.
  *
  * @example
  * // SAFE: Object array format - identifiers and properties are escaped if needed
@@ -15,13 +20,13 @@ import type { GetReturnStringReturn } from './getReturnString.types';
  * // => "RETURN n.name, m"
  *
  * @example
- * // UNSAFE: String format - no validation, use only with trusted input
- * getReturnString('n.name, count(m) AS total');
- * // => "RETURN n.name, count(m) AS total"
+ * // Mixed array - strings are raw, objects are escaped
+ * getReturnString(['count(n) AS total', { identifier: 'm', property: 'name' }]);
+ * // => "RETURN count(n) AS total, m.name"
  *
  * @example
- * // UNSAFE: String array format - no validation
- * getReturnString(['n.name', 'count(m) AS total']);
+ * // UNSAFE: String format - no validation, use only with trusted input
+ * getReturnString('n.name, count(m) AS total');
  * // => "RETURN n.name, count(m) AS total"
  */
 export const getReturnString = (rtn: GetReturnStringReturn): string => {
@@ -30,18 +35,21 @@ export const getReturnString = (rtn: GetReturnStringReturn): string => {
     return `RETURN ${rtn}`;
   }
 
-  if (isReturnObject(rtn)) {
-    const returnString = rtn
-      .map((v) => {
-        const safeIdentifier = escapeIfNeeded(v.identifier);
-        const safeProperty = v.property ? '.' + escapeIfNeeded(v.property) : '';
-        return `${safeIdentifier}${safeProperty}`;
-      })
-      .join(', ');
+  // Array input: handle each element individually (supports mixed arrays)
+  const returnString = rtn
+    .map((element) => {
+      // String elements: raw escape hatch - no validation
+      if (typeof element === 'string') {
+        return element;
+      }
+      // Object elements: safe format with escaping
+      const safeIdentifier = escapeIfNeeded(element.identifier);
+      const safeProperty = element.property
+        ? '.' + escapeIfNeeded(element.property)
+        : '';
+      return `${safeIdentifier}${safeProperty}`;
+    })
+    .join(', ');
 
-    return `RETURN ${returnString}`;
-  }
-
-  // String array: escape hatch - no validation
-  return `RETURN ${rtn.join(', ')}`;
+  return `RETURN ${returnString}`;
 };

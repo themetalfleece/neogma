@@ -16,6 +16,7 @@ import {
   isRemoveLabels,
   isRemoveProperties,
   isReturnObject,
+  isReturnParameter,
   isSetParameter,
 } from './QueryBuilder.types';
 
@@ -285,6 +286,93 @@ describe('QueryBuilder.types type guards', () => {
     });
   });
 
+  describe('isReturnParameter', () => {
+    it('returns false when return key is missing', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isReturnParameter({})).toBe(false);
+    });
+
+    it('returns true for valid string return', () => {
+      expect(isReturnParameter({ return: 'n' })).toBe(true);
+      expect(isReturnParameter({ return: 'n.name, m.age' })).toBe(true);
+    });
+
+    it('returns false for empty string return', () => {
+      expect(isReturnParameter({ return: '' })).toBe(false);
+    });
+
+    it('returns true for valid string array return', () => {
+      expect(isReturnParameter({ return: ['n', 'm'] })).toBe(true);
+      expect(isReturnParameter({ return: ['n.name'] })).toBe(true);
+    });
+
+    it('returns true for valid object array return', () => {
+      expect(isReturnParameter({ return: [{ identifier: 'n' }] })).toBe(true);
+      expect(
+        isReturnParameter({
+          return: [{ identifier: 'n', property: 'name' }],
+        }),
+      ).toBe(true);
+    });
+
+    it('returns false for empty array return', () => {
+      expect(isReturnParameter({ return: [] })).toBe(false);
+    });
+
+    it('returns true for mixed array (strings and objects)', () => {
+      // Mixed arrays are now allowed - strings are raw, objects are escaped
+      expect(isReturnParameter({ return: ['n', { identifier: 'm' }] })).toBe(
+        true,
+      );
+      expect(isReturnParameter({ return: [{ identifier: 'n' }, 'm'] })).toBe(
+        true,
+      );
+      expect(
+        isReturnParameter({
+          return: ['count(n) AS total', { identifier: 'm', property: 'name' }],
+        }),
+      ).toBe(true);
+    });
+
+    it('throws for empty string in mixed array', () => {
+      expect(() =>
+        isReturnParameter({ return: ['', { identifier: 'm' }] }),
+      ).toThrow('expected a non-empty string');
+    });
+
+    it('throws for invalid identifier in mixed array', () => {
+      expect(() =>
+        isReturnParameter({ return: ['n', { identifier: '' }] }),
+      ).toThrow("'identifier' must be a non-empty string");
+    });
+
+    it('throws for empty string in string array', () => {
+      expect(() => isReturnParameter({ return: ['n', ''] })).toThrow(
+        'expected a non-empty string',
+      );
+    });
+
+    it('throws for invalid identifier in object array', () => {
+      expect(() => isReturnParameter({ return: [{ identifier: '' }] })).toThrow(
+        "'identifier' must be a non-empty string",
+      );
+    });
+
+    it('throws for null in array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(() => isReturnParameter({ return: [null] })).toThrow(
+        'expected a string or object, got null',
+      );
+    });
+
+    it('throws for number in array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(() => isReturnParameter({ return: [123] })).toThrow(
+        'expected a string or object, got number',
+      );
+    });
+  });
+
   describe('isNodeWithWhere', () => {
     it('returns false when where key is missing', () => {
       expect(isNodeWithWhere({ label: 'User' })).toBe(false);
@@ -469,7 +557,9 @@ describe('QueryBuilder.types type guards', () => {
 
     it('throws when set object has empty identifier', () => {
       expect(() =>
-        isSetParameter({ set: { identifier: '', properties: { name: 'test' } } }),
+        isSetParameter({
+          set: { identifier: '', properties: { name: 'test' } },
+        }),
       ).toThrow("'identifier' must be a non-empty string");
     });
 

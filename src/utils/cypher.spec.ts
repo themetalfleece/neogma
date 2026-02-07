@@ -1,4 +1,4 @@
-import { NeogmaError } from '../Errors';
+import { NeogmaConstraintError } from '../Errors';
 import {
   assertValidCypherIdentifier,
   escapeCypherIdentifier,
@@ -360,37 +360,37 @@ describe('cypher utilities', () => {
     });
 
     describe('invalid identifiers - throws', () => {
-      it('throws NeogmaError for names starting with numbers', () => {
+      it('throws NeogmaConstraintError for names starting with numbers', () => {
         expect(() =>
           assertValidCypherIdentifier('123abc', 'SET clause'),
-        ).toThrow(NeogmaError);
+        ).toThrow(NeogmaConstraintError);
         expect(() =>
           assertValidCypherIdentifier('123abc', 'SET clause'),
         ).toThrow(/Invalid identifier "123abc" in SET clause/);
       });
 
-      it('throws NeogmaError for names with dashes', () => {
+      it('throws NeogmaConstraintError for names with dashes', () => {
         expect(() =>
           assertValidCypherIdentifier('my-prop', 'ORDER BY clause'),
-        ).toThrow(NeogmaError);
+        ).toThrow(NeogmaConstraintError);
         expect(() =>
           assertValidCypherIdentifier('my-prop', 'ORDER BY clause'),
         ).toThrow(/Invalid identifier "my-prop" in ORDER BY clause/);
       });
 
-      it('throws NeogmaError for names with spaces', () => {
+      it('throws NeogmaConstraintError for names with spaces', () => {
         expect(() =>
           assertValidCypherIdentifier('my prop', 'WHERE clause'),
-        ).toThrow(NeogmaError);
+        ).toThrow(NeogmaConstraintError);
         expect(() =>
           assertValidCypherIdentifier('my prop', 'WHERE clause'),
         ).toThrow(/Invalid identifier "my prop" in WHERE clause/);
       });
 
-      it('throws NeogmaError for injection attempts', () => {
+      it('throws NeogmaConstraintError for injection attempts', () => {
         expect(() =>
           assertValidCypherIdentifier('name; DROP DATABASE', 'properties'),
-        ).toThrow(NeogmaError);
+        ).toThrow(NeogmaConstraintError);
         expect(() =>
           assertValidCypherIdentifier('name; DROP DATABASE', 'properties'),
         ).toThrow(/Invalid identifier "name; DROP DATABASE" in properties/);
@@ -407,7 +407,7 @@ describe('cypher utilities', () => {
 
       it('throws for empty strings', () => {
         expect(() => assertValidCypherIdentifier('', 'test')).toThrow(
-          NeogmaError,
+          NeogmaConstraintError,
         );
       });
     });
