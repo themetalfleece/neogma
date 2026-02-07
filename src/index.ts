@@ -6,5 +6,6 @@ export * from './Neogma';
 export * from './QueryBuilder';
 export * from './QueryRunner';
 export * from './Sessions';
+export * from './utils';
 export * from './Where';
 export * as neo4jDriver from 'neo4j-driver';

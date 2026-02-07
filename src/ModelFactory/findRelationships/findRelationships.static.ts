@@ -79,10 +79,10 @@ export async function findRelationships<
 
   queryBuilder.return(Object.values(identifiers));
 
-  if (skip) {
+  if (skip !== undefined) {
     queryBuilder.skip(skip);
   }
-  if (limit) {
+  if (limit !== undefined) {
     queryBuilder.limit(limit);
   }
 

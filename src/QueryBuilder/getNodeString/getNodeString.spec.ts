@@ -219,33 +219,82 @@ describe('getNodeString', () => {
 
   describe('type safety', () => {
     it('rejects invalid node type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - node must be string or object, not number
-      void getNodeString(123, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - node must be string or object, not number
+        getNodeString(123, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid identifier type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - identifier must be string, not number
-      void getNodeString({ identifier: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - identifier must be string, not number
+        getNodeString({ identifier: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid label type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - label must be string, not number
-      void getNodeString({ label: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - label must be string, not number
+        getNodeString({ label: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
-    it('rejects invalid where type', () => {
+    it('throws when where has invalid type', () => {
       const deps = createDeps();
       // @ts-expect-error - where must be object, not string
-      void getNodeString({ where: 'invalid' }, deps);
+      expect(() => getNodeString({ where: 'invalid' }, deps)).toThrow(
+        "Invalid 'where' value",
+      );
     });
 
-    it('rejects invalid properties type', () => {
+    it('throws when properties has invalid type', () => {
       const deps = createDeps();
       // @ts-expect-error - properties must be object, not string
-      void getNodeString({ properties: 'invalid' }, deps);
+      expect(() => getNodeString({ properties: 'invalid' }, deps)).toThrow(
+        "Invalid 'properties' value",
+      );
+    });
+
+    it('throws when label is empty string', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ label: '' }, deps)).toThrow(
+        "Invalid 'label' value",
+      );
+    });
+
+    it('throws when label is whitespace only', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ label: '   ' }, deps)).toThrow(
+        "Invalid 'label' value",
+      );
+    });
+
+    it('throws when label is not a string', () => {
+      const deps = createDeps();
+      // @ts-expect-error - label must be string, not number
+      expect(() => getNodeString({ label: 123 }, deps)).toThrow(
+        "Invalid 'label' value",
+      );
+    });
+
+    it('throws when model is null', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ model: null as any }, deps)).toThrow(
+        "Invalid 'model' value",
+      );
+    });
+
+    it('throws when model is undefined but key present', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ model: undefined as any }, deps)).toThrow(
+        "Invalid 'model' value",
+      );
     });
   });
 });

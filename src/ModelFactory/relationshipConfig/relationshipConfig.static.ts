@@ -5,6 +5,7 @@ import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaModel, RelationshipsI } from '../model.types';
 import type { AnyObject, IValidationSchema } from '../shared.types';
+import { validateRelationshipAlias } from '../validation';
 import type { RelationshipConfigContext } from './relationshipConfig.types';
 
 /**
@@ -14,9 +15,12 @@ export function addRelationships<RelatedNodesToAssociateI extends AnyObject>(
   ctx: RelationshipConfigContext<RelatedNodesToAssociateI>,
   relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>>,
 ): void {
-  for (const key in relationships) {
-    ctx.relationships[key] = relationships[key];
+  // Validate all keys first before modifying ctx
+  for (const key of Object.keys(relationships)) {
+    validateRelationshipAlias(key, ctx.modelName);
   }
+  // Use Object.assign to safely merge validated relationships
+  Object.assign(ctx.relationships, relationships);
 }
 
 /**

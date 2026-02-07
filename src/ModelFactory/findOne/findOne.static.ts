@@ -1,6 +1,10 @@
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { findMany } from '../findMany';
+import type {
+  InstanceWithRelationships,
+  PlainWithRelationships,
+} from '../findMany/eagerLoading.types';
 import type { FindContext } from '../findMany/findMany.types';
 import type { NeogmaInstance } from '../model.types';
 import type { AnyObject } from '../shared.types';
@@ -8,6 +12,24 @@ import type { FindOneParams } from './findOne.types';
 
 /**
  * Finds a single node matching the query.
+ * Optionally eagerly loads relationships when the `relationships` parameter is provided.
+ *
+ * @example
+ * ```typescript
+ * // Simple find
+ * const user = await Users.findOne({ where: { id: userId } });
+ *
+ * // With eager loading
+ * const userWithOrders = await Users.findOne({
+ *   where: { id: userId },
+ *   relationships: {
+ *     Orders: {
+ *       where: { target: { status: 'completed' } },
+ *       limit: 10
+ *     }
+ *   }
+ * });
+ * ```
  */
 export async function findOne<
   Properties extends Neo4jSupportedProperties,
@@ -16,11 +38,16 @@ export async function findOne<
   Plain extends boolean = false,
 >(
   ctx: FindContext<Properties, RelatedNodesToAssociateI, MethodsI>,
-  params?: FindOneParams<Properties> & { plain?: Plain },
+  params?: FindOneParams<Properties, RelatedNodesToAssociateI> & {
+    plain?: Plain;
+  },
 ): Promise<
   | (Plain extends true
-      ? Properties
-      : NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>)
+      ? PlainWithRelationships<Properties, RelatedNodesToAssociateI>
+      : InstanceWithRelationships<
+          NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
+          RelatedNodesToAssociateI
+        >)
   | null
 > {
   const instances = await findMany(ctx, {
@@ -36,9 +63,14 @@ export async function findOne<
     });
   }
 
-  return (instance || null) as
+  type Result =
     | (Plain extends true
-        ? Properties
-        : NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>)
+        ? PlainWithRelationships<Properties, RelatedNodesToAssociateI>
+        : InstanceWithRelationships<
+            NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
+            RelatedNodesToAssociateI
+          >)
     | null;
+
+  return (instance || null) as Result;
 }

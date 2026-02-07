@@ -29,6 +29,7 @@ import { getVariableLengthRelationshipString } from './getVariableLengthRelation
 import { getWhereString } from './getWhereString';
 import { getWithString } from './getWithString';
 import type {
+  CallI,
   CreateI,
   DeleteI,
   ForEachI,
@@ -49,6 +50,7 @@ import type {
   WithI,
 } from './QueryBuilder.types';
 import {
+  isCallParameter,
   isCreateParameter,
   isDeleteParameter,
   isForEachParameter,
@@ -87,6 +89,7 @@ export type QueryBuilderParameters = {
   WhereI: WhereI['where'];
   OnCreateSetI: OnCreateSetI['onCreateSet'];
   OnMatchSetI: OnMatchSetI['onMatchSet'];
+  CallI: CallI['call'];
 };
 
 export class QueryBuilder {
@@ -184,6 +187,8 @@ export class QueryBuilder {
         statementParts.push(getOnCreateSetString(param.onCreateSet, deps));
       } else if (isOnMatchSetParameter(param)) {
         statementParts.push(getOnMatchSetString(param.onMatchSet, deps));
+      } else if (isCallParameter(param)) {
+        statementParts.push(`CALL {\n${param.call}\n}`);
       }
     }
 
@@ -276,10 +281,21 @@ export class QueryBuilder {
    * RAW statement
    * A literal statement to use as is without any processing.
    *
+   * **SECURITY WARNING**: This method does not sanitize or parameterize input.
+   * Never pass user-provided input directly to this method, as it can lead to
+   * Cypher injection attacks. Only use with trusted, hardcoded strings or
+   * values that have been validated and sanitized by your application.
+   *
    * @example
+   * // SAFE: Using hardcoded string
    * new QueryBuilder()
    *   .raw('MATCH (n:Person) RETURN n')
    *   .run();
+   *
+   * @example
+   * // UNSAFE: Never do this with user input!
+   * // const userInput = req.body.query;
+   * // new QueryBuilder().raw(userInput).run(); // VULNERABLE TO INJECTION
    */
   public raw(raw: RawI['raw']): QueryBuilder {
     return this.addParams({ raw });
@@ -538,5 +554,49 @@ export class QueryBuilder {
    */
   public onMatchSet(onMatchSet: OnMatchSetI['onMatchSet']): QueryBuilder {
     return this.addParams({ onMatchSet });
+  }
+  /**
+   * CALL subquery statement
+   * Wraps the content in a CALL { ... } block.
+   *
+   * **SECURITY WARNING**: When passing a string, the content is inserted directly
+   * into the query without sanitization. Never pass user-provided input directly.
+   * Use `BindParam` for parameterized values and validated/escaped identifiers.
+   * Prefer using `QueryBuilder` instances which provide safer parameter binding.
+   *
+   * @example
+   * // Call with a literal subquery string (use with caution - no sanitization)
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .call('WITH n MATCH (n)-[:KNOWS]->(friend) RETURN count(friend) as friendCount')
+   *   .return('n, friendCount');
+   *
+   * @example
+   * // Call with another QueryBuilder (recommended - safer parameter binding)
+   * const subquery = new QueryBuilder()
+   *   .with('n')
+   *   .match({ related: [{ identifier: 'n' }, { direction: 'out', name: 'KNOWS' }, { identifier: 'friend' }] })
+   *   .return('count(friend) as friendCount');
+   * new QueryBuilder()
+   *   .match('(n:Person)')
+   *   .call(subquery)
+   *   .return('n, friendCount');
+   */
+  public call(call: CallI['call'] | QueryBuilder): QueryBuilder {
+    // Validate that subquery QueryBuilder shares the same BindParam as the parent.
+    // Otherwise, parameters auto-bound in the subquery will not be present
+    // in the parent's BindParam, causing runtime failures.
+    if (
+      call instanceof QueryBuilder &&
+      call.getBindParam() !== this.bindParam
+    ) {
+      throw new NeogmaError(
+        'Subquery passed to QueryBuilder.call must use the same BindParam instance as the parent QueryBuilder. ' +
+          'Create the subquery with `new QueryBuilder(parentBuilder.getBindParam())` to share bind parameters.',
+      );
+    }
+    const callStatement =
+      call instanceof QueryBuilder ? call.getStatement() : call;
+    return this.addParams({ call: callStatement });
   }
 }

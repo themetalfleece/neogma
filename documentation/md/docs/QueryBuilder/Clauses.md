@@ -30,11 +30,20 @@ console.log(queryBuilder.getBindParam().get()); // { status: 'active' }
 ### Raw Clause
 In case the intended statement cannot be added by using the supported clauses, a raw string can be included in the parameters.
 
+> **Security Warning**: The `raw()` method inserts strings directly into Cypher queries without any sanitization or parameterization. **Never pass user-provided input** to this method, as it can lead to Cypher injection attacks. Only use with trusted, hardcoded strings.
+
 ```js
+// SAFE: Using hardcoded string
 const queryBuilder = new QueryBuilder().raw('MATCH (a:A) RETURN a');
 
 console.log(queryBuilder.getStatement()); // MATCH (a:A) RETURN a
 console.log(queryBuilder.getBindParam().get()); // { }
+```
+
+```js
+// UNSAFE: Never do this!
+// const userInput = req.body.query;
+// new QueryBuilder().raw(userInput).run(); // VULNERABLE TO INJECTION
 ```
 
 > :ToCPrevNext

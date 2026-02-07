@@ -125,6 +125,7 @@ describe('getWhereString', () => {
     it('rejects where with array parameter', () => {
       const qb = new QueryBuilder();
       // @ts-expect-error - where requires string or where object, not array
+      // This is a type-only test - array indices become escaped identifiers at runtime
       void qb.where(['a', 'b']);
     });
 

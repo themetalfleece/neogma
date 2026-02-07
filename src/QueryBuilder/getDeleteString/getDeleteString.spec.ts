@@ -38,6 +38,37 @@ describe('getDeleteString', () => {
     expectBindParamEquals(queryBuilder, {});
   });
 
+  describe('escaping behavior', () => {
+    it('escapes identifiers with special characters', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: ['my-node'],
+      });
+      expectStatementEquals(queryBuilder, 'DELETE `my-node`');
+    });
+
+    it('escapes multiple identifiers with special characters', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: ['my-node', '123abc'],
+        detach: true,
+      });
+      expectStatementEquals(queryBuilder, 'DETACH DELETE `my-node`, `123abc`');
+    });
+
+    it('does not escape valid identifiers', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: ['validNode', 'another_node'],
+      });
+      expectStatementEquals(queryBuilder, 'DELETE validNode, another_node');
+    });
+
+    it('escapes single identifier with special characters', () => {
+      const queryBuilder = new QueryBuilder().delete({
+        identifiers: 'my node',
+      });
+      expectStatementEquals(queryBuilder, 'DELETE `my node`');
+    });
+  });
+
   describe('type safety', () => {
     it('accepts valid delete string parameter', () => {
       const qb = new QueryBuilder();
@@ -58,6 +89,52 @@ describe('getDeleteString', () => {
         qb.delete(123);
       };
       expect(_typeCheck).toBeDefined();
+    });
+  });
+
+  describe('validation edge cases', () => {
+    it('treats empty identifiers string as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ identifiers: '' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow("Invalid 'identifiers' value");
+    });
+
+    it('treats empty identifiers array as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ identifiers: [] } as Parameters<typeof qb.delete>[0]),
+      ).toThrow("Invalid 'identifiers' value");
+    });
+
+    it('treats whitespace-only identifier as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ identifiers: '   ' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow("Invalid 'identifiers' value");
+    });
+
+    it('treats array with empty string as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ identifiers: ['n', ''] } as Parameters<
+          typeof qb.delete
+        >[0]),
+      ).toThrow("Invalid 'identifiers' value");
+    });
+
+    it('treats empty literal as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ literal: '' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow("Invalid 'literal' value");
+    });
+
+    it('treats whitespace-only literal as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ literal: '   ' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow("Invalid 'literal' value");
     });
   });
 });

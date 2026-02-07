@@ -1,6 +1,7 @@
 import type { BindParam } from '../../BindParam';
 import { Literal } from '../../Literal';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import { escapeIfNeeded } from '../../utils/cypher';
 
 /**
  * Returns an object with replacing its values with a bind param value.
@@ -16,10 +17,13 @@ export const getPropertiesWithParams = (
   const parts: string[] = [];
 
   for (const key of Object.keys(data)) {
+    const safeKey = escapeIfNeeded(key);
     if (data[key] instanceof Literal) {
-      parts.push(`${key}: ${(data[key] as Literal).getValue()}`);
+      parts.push(`${safeKey}: ${(data[key] as Literal).getValue()}`);
     } else {
-      parts.push(`${key}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`);
+      parts.push(
+        `${safeKey}: $${bindParam.getUniqueNameAndAdd(key, data[key])}`,
+      );
     }
   }
 

@@ -81,6 +81,10 @@ import {
 } from './utils';
 import type { ValidateContext } from './validate';
 import { validate as validateFn } from './validate';
+import {
+  validateRelationshipAlias,
+  validateSchemaPropertyName,
+} from './validation';
 
 /**
  * Creates a Model class for interacting with Neo4j nodes of a specific type.
@@ -172,6 +176,18 @@ export const ModelFactory = <
 
   const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
     clone(parameters.relationships) || {};
+
+  // Validate relationship aliases at model definition time to prevent Cypher injection.
+  // Aliases are used directly in query construction (e.g., as identifiers and return fields).
+  for (const alias in _relationships) {
+    validateRelationshipAlias(alias, modelName);
+  }
+
+  // Validate schema property names at model definition time to prevent conflicts
+  // with internal instance properties and methods.
+  for (const propertyName of schemaKeys) {
+    validateSchemaPropertyName(propertyName, modelName);
+  }
 
   // Define the Model class
   const Model = class ModelClass implements InstanceMethodsI {
@@ -411,6 +427,8 @@ export const ModelFactory = <
         schemaKeys,
         getLabel: Model.getLabel,
         buildFromRecord: Model.buildFromRecord,
+        getRelationshipByAlias: Model.getRelationshipByAlias,
+        getRelationshipModel: Model.getRelationshipModel,
       };
       return findManyFn(ctx, params);
     }
@@ -424,6 +442,8 @@ export const ModelFactory = <
         schemaKeys,
         getLabel: Model.getLabel,
         buildFromRecord: Model.buildFromRecord,
+        getRelationshipByAlias: Model.getRelationshipByAlias,
+        getRelationshipModel: Model.getRelationshipModel,
       };
       return findOneFn(ctx, params);
     }

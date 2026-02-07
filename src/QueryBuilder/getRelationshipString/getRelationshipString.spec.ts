@@ -322,15 +322,21 @@ describe('getRelationshipString', () => {
     });
 
     it('rejects invalid identifier type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - identifier must be string, not number
-      void getRelationshipString({ direction: 'out', identifier: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - identifier must be string, not number
+        getRelationshipString({ direction: 'out', identifier: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid name type', () => {
-      const deps = createDeps();
-      // @ts-expect-error - name must be string, not number
-      void getRelationshipString({ direction: 'out', name: 123 }, deps);
+      const _typeCheck = () => {
+        const deps = createDeps();
+        // @ts-expect-error - name must be string, not number
+        getRelationshipString({ direction: 'out', name: 123 }, deps);
+      };
+      expect(_typeCheck).toBeDefined();
     });
 
     it('rejects invalid minHops type', () => {
@@ -345,10 +351,24 @@ describe('getRelationshipString', () => {
       void getRelationshipString({ direction: 'out', maxHops: '5' }, deps);
     });
 
-    it('rejects invalid where type', () => {
+    it('throws when where has invalid type', () => {
       const deps = createDeps();
-      // @ts-expect-error - where must be object, not string
-      void getRelationshipString({ direction: 'out', where: 'invalid' }, deps);
+      expect(() =>
+        getRelationshipString(
+          { direction: 'out', where: 'invalid' as any },
+          deps,
+        ),
+      ).toThrow("Invalid 'where' value");
+    });
+
+    it('throws when properties has invalid type', () => {
+      const deps = createDeps();
+      expect(() =>
+        getRelationshipString(
+          { direction: 'out', name: 'KNOWS', properties: 'invalid' as any },
+          deps,
+        ),
+      ).toThrow("Invalid 'properties' value");
     });
   });
 });

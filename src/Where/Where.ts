@@ -6,6 +6,7 @@ import type {
   BindableWhereValue,
   Neo4jSupportedTypes,
 } from '../QueryRunner/QueryRunner.types';
+import { escapeIfNeeded } from '../utils/cypher';
 import type {
   operators,
   WhereParamsByIdentifierI,
@@ -332,11 +333,13 @@ export class Where {
     if (mode === 'text') {
       for (const bindParamData of this.identifierPropertyData) {
         const { bindParamName } = bindParamData;
+        const safeIdentifier = escapeIfNeeded(bindParamData.identifier);
+        const safeProperty = escapeIfNeeded(bindParamData.property);
 
         // Handle operators that don't need a parameter (is, isNot)
         if (isNoParamOperator(bindParamData.operator)) {
           statementParts.push(
-            `${bindParamData.identifier}.${bindParamData.property} ${operatorForStatement(bindParamData.operator)}`,
+            `${safeIdentifier}.${safeProperty} ${operatorForStatement(bindParamData.operator)}`,
           );
           continue;
         }
@@ -351,13 +354,13 @@ export class Where {
             [
               name,
               operatorForStatement(bindParamData.operator),
-              `${bindParamData.identifier}.${bindParamData.property}`,
+              `${safeIdentifier}.${safeProperty}`,
             ].join(' '),
           );
         } else {
           statementParts.push(
             [
-              `${bindParamData.identifier}.${bindParamData.property}`,
+              `${safeIdentifier}.${safeProperty}`,
               operatorForStatement(bindParamData.operator),
               name,
             ].join(' '),
@@ -371,13 +374,15 @@ export class Where {
     if (mode === 'object') {
       for (const bindParamData of this.identifierPropertyData) {
         const { bindParamName } = bindParamData;
+        const safeProperty = escapeIfNeeded(bindParamData.property);
+
         const name =
           bindParamName instanceof Literal
             ? bindParamName.getValue()
             : `$${bindParamName}`;
         statementParts.push(
           [
-            bindParamData.property,
+            safeProperty,
             operatorForStatement(bindParamData.operator),
             ` ${name}`,
           ].join(''),

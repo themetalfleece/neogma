@@ -21,6 +21,7 @@
 - 🔷 **Fully Type-Safe** - Built-in TypeScript support with complete type inference
 - ⚡ **Flexible** - Use Models, Query Builders, or raw Cypher queries
 - 🔗 **Automatic Relationships** - Create and manage complex graph structures effortlessly
+- 📦 **Eager Loading** - Load nested relationships in a single query to avoid N+1 problems
 - ✅ **Validation** - Built-in schema validation for your data models
 - 🚀 **Production Ready** - Battle-tested with comprehensive test coverage
 
@@ -181,6 +182,41 @@ const activeUsers = await Users.findMany({
 
 // Available operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $contains, $like
 ```
+
+---
+
+## Eager Loading Relationships
+
+Load related nodes in a single query to avoid N+1 problems:
+
+```typescript
+// Load users with their orders and nested items
+const users = await Users.findMany({
+  where: { status: 'active' },
+  relationships: {
+    Orders: {
+      where: { target: { status: 'completed' } },
+      order: [{ on: 'target', property: 'createdAt', direction: 'DESC' }],
+      limit: 5,
+      relationships: {
+        Items: { limit: 10 }
+      }
+    }
+  }
+});
+
+// Access nested data
+users[0].Orders[0].node.id;              // Order id
+users[0].Orders[0].relationship.rating;  // Relationship property (e.g., 5)
+users[0].Orders[0].node.Items[0].node;   // Properties of the nested node
+```
+
+Features:
+- **Nested loading** - Load relationships to arbitrary depth
+- **Filtering** - Filter by target node or relationship properties at each level
+- **Ordering & pagination** - Apply `order`, `limit`, `skip` at each level
+- **Type-safe** - Relationship aliases are validated at compile time
+- **Single query** - Uses CALL subqueries for optimal performance
 
 ---
 

@@ -54,8 +54,10 @@ describe('getSetString', () => {
 
     it('rejects invalid set parameter type', () => {
       const qb = new QueryBuilder();
-      // @ts-expect-error - set requires string or set object, not number
-      void qb.set(123);
+      expect(() => {
+        // @ts-expect-error - set requires string or set object, not number
+        qb.set(123);
+      }).toThrow('expected a string or object');
     });
   });
 });

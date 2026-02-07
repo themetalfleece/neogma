@@ -1,6 +1,7 @@
 import type { QueryResult } from 'neo4j-driver';
 
 import { QueryBuilder } from '../../QueryBuilder';
+import { escapeIfNeeded } from '../../utils/cypher';
 import { Where } from '../../Where/Where';
 import type { CreateRelationshipParamsI, Runnable } from '../QueryRunner.types';
 
@@ -78,9 +79,9 @@ export const createRelationship = async <Return extends boolean = false>(
 
   if (params.return) {
     queryBuilder.return([
-      identifiers.source,
-      identifiers.target,
-      identifiers.relationship,
+      escapeIfNeeded(identifiers.source),
+      escapeIfNeeded(identifiers.target),
+      escapeIfNeeded(identifiers.relationship),
     ]);
   }
 

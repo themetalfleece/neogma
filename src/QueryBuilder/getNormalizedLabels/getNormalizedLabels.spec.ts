@@ -83,9 +83,22 @@ describe('getNormalizedLabels', () => {
   });
 
   describe('edge cases', () => {
-    it('handles labels with backticks already', () => {
+    it('escapes internal backticks by doubling them', () => {
       const result = getNormalizedLabels('`Already`');
-      expect(result).toBe('``Already``');
+      // Internal backticks are doubled, then wrapped in outer backticks
+      expect(result).toBe('```Already```');
+    });
+
+    it('escapes single internal backtick', () => {
+      const result = getNormalizedLabels('Label`Injection');
+      expect(result).toBe('`Label``Injection`');
+    });
+
+    it('prevents backtick injection attacks', () => {
+      // Attempt to break out of backtick quoting
+      const result = getNormalizedLabels('Evil`; DELETE (n); //');
+      // Internal backtick is doubled, preventing breakout
+      expect(result).toBe('`Evil``; DELETE (n); //`');
     });
 
     it('handles unicode characters', () => {

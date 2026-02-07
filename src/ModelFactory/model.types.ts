@@ -6,6 +6,11 @@ import type { CreateRelationshipParamsI } from '../QueryRunner';
 import type { ExtractPropertiesFromInstance, WhereParamsI } from '../Where';
 import type { DeleteRelationshipsWhereClause } from './deleteRelationships/deleteRelationships.types';
 import type {
+  InstanceWithRelationships,
+  PlainWithRelationships,
+  RelationshipsLoadConfig,
+} from './findMany/eagerLoading.types';
+import type {
   FindRelationshipsWhereClause,
   InstanceFindRelationshipsWhereClause,
 } from './findRelationships/findRelationships.types';
@@ -235,23 +240,48 @@ export interface NeogmaModelStaticsI<
       limit?: number;
       skip?: number;
       order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
-      /** returns an array of the plain properties, instead of Instances */
+      /**
+       * Returns an array of the plain properties, instead of Instances.
+       * When `relationships` is provided, includes them on each plain object.
+       */
       plain?: Plain;
       /** throws an error if no nodes are found (results length 0) */
       throwIfNoneFound?: boolean;
+      /**
+       * Relationships to eagerly load with the results.
+       * Each key is a relationship alias defined on the model.
+       */
+      relationships?: RelationshipsLoadConfig<RelatedNodesToAssociateI>;
     },
-  ) => Promise<Plain extends true ? Properties[] : Instance[]>;
+  ) => Promise<
+    Plain extends true
+      ? Array<PlainWithRelationships<Properties, RelatedNodesToAssociateI>>
+      : Array<InstanceWithRelationships<Instance, RelatedNodesToAssociateI>>
+  >;
   findOne: <Plain extends boolean = false>(
     params?: GenericConfiguration & {
       /** where params for the nodes of this Model */
       where?: WhereParamsI<Properties>;
       order?: Array<[Extract<keyof Properties, string>, 'ASC' | 'DESC']>;
-      /** returns the plain properties, instead of Instance */
+      /**
+       * Returns the plain properties of the result, instead of an Instance.
+       * When `relationships` is provided, includes them on the plain object.
+       */
       plain?: Plain;
       /** throws an error if the node is not found */
       throwIfNotFound?: boolean;
+      /**
+       * Relationships to eagerly load with the result.
+       * Each key is a relationship alias defined on the model.
+       */
+      relationships?: RelationshipsLoadConfig<RelatedNodesToAssociateI>;
     },
-  ) => Promise<(Plain extends true ? Properties : Instance) | null>;
+  ) => Promise<
+    | (Plain extends true
+        ? PlainWithRelationships<Properties, RelatedNodesToAssociateI>
+        : InstanceWithRelationships<Instance, RelatedNodesToAssociateI>)
+    | null
+  >;
   createRelationship: (
     params: CreateRelationshipParamsI & {
       /** throws an error if the number of created relationships don't equal to this number */

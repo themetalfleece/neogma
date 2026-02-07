@@ -160,6 +160,101 @@ describe('QueryBuilder', () => {
     });
   });
 
+  describe('call', () => {
+    it('generates a CALL subquery with a string', () => {
+      const queryBuilder = new QueryBuilder()
+        .match({ identifier: 'n', label: 'Person' })
+        .call(
+          'WITH n MATCH (n)-[:KNOWS]->(friend) RETURN count(friend) as friendCount',
+        )
+        .return(['n', 'friendCount']);
+
+      expectStatementEquals(
+        queryBuilder,
+        'MATCH (n:Person) CALL { WITH n MATCH (n)-[:KNOWS]->(friend) RETURN count(friend) as friendCount } RETURN n, friendCount',
+      );
+      expectBindParamEquals(queryBuilder, {});
+    });
+
+    it('generates a CALL subquery with another QueryBuilder (shared BindParam)', () => {
+      const queryBuilder = new QueryBuilder();
+      const subquery = new QueryBuilder(queryBuilder.getBindParam())
+        .with('n')
+        .match({ literal: '(n)-[:KNOWS]->(friend)', optional: false })
+        .return('count(friend) as friendCount');
+
+      queryBuilder
+        .match({ identifier: 'n', label: 'Person' })
+        .call(subquery)
+        .return(['n', 'friendCount']);
+
+      expectStatementEquals(
+        queryBuilder,
+        'MATCH (n:Person) CALL { WITH n MATCH (n)-[:KNOWS]->(friend) RETURN count(friend) as friendCount } RETURN n, friendCount',
+      );
+      expectBindParamEquals(queryBuilder, {});
+    });
+
+    it('generates nested CALL subqueries (shared BindParam)', () => {
+      const queryBuilder = new QueryBuilder();
+      const bindParam = queryBuilder.getBindParam();
+
+      const innerSubquery = new QueryBuilder(bindParam)
+        .with('friend')
+        .match({ literal: '(friend)-[:WORKS_AT]->(company)', optional: true })
+        .return('collect(company) as companies');
+
+      const outerSubquery = new QueryBuilder(bindParam)
+        .with('n')
+        .match({ literal: '(n)-[:KNOWS]->(friend)', optional: true })
+        .call(innerSubquery)
+        .return('collect({ friend: friend, companies: companies }) as friends');
+
+      queryBuilder
+        .match({ identifier: 'n', label: 'Person' })
+        .call(outerSubquery)
+        .return(['n', 'friends']);
+
+      // The nested CALL should be properly wrapped
+      expect(queryBuilder.getStatement()).toContain('CALL {');
+      expect(queryBuilder.getStatement()).toContain('RETURN n, friends');
+    });
+
+    it('throws error when subquery uses different BindParam', () => {
+      const queryBuilder = new QueryBuilder();
+      const subquery = new QueryBuilder() // Different BindParam instance
+        .with('n')
+        .return('n');
+
+      expect(() => queryBuilder.call(subquery)).toThrow(
+        'Subquery passed to QueryBuilder.call must use the same BindParam instance as the parent QueryBuilder',
+      );
+    });
+
+    describe('type safety', () => {
+      it('accepts valid call string parameter', () => {
+        const qb = new QueryBuilder();
+        qb.call('WITH n RETURN count(n)');
+        expect(qb.getStatement()).toContain('CALL {');
+      });
+
+      it('accepts QueryBuilder as parameter with shared BindParam', () => {
+        const qb = new QueryBuilder();
+        const subquery = new QueryBuilder(qb.getBindParam())
+          .with('n')
+          .return('n');
+        qb.call(subquery);
+        expect(qb.getStatement()).toContain('CALL {');
+      });
+
+      it('rejects invalid call parameter type', () => {
+        const qb = new QueryBuilder();
+        // @ts-expect-error - call requires string or QueryBuilder, not number
+        void qb.call(123);
+      });
+    });
+  });
+
   describe('run', () => {
     it('runs an instance with a given QueryRunner instance', async () => {
       const res = await new QueryBuilder()
