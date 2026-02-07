@@ -6,6 +6,8 @@ The `call` method allows you to create CALL subqueries in your Cypher query. CAL
 ## Call with a literal string
 A literal string will be wrapped in a CALL block.
 
+> **⚠️ Security Warning**: When using a literal string, the content is inserted directly into the query without sanitization. Never pass user-provided input directly to this method. Use `BindParam` for parameterized values and validated/escaped identifiers for dynamic elements. Prefer using `QueryBuilder` instances (shown below) which provide safer parameter binding.
+
 ```js
 const queryBuilder = new QueryBuilder()
     .match({ identifier: 'n', label: 'Node' })

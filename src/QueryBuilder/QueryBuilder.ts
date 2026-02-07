@@ -559,15 +559,20 @@ export class QueryBuilder {
    * CALL subquery statement
    * Wraps the content in a CALL { ... } block.
    *
+   * **SECURITY WARNING**: When passing a string, the content is inserted directly
+   * into the query without sanitization. Never pass user-provided input directly.
+   * Use `BindParam` for parameterized values and validated/escaped identifiers.
+   * Prefer using `QueryBuilder` instances which provide safer parameter binding.
+   *
    * @example
-   * // Call with a literal subquery string
+   * // Call with a literal subquery string (use with caution - no sanitization)
    * new QueryBuilder()
    *   .match('(n:Person)')
    *   .call('WITH n MATCH (n)-[:KNOWS]->(friend) RETURN count(friend) as friendCount')
    *   .return('n, friendCount');
    *
    * @example
-   * // Call with another QueryBuilder (extracts its statement)
+   * // Call with another QueryBuilder (recommended - safer parameter binding)
    * const subquery = new QueryBuilder()
    *   .with('n')
    *   .match({ related: [{ identifier: 'n' }, { direction: 'out', name: 'KNOWS' }, { identifier: 'friend' }] })

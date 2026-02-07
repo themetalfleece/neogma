@@ -17,10 +17,11 @@ describe('getIdentifierWithLabel', () => {
       expect(result).toBe('myNode:Person');
     });
 
-    it('passes through label with spaces (labels expected to be pre-escaped)', () => {
-      // Labels are expected to be already escaped by getLabel()/getNormalizedLabels
-      const result = getIdentifierWithLabel('n', 'My Label');
-      expect(result).toBe('n:My Label');
+    it('passes through pre-escaped label with spaces', () => {
+      // Labels must be pre-escaped via getLabel()/getNormalizedLabels/escapeCypherIdentifier
+      // Passing unescaped labels with spaces produces invalid Cypher
+      const result = getIdentifierWithLabel('n', '`My Label`');
+      expect(result).toBe('n:`My Label`');
     });
   });
 
