@@ -1,6 +1,8 @@
 import { BindParam } from '../../BindParam/BindParam';
+import { NeogmaError } from '../../Errors';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import { isValidCypherIdentifier } from '../../utils/string';
 import type { WhereParamsI } from '../../Where';
 import type { WhereParamsByIdentifierI } from '../../Where';
 import type { AnyObject } from '../shared.types';
@@ -180,6 +182,18 @@ function buildRelationshipSubquery(
 
   // ORDER BY must come before aggregation. Use a separate WITH if ordering is specified.
   if (level.order && level.order.length > 0) {
+    // Validate order properties are safe Cypher identifiers to prevent injection.
+    // TypeScript provides compile-time safety, but runtime validation protects against
+    // bypasses (e.g., GraphQL APIs, dynamic property names).
+    for (const o of level.order) {
+      if (!isValidCypherIdentifier(o.property)) {
+        throw new NeogmaError(
+          `Invalid order property "${o.property}" for relationship "${level.alias}". ` +
+            `Properties must contain only alphanumeric characters and underscores, and cannot start with a number.`,
+        );
+      }
+    }
+
     // Build identifiers needed for WITH clause (includes nested aliases)
     const nestedAliases = level.nestedLevels.map((n) => n.alias);
     const withIdentifiers = [
