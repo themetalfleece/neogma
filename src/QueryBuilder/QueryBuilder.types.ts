@@ -259,7 +259,27 @@ export type SetI = {
   set: string | SetObjectI;
 };
 export const isSetParameter = (param: ParameterI): param is SetI => {
-  return typeof param === 'object' && param !== null && 'set' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'set')) {
+    return false;
+  }
+  const set = (param as SetI).set;
+  // set can be non-empty string or SetObjectI (object with identifier and properties)
+  if (typeof set === 'string') {
+    return set.length > 0;
+  }
+  if (typeof set === 'object' && set !== null) {
+    const setObj = set as SetObjectI;
+    return (
+      typeof setObj.identifier === 'string' &&
+      setObj.identifier.length > 0 &&
+      typeof setObj.properties === 'object' &&
+      setObj.properties !== null
+    );
+  }
+  return false;
 };
 export type SetObjectI = {
   /** identifier whose properties will be set */
@@ -274,7 +294,18 @@ export type RemoveI = {
   remove: string | RemovePropertiesI | RemoveLabelsI; // TODO also array of Properties|Labels
 };
 export const isRemoveParameter = (param: ParameterI): param is RemoveI => {
-  return typeof param === 'object' && param !== null && 'remove' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'remove')) {
+    return false;
+  }
+  const remove = (param as RemoveI).remove;
+  // remove can be non-empty string or object (detailed validation happens in getRemoveString)
+  return (
+    (typeof remove === 'string' && remove.length > 0) ||
+    (typeof remove === 'object' && remove !== null)
+  );
 };
 /** removes properties of an identifier */
 export type RemovePropertiesI = {
@@ -353,7 +384,33 @@ export type ReturnI = {
   return: string | string[] | ReturnObjectI;
 };
 export const isReturnParameter = (param: ParameterI): param is ReturnI => {
-  return typeof param === 'object' && param !== null && 'return' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'return')) {
+    return false;
+  }
+  const ret = (param as ReturnI).return;
+  // return can be non-empty string
+  if (typeof ret === 'string') {
+    return ret.length > 0;
+  }
+  // return can be non-empty array of strings or ReturnObjectI
+  if (Array.isArray(ret)) {
+    if (ret.length === 0) {
+      return false;
+    }
+    // Check if it's an array of strings or ReturnObjectI
+    return ret.every(
+      (item) =>
+        (typeof item === 'string' && item.length > 0) ||
+        (typeof item === 'object' &&
+          item !== null &&
+          typeof (item as { identifier: string }).identifier === 'string' &&
+          (item as { identifier: string }).identifier.length > 0),
+    );
+  }
+  return false;
 };
 export type ReturnObjectI = Array<{
   /** identifier to return */
@@ -367,7 +424,8 @@ export const isReturnObject = (
   return (
     Array.isArray(param) &&
     param.findIndex(
-      (v) => typeof v !== 'object' || !(v as ReturnObjectI[0]).identifier,
+      (v: string | ReturnObjectI[0]) =>
+        typeof v !== 'object' || !(v as ReturnObjectI[0]).identifier,
     ) < 0
   );
 };
@@ -375,19 +433,48 @@ export const isReturnObject = (
 /** LIMIT parameter */
 export type LimitI = { limit: string | number };
 export const isLimitParameter = (limit: ParameterI): limit is LimitI => {
-  return typeof limit === 'object' && limit !== null && 'limit' in limit;
+  if (typeof limit !== 'object' || limit === null) {
+    return false;
+  }
+  if (!Object.hasOwn(limit, 'limit')) {
+    return false;
+  }
+  const val = (limit as LimitI).limit;
+  return (typeof val === 'string' && val.length > 0) || typeof val === 'number';
 };
 
 /** SKIP parameter */
 export type SkipI = { skip: string | number };
 export const isSkipParameter = (skip: ParameterI): skip is SkipI => {
-  return typeof skip === 'object' && skip !== null && 'skip' in skip;
+  if (typeof skip !== 'object' || skip === null) {
+    return false;
+  }
+  if (!Object.hasOwn(skip, 'skip')) {
+    return false;
+  }
+  const val = (skip as SkipI).skip;
+  return (typeof val === 'string' && val.length > 0) || typeof val === 'number';
 };
 
 /** WITH parameter */
 export type WithI = { with: string | string[] };
 export const isWithParameter = (wth: ParameterI): wth is WithI => {
-  return typeof wth === 'object' && wth !== null && 'with' in wth;
+  if (typeof wth !== 'object' || wth === null) {
+    return false;
+  }
+  if (!Object.hasOwn(wth, 'with')) {
+    return false;
+  }
+  const val = (wth as WithI).with;
+  if (typeof val === 'string') {
+    return val.length > 0;
+  }
+  if (Array.isArray(val)) {
+    return (
+      val.length > 0 && val.every((s) => typeof s === 'string' && s.length > 0)
+    );
+  }
+  return false;
 };
 
 /** ORDER BY parameter */
@@ -408,9 +495,28 @@ export type OrderByObjectI = {
 export const isOrderByParameter = (
   orderBy: ParameterI,
 ): orderBy is OrderByI => {
-  return (
-    typeof orderBy === 'object' && orderBy !== null && 'orderBy' in orderBy
-  );
+  if (typeof orderBy !== 'object' || orderBy === null) {
+    return false;
+  }
+  if (!Object.hasOwn(orderBy, 'orderBy')) {
+    return false;
+  }
+  const val = (orderBy as OrderByI).orderBy;
+  // orderBy can be non-empty string, array, or OrderByObjectI
+  if (typeof val === 'string') {
+    return val.length > 0;
+  }
+  if (Array.isArray(val)) {
+    return val.length > 0;
+  }
+  // OrderByObjectI - must have non-empty identifier
+  if (typeof val === 'object' && val !== null) {
+    return (
+      typeof (val as OrderByObjectI).identifier === 'string' &&
+      (val as OrderByObjectI).identifier.length > 0
+    );
+  }
+  return false;
 };
 
 /** UNWIND parameter */
@@ -425,7 +531,27 @@ export type UnwindObjectI = {
   as: string;
 };
 export const isUnwindParameter = (unwind: ParameterI): unwind is UnwindI => {
-  return typeof unwind === 'object' && unwind !== null && 'unwind' in unwind;
+  if (typeof unwind !== 'object' || unwind === null) {
+    return false;
+  }
+  if (!Object.hasOwn(unwind, 'unwind')) {
+    return false;
+  }
+  const val = (unwind as UnwindI).unwind;
+  if (typeof val === 'string') {
+    return val.length > 0;
+  }
+  // UnwindObjectI - must have non-empty value and as
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as UnwindObjectI;
+    return (
+      typeof obj.value === 'string' &&
+      obj.value.length > 0 &&
+      typeof obj.as === 'string' &&
+      obj.as.length > 0
+    );
+  }
+  return false;
 };
 
 /** WHERE parameter */
@@ -434,7 +560,18 @@ export type WhereI = {
   where: string | Where | WhereParamsByIdentifierI;
 };
 export const isWhereParameter = (where: ParameterI): where is WhereI => {
-  return typeof where === 'object' && where !== null && 'where' in where;
+  if (typeof where !== 'object' || where === null) {
+    return false;
+  }
+  if (!Object.hasOwn(where, 'where')) {
+    return false;
+  }
+  const val = (where as WhereI).where;
+  // where can be non-empty string, Where instance, or WhereParamsByIdentifierI object
+  if (typeof val === 'string') {
+    return val.length > 0;
+  }
+  return typeof val === 'object' && val !== null;
 };
 
 /** FOR EACH parameter */
@@ -445,9 +582,14 @@ export type ForEachI = {
 export const isForEachParameter = (
   forEach: ParameterI,
 ): forEach is ForEachI => {
-  return (
-    typeof forEach === 'object' && forEach !== null && 'forEach' in forEach
-  );
+  if (typeof forEach !== 'object' || forEach === null) {
+    return false;
+  }
+  if (!Object.hasOwn(forEach, 'forEach')) {
+    return false;
+  }
+  const val = (forEach as ForEachI).forEach;
+  return typeof val === 'string' && val.length > 0;
 };
 
 /** CALL subquery parameter */
@@ -470,14 +612,54 @@ export const isCallParameter = (call: ParameterI): call is CallI => {
 export const isOnCreateSetParameter = (
   param: ParameterI,
 ): param is OnCreateSetI => {
-  return typeof param === 'object' && param !== null && 'onCreateSet' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'onCreateSet')) {
+    return false;
+  }
+  const val = (param as OnCreateSetI).onCreateSet;
+  if (typeof val === 'string') {
+    return val.length > 0;
+  }
+  // OnCreateSetObjectI - must have non-empty identifier and properties object
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as OnCreateSetObjectI;
+    return (
+      typeof obj.identifier === 'string' &&
+      obj.identifier.length > 0 &&
+      typeof obj.properties === 'object' &&
+      obj.properties !== null
+    );
+  }
+  return false;
 };
 
 /** ON MATCH SET parameter type guard */
 export const isOnMatchSetParameter = (
   param: ParameterI,
 ): param is OnMatchSetI => {
-  return typeof param === 'object' && param !== null && 'onMatchSet' in param;
+  if (typeof param !== 'object' || param === null) {
+    return false;
+  }
+  if (!Object.hasOwn(param, 'onMatchSet')) {
+    return false;
+  }
+  const val = (param as OnMatchSetI).onMatchSet;
+  if (typeof val === 'string') {
+    return val.length > 0;
+  }
+  // OnMatchSetObjectI - must have non-empty identifier and properties object
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as OnMatchSetObjectI;
+    return (
+      typeof obj.identifier === 'string' &&
+      obj.identifier.length > 0 &&
+      typeof obj.properties === 'object' &&
+      obj.properties !== null
+    );
+  }
+  return false;
 };
 
 /** node type which will be used for matching */
