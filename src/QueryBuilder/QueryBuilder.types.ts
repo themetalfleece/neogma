@@ -45,7 +45,11 @@ export type RawI = {
   raw: string;
 };
 export const isRawParameter = (param: ParameterI): param is RawI => {
-  return typeof param === 'object' && param !== null && 'raw' in param;
+  if (typeof param !== 'object' || param === null || !('raw' in param)) {
+    return false;
+  }
+  const raw = (param as RawI).raw;
+  return typeof raw === 'string' && raw.length > 0;
 };
 
 /** MATCH parameter */
@@ -71,7 +75,10 @@ export type MatchRelatedI = {
 export const isMatchRelated = (
   param: MatchI['match'],
 ): param is MatchRelatedI => {
-  return typeof param === 'object' && param !== null && 'related' in param;
+  if (typeof param !== 'object' || param === null || !('related' in param)) {
+    return false;
+  }
+  return Array.isArray((param as MatchRelatedI).related);
 };
 /** matching multiple nodes */
 export type MatchMultipleI = {
@@ -83,7 +90,10 @@ export type MatchMultipleI = {
 export const isMatchMultiple = (
   param: MatchI['match'],
 ): param is MatchMultipleI => {
-  return typeof param === 'object' && param !== null && 'multiple' in param;
+  if (typeof param !== 'object' || param === null || !('multiple' in param)) {
+    return false;
+  }
+  return Array.isArray((param as MatchMultipleI).multiple);
 };
 /** a literal string for matching */
 export type MatchLiteralI = {
@@ -95,7 +105,11 @@ export type MatchLiteralI = {
 export const isMatchLiteral = (
   param: MatchI['match'],
 ): param is MatchLiteralI => {
-  return typeof param === 'object' && param !== null && 'literal' in param;
+  if (typeof param !== 'object' || param === null || !('literal' in param)) {
+    return false;
+  }
+  const literal = (param as MatchLiteralI).literal;
+  return typeof literal === 'string' && literal.trim().length > 0;
 };
 
 /** CREATE parameter */
@@ -116,7 +130,10 @@ export type CreateRelatedI = {
 export const isCreateRelated = (
   param: CreateI['create'],
 ): param is CreateRelatedI => {
-  return typeof param === 'object' && param !== null && 'related' in param;
+  if (typeof param !== 'object' || param === null || !('related' in param)) {
+    return false;
+  }
+  return Array.isArray((param as CreateRelatedI).related);
 };
 /** creating multiple nodes */
 export type CreateMultipleI = {
@@ -126,7 +143,10 @@ export type CreateMultipleI = {
 export const isCreateMultiple = (
   param: CreateI['create'],
 ): param is CreateMultipleI => {
-  return typeof param === 'object' && param !== null && 'multiple' in param;
+  if (typeof param !== 'object' || param === null || !('multiple' in param)) {
+    return false;
+  }
+  return Array.isArray((param as CreateMultipleI).multiple);
 };
 
 /** MERGE parameter. Using the same types as CREATE */
@@ -463,12 +483,11 @@ export const isNodeWithWhere = (
 export const isNodeWithLabel = (
   node: NodeForMatchObjectI | NodeForCreateObjectI,
 ): node is NodeForCreateWithLabelI => {
-  return (
-    typeof node === 'object' &&
-    node !== null &&
-    'label' in node &&
-    node.label != null
-  );
+  if (typeof node !== 'object' || node === null || !('label' in node)) {
+    return false;
+  }
+  const label = (node as NodeForCreateWithLabelI).label;
+  return typeof label === 'string' && label.trim().length > 0;
 };
 export const isNodeWithModel = (
   node: NodeForMatchObjectI | NodeForCreateObjectI,
