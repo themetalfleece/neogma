@@ -985,3 +985,161 @@ describe('methods this context type safety', () => {
     expect(instance.getInitials()).toBe('JD');
   });
 });
+
+describe('relationship alias validation', () => {
+  it('rejects invalid alias at model creation time - starts with number', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            '123Invalid': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(
+      /Invalid relationship alias "123Invalid".*Aliases must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('rejects invalid alias at model creation time - contains special characters', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            'my-orders': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(
+      /Invalid relationship alias "my-orders".*Aliases must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('rejects invalid alias at model creation time - contains spaces', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            'my orders': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(
+      /Invalid relationship alias "my orders".*Aliases must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('rejects potential Cypher injection in alias', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            'Orders} DETACH DELETE n //': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(/Invalid relationship alias/);
+  });
+
+  it('rejects invalid alias when using addRelationships', () => {
+    const TestModel = ModelFactory(
+      {
+        label: 'AddRelTest',
+        schema: {
+          id: { type: 'string', required: true },
+        },
+      },
+      neogma,
+    );
+
+    expect(() => {
+      TestModel.addRelationships({
+        'bad-alias': {
+          model: Orders,
+          direction: 'out',
+          name: 'RELATES_TO',
+        },
+      } as any);
+    }).toThrow(
+      /Invalid relationship alias "bad-alias".*Aliases must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('accepts valid alias with underscores', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ValidTest',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            my_orders: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).not.toThrow();
+  });
+
+  it('accepts valid alias starting with underscore', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ValidTest2',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            _privateOrders: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).not.toThrow();
+  });
+});
