@@ -16,6 +16,7 @@ import {
   isRemoveLabels,
   isRemoveProperties,
   isReturnObject,
+  isSetParameter,
 } from './QueryBuilder.types';
 
 describe('QueryBuilder.types type guards', () => {
@@ -433,6 +434,57 @@ describe('QueryBuilder.types type guards', () => {
           properties: 'invalid',
         }),
       ).toThrow("Invalid 'properties' value");
+    });
+  });
+
+  describe('isSetParameter', () => {
+    it('returns false when set key is missing', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isSetParameter({})).toBe(false);
+    });
+
+    it('returns true for valid string set', () => {
+      expect(isSetParameter({ set: 'n.name = $name' })).toBe(true);
+    });
+
+    it('returns true for valid object set', () => {
+      expect(
+        isSetParameter({
+          set: { identifier: 'n', properties: { name: 'test' } },
+        }),
+      ).toBe(true);
+    });
+
+    it('throws when set is empty string', () => {
+      expect(() => isSetParameter({ set: '' })).toThrow(
+        "Invalid 'set' value: expected a non-empty string",
+      );
+    });
+
+    it('throws when set is whitespace only', () => {
+      expect(() => isSetParameter({ set: '   ' })).toThrow(
+        "Invalid 'set' value: expected a non-empty string",
+      );
+    });
+
+    it('throws when set object has empty identifier', () => {
+      expect(() =>
+        isSetParameter({ set: { identifier: '', properties: { name: 'test' } } }),
+      ).toThrow("'identifier' must be a non-empty string");
+    });
+
+    it('throws when set object has invalid properties', () => {
+      expect(() =>
+        // @ts-expect-error - testing runtime behavior with invalid input
+        isSetParameter({ set: { identifier: 'n', properties: null } }),
+      ).toThrow("'properties' must be an object");
+    });
+
+    it('throws when set is not string or object', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(() => isSetParameter({ set: 123 })).toThrow(
+        'expected a string or object',
+      );
     });
   });
 });

@@ -358,6 +358,10 @@ export type SetI = {
   /** SET parameter */
   set: string | SetObjectI;
 };
+/**
+ * Type guard for SetI.
+ * @throws NeogmaConstraintError if 'set' key exists but has an invalid value
+ */
 export const isSetParameter = (param: ParameterI): param is SetI => {
   if (typeof param !== 'object' || param === null) {
     return false;
@@ -365,21 +369,36 @@ export const isSetParameter = (param: ParameterI): param is SetI => {
   if (!Object.hasOwn(param, 'set')) {
     return false;
   }
+  // Key exists - validate value
   const set = (param as SetI).set;
-  // set can be non-empty string or SetObjectI (object with identifier and properties)
   if (typeof set === 'string') {
-    return set.length > 0;
+    if (set.trim().length === 0) {
+      throw new NeogmaConstraintError(
+        `Invalid 'set' value: expected a non-empty string`,
+      );
+    }
+    return true;
   }
   if (typeof set === 'object' && set !== null) {
     const setObj = set as SetObjectI;
-    return (
-      typeof setObj.identifier === 'string' &&
-      setObj.identifier.length > 0 &&
-      typeof setObj.properties === 'object' &&
-      setObj.properties !== null
-    );
+    if (
+      typeof setObj.identifier !== 'string' ||
+      setObj.identifier.length === 0
+    ) {
+      throw new NeogmaConstraintError(
+        `Invalid 'set' value: 'identifier' must be a non-empty string`,
+      );
+    }
+    if (typeof setObj.properties !== 'object' || setObj.properties === null) {
+      throw new NeogmaConstraintError(
+        `Invalid 'set' value: 'properties' must be an object`,
+      );
+    }
+    return true;
   }
-  return false;
+  throw new NeogmaConstraintError(
+    `Invalid 'set' value: expected a string or object, got ${typeof set}`,
+  );
 };
 export type SetObjectI = {
   /** identifier whose properties will be set */

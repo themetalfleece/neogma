@@ -81,13 +81,13 @@ export const isAlreadyEscaped = (identifier: string): boolean => {
 
 /**
  * Escapes a Cypher identifier only if it contains special characters.
- * Returns the original identifier unchanged if it's already valid.
+ * Returns the original identifier unchanged if it's already valid or already escaped.
  *
- * Use this for property names, variable identifiers, and other query parts
- * that are never pre-escaped.
+ * This function is idempotent - passing an already-escaped identifier will return
+ * it unchanged, avoiding double-escaping issues.
  *
  * @param identifier - The identifier to conditionally escape
- * @returns The original identifier if valid, or escaped with backticks if not
+ * @returns The original identifier if valid/already escaped, or escaped with backticks if not
  *
  * @example
  * ```typescript
@@ -97,12 +97,21 @@ export const isAlreadyEscaped = (identifier: string): boolean => {
  * escapeIfNeeded('123abc')       // '`123abc`' (escaped - starts with number)
  * escapeIfNeeded('My Label')     // '`My Label`' (escaped - contains space)
  * escapeIfNeeded('a`b')          // '`a``b`' (escaped - contains backtick)
+ * escapeIfNeeded('`my-prop`')    // '`my-prop`' (unchanged - already escaped)
  * ```
  */
-export const escapeIfNeeded = (identifier: string): string =>
-  isValidCypherIdentifier(identifier)
-    ? identifier
-    : escapeCypherIdentifier(identifier);
+export const escapeIfNeeded = (identifier: string): string => {
+  // Already properly escaped - return as-is (idempotent)
+  if (isAlreadyEscaped(identifier)) {
+    return identifier;
+  }
+  // Valid identifier - no escaping needed
+  if (isValidCypherIdentifier(identifier)) {
+    return identifier;
+  }
+  // Needs escaping
+  return escapeCypherIdentifier(identifier);
+};
 
 /**
  * Checks if a string is a multi-label sequence from getNormalizedLabels/getLabel.

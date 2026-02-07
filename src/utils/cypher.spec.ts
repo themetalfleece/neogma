@@ -203,6 +203,30 @@ describe('cypher utilities', () => {
         expect(escapeIfNeeded('prop} RETURN n //')).toBe('`prop} RETURN n //`');
       });
     });
+
+    describe('idempotent behavior - already escaped', () => {
+      it('returns already-escaped identifiers unchanged', () => {
+        expect(escapeIfNeeded('`my-prop`')).toBe('`my-prop`');
+        expect(escapeIfNeeded('`My Label`')).toBe('`My Label`');
+        expect(escapeIfNeeded('`123abc`')).toBe('`123abc`');
+      });
+
+      it('does not double-escape internal backticks', () => {
+        expect(escapeIfNeeded('`a``b`')).toBe('`a``b`');
+        expect(escapeIfNeeded('`test``injection`')).toBe('`test``injection`');
+      });
+
+      it('is idempotent on repeated calls', () => {
+        const original = 'my-prop';
+        const escaped1 = escapeIfNeeded(original);
+        const escaped2 = escapeIfNeeded(escaped1);
+        const escaped3 = escapeIfNeeded(escaped2);
+
+        expect(escaped1).toBe('`my-prop`');
+        expect(escaped2).toBe('`my-prop`');
+        expect(escaped3).toBe('`my-prop`');
+      });
+    });
   });
 
   describe('isAlreadyEscaped', () => {
