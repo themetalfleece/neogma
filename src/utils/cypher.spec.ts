@@ -313,6 +313,33 @@ describe('cypher utilities', () => {
         const fromGetLabel = '`My Label`';
         expect(escapeLabelIfNeeded(fromGetLabel)).toBe('`My Label`');
       });
+
+      it('handles multi-label strings joined by colon', () => {
+        // getNormalizedLabels produces strings like `A`:`B` for multiple labels
+        expect(escapeLabelIfNeeded('`A`:`B`')).toBe('`A`:`B`');
+        expect(escapeLabelIfNeeded('`Person`:`User`')).toBe('`Person`:`User`');
+      });
+
+      it('handles multi-label strings with spaces', () => {
+        expect(escapeLabelIfNeeded('`My Label`:`Other Label`')).toBe(
+          '`My Label`:`Other Label`',
+        );
+      });
+
+      it('handles multi-label strings joined by pipe', () => {
+        // getNormalizedLabels with 'or' operation
+        expect(escapeLabelIfNeeded('`A`|`B`')).toBe('`A`|`B`');
+      });
+
+      it('handles multi-label strings with escaped backticks', () => {
+        expect(escapeLabelIfNeeded('`Label``One`:`Label``Two`')).toBe(
+          '`Label``One`:`Label``Two`',
+        );
+      });
+
+      it('handles three or more labels', () => {
+        expect(escapeLabelIfNeeded('`A`:`B`:`C`')).toBe('`A`:`B`:`C`');
+      });
     });
   });
 

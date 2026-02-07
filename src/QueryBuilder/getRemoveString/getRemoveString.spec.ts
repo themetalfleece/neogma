@@ -156,4 +156,86 @@ describe('getRemoveString', () => {
       expect(_typeCheck).toBeDefined();
     });
   });
+
+  describe('validation edge cases', () => {
+    it('treats empty identifier for properties as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: '',
+          properties: ['name'],
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats empty properties array as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: 'n',
+          properties: [],
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats empty properties string as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: 'n',
+          properties: '',
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats empty identifier for labels as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: '',
+          labels: ['Label'],
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats empty labels array as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: 'n',
+          labels: [],
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats empty labels string as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: 'n',
+          labels: '',
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats array with empty string property as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: 'n',
+          properties: ['name', ''],
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+
+    it('treats array with empty string label as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.remove({
+          identifier: 'n',
+          labels: ['Label', ''],
+        } as Parameters<typeof qb.remove>[0]),
+      ).toThrow('invalid remove configuration');
+    });
+  });
 });

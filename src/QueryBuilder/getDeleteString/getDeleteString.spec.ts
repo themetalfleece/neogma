@@ -91,4 +91,36 @@ describe('getDeleteString', () => {
       expect(_typeCheck).toBeDefined();
     });
   });
+
+  describe('validation edge cases', () => {
+    it('treats empty identifiers string as literal (falls through)', () => {
+      const qb = new QueryBuilder();
+      // Empty string identifiers falls through to invalid config error
+      expect(() =>
+        qb.delete({ identifiers: '' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow('invalid delete configuration');
+    });
+
+    it('treats empty identifiers array as literal (falls through)', () => {
+      const qb = new QueryBuilder();
+      // Empty array falls through to invalid config error
+      expect(() =>
+        qb.delete({ identifiers: [] } as Parameters<typeof qb.delete>[0]),
+      ).toThrow('invalid delete configuration');
+    });
+
+    it('treats whitespace-only identifier as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ identifiers: '   ' } as Parameters<typeof qb.delete>[0]),
+      ).toThrow('invalid delete configuration');
+    });
+
+    it('treats array with empty string as invalid', () => {
+      const qb = new QueryBuilder();
+      expect(() =>
+        qb.delete({ identifiers: ['n', ''] } as Parameters<typeof qb.delete>[0]),
+      ).toThrow('invalid delete configuration');
+    });
+  });
 });

@@ -105,11 +105,27 @@ export const escapeIfNeeded = (identifier: string): string =>
     : escapeCypherIdentifier(identifier);
 
 /**
+ * Checks if a string is a multi-label sequence from getNormalizedLabels/getLabel.
+ * Multi-label strings are backtick-escaped labels joined by ":" or "|".
+ * Examples: "`A`:`B`", "`Label One`|`Label Two`"
+ */
+const isMultiLabelSequence = (str: string): boolean => {
+  // Pattern: sequence of backtick-escaped labels joined by : or |
+  // Each label is `...` where internal backticks are doubled
+  const escapedLabelPattern = '`(?:``|[^`])*`';
+  const multiLabelPattern = new RegExp(
+    `^${escapedLabelPattern}(?:[:|]${escapedLabelPattern})+$`,
+  );
+  return multiLabelPattern.test(str);
+};
+
+/**
  * Escapes a label/relationship type if needed, handling both raw and pre-escaped values.
  *
  * This function is idempotent - it works correctly whether you pass:
  * - A raw label like "Person" or "My Label"
  * - A pre-escaped label from `getLabel()` like "`Person`" or "`My Label`"
+ * - A multi-label string from `getNormalizedLabels()` like "`A`:`B`"
  *
  * Use this for labels that may come from either user input or from `getLabel()`.
  *
@@ -125,11 +141,18 @@ export const escapeIfNeeded = (identifier: string): string =>
  * // Pre-escaped labels are returned unchanged (no double-escaping)
  * escapeLabelIfNeeded('`Person`')    // '`Person`' (unchanged - already escaped)
  * escapeLabelIfNeeded('`My Label`')  // '`My Label`' (unchanged - already escaped)
+ *
+ * // Multi-label strings from getLabel() are returned unchanged
+ * escapeLabelIfNeeded('`A`:`B`')     // '`A`:`B`' (unchanged - multi-label)
  * ```
  */
 export const escapeLabelIfNeeded = (label: string): string => {
-  // Already properly escaped - return as-is
+  // Already properly escaped single label - return as-is
   if (isAlreadyEscaped(label)) {
+    return label;
+  }
+  // Multi-label sequence from getNormalizedLabels - return as-is
+  if (isMultiLabelSequence(label)) {
     return label;
   }
   // Valid identifier - no escaping needed

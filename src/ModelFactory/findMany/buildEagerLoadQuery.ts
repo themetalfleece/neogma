@@ -152,14 +152,29 @@ function buildRelationshipSubquery(
   let filterCondition = '';
   if (level.where?.target || level.where?.relationship) {
     const whereParams: WhereParamsByIdentifierI = {};
-    if (level.where.target) {
+    // Only add non-empty where objects
+    if (
+      level.where.target &&
+      typeof level.where.target === 'object' &&
+      Object.keys(level.where.target).length > 0
+    ) {
       whereParams[level.targetIdentifier] = level.where.target;
     }
-    if (level.where.relationship) {
+    if (
+      level.where.relationship &&
+      typeof level.where.relationship === 'object' &&
+      Object.keys(level.where.relationship).length > 0
+    ) {
       whereParams[level.relationshipIdentifier] = level.where.relationship;
     }
-    const whereClause = new Where(whereParams, bindParam);
-    filterCondition = `AND (${whereClause.getStatement('text')})`;
+    // Only generate filter condition if we have actual where params
+    if (Object.keys(whereParams).length > 0) {
+      const whereClause = new Where(whereParams, bindParam);
+      const whereStatement = whereClause.getStatement('text');
+      if (whereStatement.trim() !== '') {
+        filterCondition = `AND (${whereStatement})`;
+      }
+    }
   }
 
   // Handle nested relationships recursively BEFORE aggregation

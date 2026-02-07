@@ -155,9 +155,24 @@ export type DeleteByIdentifierI = {
 export const isDeleteWithIdentifier = (
   _param: DeleteI['delete'],
 ): _param is DeleteByIdentifierI => {
-  return (
-    typeof _param === 'object' && _param !== null && 'identifiers' in _param
-  );
+  if (
+    typeof _param !== 'object' ||
+    _param === null ||
+    !('identifiers' in _param)
+  ) {
+    return false;
+  }
+  const identifiers = (_param as DeleteByIdentifierI).identifiers;
+  if (typeof identifiers === 'string') {
+    return identifiers.trim().length > 0;
+  }
+  if (Array.isArray(identifiers)) {
+    return (
+      identifiers.length > 0 &&
+      identifiers.every((id) => typeof id === 'string' && id.trim().length > 0)
+    );
+  }
+  return false;
 };
 /** deletes by using the given literal */
 export type DeleteLiteralI = {
@@ -205,12 +220,30 @@ export type RemovePropertiesI = {
 export const isRemoveProperties = (
   _param: RemoveI['remove'],
 ): _param is RemovePropertiesI => {
-  return (
-    typeof _param === 'object' &&
-    _param !== null &&
-    'properties' in _param &&
-    'identifier' in _param
-  );
+  if (
+    typeof _param !== 'object' ||
+    _param === null ||
+    !('properties' in _param) ||
+    !('identifier' in _param)
+  ) {
+    return false;
+  }
+  const { identifier, properties } = _param as RemovePropertiesI;
+  // Validate identifier is non-empty string
+  if (typeof identifier !== 'string' || identifier.trim().length === 0) {
+    return false;
+  }
+  // Validate properties is non-empty string or non-empty array of non-empty strings
+  if (typeof properties === 'string') {
+    return properties.trim().length > 0;
+  }
+  if (Array.isArray(properties)) {
+    return (
+      properties.length > 0 &&
+      properties.every((p) => typeof p === 'string' && p.trim().length > 0)
+    );
+  }
+  return false;
 };
 /** removes labels of an identifier */
 export type RemoveLabelsI = {
@@ -222,12 +255,30 @@ export type RemoveLabelsI = {
 export const isRemoveLabels = (
   _param: RemoveI['remove'],
 ): _param is RemoveLabelsI => {
-  return (
-    typeof _param === 'object' &&
-    _param !== null &&
-    'labels' in _param &&
-    'identifier' in _param
-  );
+  if (
+    typeof _param !== 'object' ||
+    _param === null ||
+    !('labels' in _param) ||
+    !('identifier' in _param)
+  ) {
+    return false;
+  }
+  const { identifier, labels } = _param as RemoveLabelsI;
+  // Validate identifier is non-empty string
+  if (typeof identifier !== 'string' || identifier.trim().length === 0) {
+    return false;
+  }
+  // Validate labels is non-empty string or non-empty array of non-empty strings
+  if (typeof labels === 'string') {
+    return labels.trim().length > 0;
+  }
+  if (Array.isArray(labels)) {
+    return (
+      labels.length > 0 &&
+      labels.every((l) => typeof l === 'string' && l.trim().length > 0)
+    );
+  }
+  return false;
 };
 
 /** RETURN parameter */
