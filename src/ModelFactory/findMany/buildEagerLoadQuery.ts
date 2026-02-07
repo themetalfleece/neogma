@@ -2,15 +2,20 @@ import { BindParam } from '../../BindParam/BindParam';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { escapeIfNeeded } from '../../utils/cypher';
+import { isPlainObject } from '../../utils/object';
 import type { WhereParamsByIdentifierI, WhereParamsI } from '../../Where';
 import { Where } from '../../Where';
 import type { AnyObject } from '../shared.types';
+import { PROTOTYPE_POLLUTION_KEYS } from '../validation';
 import type {
   EagerLoadQueryResult,
   FindWithRelationshipsContext,
   RelationshipLevel,
   RelationshipsLoadConfig,
 } from './eagerLoading.types';
+
+/** Set of keys that should be ignored to prevent prototype pollution */
+const prototypePollutionKeySet = new Set<string>(PROTOTYPE_POLLUTION_KEYS);
 
 /**
  * Parameters for building the eager load query.
@@ -49,7 +54,16 @@ function parseRelationshipConfig<
 ): RelationshipLevel[] {
   const levels: RelationshipLevel[] = [];
 
+  // Validate relationships is a plain object
+  if (!isPlainObject(relationships)) {
+    return levels;
+  }
+
   for (const alias of Object.keys(relationships)) {
+    // Skip prototype pollution keys
+    if (prototypePollutionKeySet.has(alias)) {
+      continue;
+    }
     const config = relationships[alias as keyof typeof relationships];
     if (!config) continue;
 

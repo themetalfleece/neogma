@@ -351,14 +351,24 @@ describe('getRelationshipString', () => {
       void getRelationshipString({ direction: 'out', maxHops: '5' }, deps);
     });
 
-    it('ignores where when invalid type passed', () => {
+    it('throws when where has invalid type', () => {
       const deps = createDeps();
-      const result = getRelationshipString(
-        { direction: 'out', where: 'invalid' as any },
-        deps,
-      );
-      // The string is not treated as an object - it's ignored entirely
-      expect(result.statement).toBe('-[]->');
+      expect(() =>
+        getRelationshipString(
+          { direction: 'out', where: 'invalid' as any },
+          deps,
+        ),
+      ).toThrow("Invalid 'where' value");
+    });
+
+    it('throws when properties has invalid type', () => {
+      const deps = createDeps();
+      expect(() =>
+        getRelationshipString(
+          { direction: 'out', name: 'KNOWS', properties: 'invalid' as any },
+          deps,
+        ),
+      ).toThrow("Invalid 'properties' value");
     });
   });
 });

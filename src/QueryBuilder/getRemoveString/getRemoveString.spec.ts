@@ -165,7 +165,7 @@ describe('getRemoveString', () => {
           identifier: '',
           properties: ['name'],
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'identifier' value");
     });
 
     it('treats empty properties array as invalid', () => {
@@ -175,7 +175,7 @@ describe('getRemoveString', () => {
           identifier: 'n',
           properties: [],
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'properties' value");
     });
 
     it('treats empty properties string as invalid', () => {
@@ -185,7 +185,7 @@ describe('getRemoveString', () => {
           identifier: 'n',
           properties: '',
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'properties' value");
     });
 
     it('treats empty identifier for labels as invalid', () => {
@@ -195,7 +195,7 @@ describe('getRemoveString', () => {
           identifier: '',
           labels: ['Label'],
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'identifier' value");
     });
 
     it('treats empty labels array as invalid', () => {
@@ -205,7 +205,7 @@ describe('getRemoveString', () => {
           identifier: 'n',
           labels: [],
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'labels' value");
     });
 
     it('treats empty labels string as invalid', () => {
@@ -215,7 +215,7 @@ describe('getRemoveString', () => {
           identifier: 'n',
           labels: '',
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'labels' value");
     });
 
     it('treats array with empty string property as invalid', () => {
@@ -225,7 +225,7 @@ describe('getRemoveString', () => {
           identifier: 'n',
           properties: ['name', ''],
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'properties' value");
     });
 
     it('treats array with empty string label as invalid', () => {
@@ -235,7 +235,7 @@ describe('getRemoveString', () => {
           identifier: 'n',
           labels: ['Label', ''],
         } as Parameters<typeof qb.remove>[0]),
-      ).toThrow('invalid remove configuration');
+      ).toThrow("Invalid 'labels' value");
     });
   });
 });

@@ -245,20 +245,56 @@ describe('getNodeString', () => {
       expect(_typeCheck).toBeDefined();
     });
 
-    it('ignores where when invalid type passed', () => {
+    it('throws when where has invalid type', () => {
       const deps = createDeps();
       // @ts-expect-error - where must be object, not string
-      const result = getNodeString({ where: 'invalid' }, deps);
-      // The string is not treated as an object - it's ignored entirely
-      expect(result.statement).toBe('()');
+      expect(() => getNodeString({ where: 'invalid' }, deps)).toThrow(
+        "Invalid 'where' value",
+      );
     });
 
-    it('ignores properties when invalid type passed', () => {
+    it('throws when properties has invalid type', () => {
       const deps = createDeps();
       // @ts-expect-error - properties must be object, not string
-      const result = getNodeString({ properties: 'invalid' }, deps);
-      // The string is not treated as an object - it's ignored entirely
-      expect(result.statement).toBe('()');
+      expect(() => getNodeString({ properties: 'invalid' }, deps)).toThrow(
+        "Invalid 'properties' value",
+      );
+    });
+
+    it('throws when label is empty string', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ label: '' }, deps)).toThrow(
+        "Invalid 'label' value",
+      );
+    });
+
+    it('throws when label is whitespace only', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ label: '   ' }, deps)).toThrow(
+        "Invalid 'label' value",
+      );
+    });
+
+    it('throws when label is not a string', () => {
+      const deps = createDeps();
+      // @ts-expect-error - label must be string, not number
+      expect(() => getNodeString({ label: 123 }, deps)).toThrow(
+        "Invalid 'label' value",
+      );
+    });
+
+    it('throws when model is null', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ model: null as any }, deps)).toThrow(
+        "Invalid 'model' value",
+      );
+    });
+
+    it('throws when model is undefined but key present', () => {
+      const deps = createDeps();
+      expect(() => getNodeString({ model: undefined as any }, deps)).toThrow(
+        "Invalid 'model' value",
+      );
     });
   });
 });
