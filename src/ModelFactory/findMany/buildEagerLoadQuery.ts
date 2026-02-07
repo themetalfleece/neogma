@@ -1,4 +1,5 @@
 import { BindParam } from '../../BindParam/BindParam';
+import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { QueryBuilder } from '../../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import { escapeIfNeeded } from '../../utils/cypher';
@@ -66,6 +67,17 @@ function parseRelationshipConfig<
     }
     const config = relationships[alias as keyof typeof relationships];
     if (!config) continue;
+
+    // Validate config is a plain object (check without narrowing to preserve type)
+    if (
+      typeof config !== 'object' ||
+      config === null ||
+      Array.isArray(config)
+    ) {
+      throw new NeogmaConstraintError(
+        `Invalid relationship config for '${alias}': expected an object, got ${config === null ? 'null' : Array.isArray(config) ? 'array' : typeof config}`,
+      );
+    }
 
     const relInfo = ctx.getRelationshipByAlias(
       alias as keyof RelatedNodesToAssociateI,

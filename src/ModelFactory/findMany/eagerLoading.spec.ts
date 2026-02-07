@@ -647,6 +647,21 @@ describe('findMany with relationships (eager loading)', () => {
         }),
       ).rejects.toThrow(NeogmaNotFoundError);
     });
+
+    it('throws NeogmaConstraintError when relationship config is not an object', async () => {
+      const neogma = getNeogma();
+      const Orders = createOrdersModel(neogma);
+      const Users = createUsersModel(Orders, neogma);
+
+      await expect(
+        Users.findMany({
+          relationships: {
+            // @ts-expect-error - testing runtime behavior with invalid config
+            Orders: true,
+          },
+        }),
+      ).rejects.toThrow("Invalid relationship config for 'Orders'");
+    });
   });
 
   describe('edge cases', () => {
