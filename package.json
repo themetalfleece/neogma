@@ -4,27 +4,34 @@
   "description": "Object-Graph-Mapping neo4j framework, Fully-typed with TypeScript, for easy and flexible node and relationship creation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=24.13.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "dist/**/*"
   ],
   "dependencies": {
-    "@types/revalidator": "^0.3.12",
     "clone": "^2.1.2",
-    "dotenv": "^17.2.3",
     "neo4j-driver": "^6.0.1",
     "revalidator": "^0.3.1"
   },
   "devDependencies": {
     "@types/clone": "^2.1.4",
     "@types/jest": "^30.0.0",
-    "@types/node": "~24.10.0",
+    "@types/node": ">=18.0.0",
+    "@types/revalidator": "^0.3.12",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",

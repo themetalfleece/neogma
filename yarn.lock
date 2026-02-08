@@ -1425,12 +1425,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:~24.10.0":
-  version: 24.10.9
-  resolution: "@types/node@npm:24.10.9"
+"@types/node@npm:>=18.0.0":
+  version: 25.2.2
+  resolution: "@types/node@npm:25.2.2"
   dependencies:
     undici-types: "npm:~7.16.0"
-  checksum: 10c0/e9e436fcd2136bddb1bbe3271a89f4653910bcf6ee8047c4117f544c7905a106c039e2720ee48f28505ef2560e22fb9ead719f28bf5e075fdde0c1120e38e3b2
+  checksum: 10c0/45aa45b00df0aac4712c2d6e934a6ed21ac54e0284dd726df1c7620b8c7d36a4fb601b9f8fe1d2951298d1ee7618cf8275688e329c295eb36e8b8fa827a8e334
   languageName: node
   linkType: hard
 
@@ -4117,7 +4117,7 @@ __metadata:
   dependencies:
     "@types/clone": "npm:^2.1.4"
     "@types/jest": "npm:^30.0.0"
-    "@types/node": "npm:~24.10.0"
+    "@types/node": "npm:>=18.0.0"
     "@types/revalidator": "npm:^0.3.12"
     "@typescript-eslint/eslint-plugin": "npm:^8.53.1"
     "@typescript-eslint/parser": "npm:^8.53.1"
