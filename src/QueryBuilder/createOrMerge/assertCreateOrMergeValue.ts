@@ -20,9 +20,9 @@ export const assertCreateValue = (create: CreateI['create']): void => {
     }
     return;
   }
-  if (typeof create !== 'object' || create === null) {
+  if (typeof create !== 'object' || create === null || Array.isArray(create)) {
     throw new NeogmaConstraintError(
-      `Invalid 'create' value: expected a non-empty string or object, got ${typeof create}`,
+      `Invalid 'create' value: expected a non-empty string or plain object, got ${Array.isArray(create) ? 'array' : typeof create}`,
     );
   }
 };
@@ -40,9 +40,9 @@ export const assertMergeValue = (merge: MergeI['merge']): void => {
     }
     return;
   }
-  if (typeof merge !== 'object' || merge === null) {
+  if (typeof merge !== 'object' || merge === null || Array.isArray(merge)) {
     throw new NeogmaConstraintError(
-      `Invalid 'merge' value: expected a non-empty string or object, got ${typeof merge}`,
+      `Invalid 'merge' value: expected a non-empty string or plain object, got ${Array.isArray(merge) ? 'array' : typeof merge}`,
     );
   }
 };

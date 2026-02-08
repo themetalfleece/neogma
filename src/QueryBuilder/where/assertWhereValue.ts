@@ -14,9 +14,9 @@ export const assertWhereValue = (where: WhereI['where']): void => {
     }
     return;
   }
-  if (typeof where !== 'object' || where === null) {
+  if (typeof where !== 'object' || where === null || Array.isArray(where)) {
     throw new NeogmaConstraintError(
-      `Invalid 'where' value: expected a non-empty string or object, got ${typeof where}`,
+      `Invalid 'where' value: expected a non-empty string or plain object, got ${Array.isArray(where) ? 'array' : typeof where}`,
     );
   }
 };

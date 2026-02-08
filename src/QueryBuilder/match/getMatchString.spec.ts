@@ -380,6 +380,28 @@ describe('getMatchString', () => {
       };
       expect(_typeCheck).toBeDefined();
     });
+
+    it('rejects match with empty string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.match('');
+      }).toThrow("Invalid 'match' value");
+    });
+
+    it('rejects match with whitespace-only string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.match('   ');
+      }).toThrow("Invalid 'match' value");
+    });
+
+    it('rejects match with array parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - match requires string or match object, not array
+        qb.match(['(n)', '(m)']);
+      }).toThrow("Invalid 'match' value");
+    });
   });
 
   describe('database integration', () => {

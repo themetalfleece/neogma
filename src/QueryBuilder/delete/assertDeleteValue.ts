@@ -18,9 +18,9 @@ export const assertDeleteValue = (del: DeleteI['delete']): void => {
     }
     return;
   }
-  if (typeof del !== 'object' || del === null) {
+  if (typeof del !== 'object' || del === null || Array.isArray(del)) {
     throw new NeogmaConstraintError(
-      `Invalid 'delete' value: expected a non-empty string or object, got ${typeof del}`,
+      `Invalid 'delete' value: expected a non-empty string or plain object, got ${Array.isArray(del) ? 'array' : typeof del}`,
     );
   }
 };

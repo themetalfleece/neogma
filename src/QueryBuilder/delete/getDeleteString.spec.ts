@@ -135,5 +135,27 @@ describe('getDeleteString', () => {
         qb.delete({ literal: '   ' } as Parameters<typeof qb.delete>[0]),
       ).toThrow("Invalid 'literal' value");
     });
+
+    it('rejects delete with empty string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.delete('');
+      }).toThrow("Invalid 'delete' value");
+    });
+
+    it('rejects delete with whitespace-only string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.delete('   ');
+      }).toThrow("Invalid 'delete' value");
+    });
+
+    it('rejects delete with array parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - delete requires string or delete object, not array
+        qb.delete(['n', 'm']);
+      }).toThrow("Invalid 'delete' value");
+    });
   });
 });

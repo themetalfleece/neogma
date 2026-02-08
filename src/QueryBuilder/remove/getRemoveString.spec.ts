@@ -154,6 +154,28 @@ describe('getRemoveString', () => {
         qb.remove(123);
       }).toThrow("Invalid 'remove' value");
     });
+
+    it('rejects remove with empty string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.remove('');
+      }).toThrow("Invalid 'remove' value");
+    });
+
+    it('rejects remove with whitespace-only string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.remove('   ');
+      }).toThrow("Invalid 'remove' value");
+    });
+
+    it('rejects remove with array parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - remove requires string or remove object, not array
+        qb.remove(['n.name', 'n.age']);
+      }).toThrow("Invalid 'remove' value");
+    });
   });
 
   describe('validation edge cases', () => {

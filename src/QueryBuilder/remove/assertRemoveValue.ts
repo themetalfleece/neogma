@@ -15,9 +15,9 @@ export const assertRemoveValue = (remove: RemoveI['remove']): void => {
     }
     return;
   }
-  if (typeof remove !== 'object' || remove === null) {
+  if (typeof remove !== 'object' || remove === null || Array.isArray(remove)) {
     throw new NeogmaConstraintError(
-      `Invalid 'remove' value: expected a non-empty string or object, got ${typeof remove}`,
+      `Invalid 'remove' value: expected a non-empty string or plain object, got ${Array.isArray(remove) ? 'array' : typeof remove}`,
     );
   }
 };

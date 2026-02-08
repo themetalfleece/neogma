@@ -24,9 +24,9 @@ export const assertMatchValue = (match: MatchI['match']): void => {
     }
     return;
   }
-  if (typeof match !== 'object' || match === null) {
+  if (typeof match !== 'object' || match === null || Array.isArray(match)) {
     throw new NeogmaConstraintError(
-      `Invalid 'match' value: expected a non-empty string or object, got ${typeof match}`,
+      `Invalid 'match' value: expected a non-empty string or plain object, got ${Array.isArray(match) ? 'array' : typeof match}`,
     );
   }
 };

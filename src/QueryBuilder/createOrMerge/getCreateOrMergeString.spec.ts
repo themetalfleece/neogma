@@ -152,5 +152,57 @@ describe('getCreateOrMergeString', () => {
         qb.create(123);
       }).toThrow("Invalid 'create' value");
     });
+
+    it('rejects create with empty string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.create('');
+      }).toThrow("Invalid 'create' value");
+    });
+
+    it('rejects create with whitespace-only string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.create('   ');
+      }).toThrow("Invalid 'create' value");
+    });
+
+    it('rejects create with array parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - create requires string or create object, not array
+        qb.create(['(n)', '(m)']);
+      }).toThrow("Invalid 'create' value");
+    });
+
+    it('rejects invalid merge parameter type', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - merge requires string or merge object, not number
+        qb.merge(123);
+      }).toThrow("Invalid 'merge' value");
+    });
+
+    it('rejects merge with empty string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.merge('');
+      }).toThrow("Invalid 'merge' value");
+    });
+
+    it('rejects merge with whitespace-only string parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        qb.merge('   ');
+      }).toThrow("Invalid 'merge' value");
+    });
+
+    it('rejects merge with array parameter', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - merge requires string or merge object, not array
+        qb.merge(['(n)', '(m)']);
+      }).toThrow("Invalid 'merge' value");
+    });
   });
 });
