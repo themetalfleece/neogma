@@ -27,8 +27,10 @@ describe('QueryBuilder static methods', () => {
     });
 
     it('rejects invalid parameter type', () => {
-      // @ts-expect-error - getNormalizedLabels requires string or string[], not number
-      void QueryBuilder.getNormalizedLabels(123);
+      expect(() =>
+        // @ts-expect-error - getNormalizedLabels requires string or string[], not number
+        QueryBuilder.getNormalizedLabels(123),
+      ).toThrow('expected a string');
     });
   });
 

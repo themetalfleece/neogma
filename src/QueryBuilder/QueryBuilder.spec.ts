@@ -30,8 +30,10 @@ describe('QueryBuilder', () => {
 
       it('rejects invalid raw parameter type', () => {
         const qb = new QueryBuilder();
-        // @ts-expect-error - raw requires string, not number
-        void qb.raw(123);
+        expect(() => {
+          // @ts-expect-error - raw requires string, not number
+          qb.raw(123);
+        }).toThrow("Invalid 'raw' value");
       });
     });
   });
@@ -249,8 +251,10 @@ describe('QueryBuilder', () => {
 
       it('rejects invalid call parameter type', () => {
         const qb = new QueryBuilder();
-        // @ts-expect-error - call requires string or QueryBuilder, not number
-        void qb.call(123);
+        expect(() => {
+          // @ts-expect-error - call requires string or QueryBuilder, not number
+          qb.call(123);
+        }).toThrow("Invalid 'call' value");
       });
     });
   });
@@ -375,6 +379,26 @@ describe('QueryBuilder', () => {
         testProp: true,
         testProp__aaaa: '2',
       });
+    });
+  });
+
+  describe('unknown parameters', () => {
+    it('throws error for unknown parameter keys', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - testing runtime validation of unknown keys
+        qb.addParams([{ unknownKey: 'value' }]);
+        qb.getStatement();
+      }).toThrow('Unknown parameter key(s): unknownKey');
+    });
+
+    it('throws error listing multiple unknown keys', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - testing runtime validation of unknown keys
+        qb.addParams([{ foo: 'bar', baz: 123 }]);
+        qb.getStatement();
+      }).toThrow('Unknown parameter key(s)');
     });
   });
 });

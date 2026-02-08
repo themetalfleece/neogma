@@ -1,33 +1,24 @@
 import type { QueryResult } from 'neo4j-driver';
 
 import { BindParam } from '../BindParam';
-import { NeogmaError } from '../Errors';
+import { NeogmaConstraintError, NeogmaError } from '../Errors';
 import type { Runnable } from '../QueryRunner';
 import { QueryRunner } from '../QueryRunner';
 import { getRunnable } from '../Sessions';
 import { trimWhitespace } from '../utils/string';
-import { getCreateOrMergeString } from './getCreateOrMergeString';
-import { getDeleteString } from './getDeleteString';
-import { getForEachString } from './getForEachString';
-import { getIdentifierWithLabel } from './getIdentifierWithLabel';
-import { getLimitString } from './getLimitString';
-import { getMatchString } from './getMatchString';
-import { getNodeStatement } from './getNodeStatement';
-import { getNormalizedLabels } from './getNormalizedLabels';
-import { getOnCreateSetString } from './getOnCreateSetString';
-import { getOnMatchSetString } from './getOnMatchSetString';
-import { getOrderByString } from './getOrderByString';
-import { getPropertiesWithParams } from './getPropertiesWithParams';
-import { getRelationshipStatement } from './getRelationshipStatement';
-import { getRemoveString } from './getRemoveString';
-import { getReturnString } from './getReturnString';
-import { getSetParts } from './getSetParts';
-import { getSetString } from './getSetString';
-import { getSkipString } from './getSkipString';
-import { getUnwindString } from './getUnwindString';
-import { getVariableLengthRelationshipString } from './getVariableLengthRelationshipString';
-import { getWhereString } from './getWhereString';
-import { getWithString } from './getWithString';
+import { getCallString } from './call';
+import { getCreateOrMergeString } from './createOrMerge';
+import { getDeleteString } from './delete';
+import { getForEachString } from './forEach';
+import { getIdentifierWithLabel } from './identifierWithLabel';
+import { getLimitString } from './limit';
+import { getMatchString } from './match';
+import { getNodeStatement } from './nodeStatement';
+import { getNormalizedLabels } from './normalizedLabels';
+import { getOnCreateSetString } from './onCreateSet';
+import { getOnMatchSetString } from './onMatchSet';
+import { getOrderByString } from './orderBy';
+import { getPropertiesWithParams } from './propertiesWithParams';
 import type {
   CallI,
   CreateI,
@@ -69,6 +60,17 @@ import {
   isWhereParameter,
   isWithParameter,
 } from './QueryBuilder.types';
+import { getRawString } from './raw';
+import { getRelationshipStatement } from './relationshipStatement';
+import { getRemoveString } from './remove';
+import { getReturnString } from './return';
+import { getSetString } from './set';
+import { getSetParts } from './setParts';
+import { getSkipString } from './skip';
+import { getUnwindString } from './unwind';
+import { getVariableLengthRelationshipString } from './variableLengthRelationship';
+import { getWhereString } from './where';
+import { getWithString } from './with';
 
 export type QueryBuilderParameters = {
   ParameterI: ParameterI;
@@ -152,7 +154,7 @@ export class QueryBuilder {
       }
 
       if (isRawParameter(param)) {
-        statementParts.push(param.raw);
+        statementParts.push(getRawString(param.raw));
       } else if (isMatchParameter(param)) {
         statementParts.push(getMatchString(param.match, deps));
       } else if (isCreateParameter(param)) {
@@ -188,7 +190,15 @@ export class QueryBuilder {
       } else if (isOnMatchSetParameter(param)) {
         statementParts.push(getOnMatchSetString(param.onMatchSet, deps));
       } else if (isCallParameter(param)) {
-        statementParts.push(`CALL {\n${param.call}\n}`);
+        statementParts.push(getCallString(param.call));
+      } else {
+        // Catch-all: param has no known key - throw for unknown parameters
+        const keys = Object.keys(param as Record<string, unknown>);
+        if (keys.length > 0) {
+          throw new NeogmaConstraintError(
+            `Unknown parameter key(s): ${keys.join(', ')}`,
+          );
+        }
       }
     }
 

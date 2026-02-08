@@ -1,5 +1,25 @@
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import {
+  assertCreateMultiple,
+  assertCreateRelated,
+  assertDeleteWithIdentifier,
+  assertDeleteWithLiteral,
+  assertMatchLiteral,
+  assertMatchMultiple,
+  assertMatchRelated,
+  assertNodeWithLabel,
+  assertNodeWithModel,
+  assertNodeWithProperties,
+  assertNodeWithWhere,
+  assertOnCreateSetValue,
+  assertOnMatchSetValue,
+  assertRelationshipWithProperties,
+  assertRelationshipWithWhere,
+  assertRemoveLabels,
+  assertRemoveProperties,
+  assertReturnObject,
+  assertReturnValue,
+  assertSetValue,
   isCreateMultiple,
   isCreateRelated,
   isDeleteWithIdentifier,
@@ -11,6 +31,8 @@ import {
   isNodeWithModel,
   isNodeWithProperties,
   isNodeWithWhere,
+  isOnCreateSetParameter,
+  isOnMatchSetParameter,
   isRelationshipWithProperties,
   isRelationshipWithWhere,
   isRemoveLabels,
@@ -30,13 +52,22 @@ describe('QueryBuilder.types type guards', () => {
       expect(isMatchRelated({ related: [] })).toBe(true);
     });
 
+    it('returns false when related exists but is not an array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isMatchRelated({ related: 'invalid' })).toBe(false);
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isMatchRelated({ related: 123 })).toBe(false);
+    });
+  });
+
+  describe('assertMatchRelated', () => {
     it('throws when related exists but is not an array', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isMatchRelated({ related: 'invalid' })).toThrow(
+      expect(() => assertMatchRelated({ related: 'invalid' })).toThrow(
         NeogmaConstraintError,
       );
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isMatchRelated({ related: 123 })).toThrow(
+      expect(() => assertMatchRelated({ related: 123 })).toThrow(
         "Invalid 'related' value",
       );
     });
@@ -51,13 +82,22 @@ describe('QueryBuilder.types type guards', () => {
       expect(isMatchMultiple({ multiple: [] })).toBe(true);
     });
 
+    it('returns false when multiple exists but is not an array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isMatchMultiple({ multiple: 'invalid' })).toBe(false);
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isMatchMultiple({ multiple: {} })).toBe(false);
+    });
+  });
+
+  describe('assertMatchMultiple', () => {
     it('throws when multiple exists but is not an array', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isMatchMultiple({ multiple: 'invalid' })).toThrow(
+      expect(() => assertMatchMultiple({ multiple: 'invalid' })).toThrow(
         NeogmaConstraintError,
       );
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isMatchMultiple({ multiple: {} })).toThrow(
+      expect(() => assertMatchMultiple({ multiple: {} })).toThrow(
         "Invalid 'multiple' value",
       );
     });
@@ -72,21 +112,36 @@ describe('QueryBuilder.types type guards', () => {
       expect(isMatchLiteral({ literal: '(n)' })).toBe(true);
     });
 
+    it('returns false when literal is empty string', () => {
+      expect(isMatchLiteral({ literal: '' })).toBe(false);
+    });
+
+    it('returns false when literal is whitespace only', () => {
+      expect(isMatchLiteral({ literal: '   ' })).toBe(false);
+    });
+
+    it('returns false when literal is not a string', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isMatchLiteral({ literal: 123 })).toBe(false);
+    });
+  });
+
+  describe('assertMatchLiteral', () => {
     it('throws when literal is empty string', () => {
-      expect(() => isMatchLiteral({ literal: '' })).toThrow(
+      expect(() => assertMatchLiteral({ literal: '' })).toThrow(
         "Invalid 'literal' value",
       );
     });
 
     it('throws when literal is whitespace only', () => {
-      expect(() => isMatchLiteral({ literal: '   ' })).toThrow(
+      expect(() => assertMatchLiteral({ literal: '   ' })).toThrow(
         NeogmaConstraintError,
       );
     });
 
     it('throws when literal is not a string', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isMatchLiteral({ literal: 123 })).toThrow(
+      expect(() => assertMatchLiteral({ literal: 123 })).toThrow(
         "Invalid 'literal' value",
       );
     });
@@ -102,9 +157,16 @@ describe('QueryBuilder.types type guards', () => {
       expect(isCreateRelated({ related: [] })).toBe(true);
     });
 
+    it('returns false when related exists but is not an array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isCreateRelated({ related: {} })).toBe(false);
+    });
+  });
+
+  describe('assertCreateRelated', () => {
     it('throws when related exists but is not an array', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isCreateRelated({ related: {} })).toThrow(
+      expect(() => assertCreateRelated({ related: {} })).toThrow(
         NeogmaConstraintError,
       );
     });
@@ -120,9 +182,16 @@ describe('QueryBuilder.types type guards', () => {
       expect(isCreateMultiple({ multiple: [] })).toBe(true);
     });
 
+    it('returns false when multiple exists but is not an array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isCreateMultiple({ multiple: 'invalid' })).toBe(false);
+    });
+  });
+
+  describe('assertCreateMultiple', () => {
     it('throws when multiple exists but is not an array', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isCreateMultiple({ multiple: 'invalid' })).toThrow(
+      expect(() => assertCreateMultiple({ multiple: 'invalid' })).toThrow(
         NeogmaConstraintError,
       );
     });
@@ -142,28 +211,34 @@ describe('QueryBuilder.types type guards', () => {
       expect(isDeleteWithIdentifier({ identifiers: ['n', 'm'] })).toBe(true);
     });
 
+    it('returns false when identifier is empty string', () => {
+      expect(isDeleteWithIdentifier({ identifiers: '' })).toBe(false);
+    });
+
+    it('returns false when identifiers is empty array', () => {
+      expect(isDeleteWithIdentifier({ identifiers: [] })).toBe(false);
+    });
+
+    it('returns false when identifiers array contains empty string', () => {
+      expect(isDeleteWithIdentifier({ identifiers: ['n', ''] })).toBe(false);
+    });
+
+    it('returns false when identifiers is not string or array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isDeleteWithIdentifier({ identifiers: 123 })).toBe(false);
+    });
+  });
+
+  describe('assertDeleteWithIdentifier', () => {
     it('throws when identifier is empty string', () => {
-      expect(() => isDeleteWithIdentifier({ identifiers: '' })).toThrow(
-        "Invalid 'identifiers' value",
+      expect(() => assertDeleteWithIdentifier({ identifiers: '' })).toThrow(
+        NeogmaConstraintError,
       );
     });
 
     it('throws when identifiers is empty array', () => {
-      expect(() => isDeleteWithIdentifier({ identifiers: [] })).toThrow(
-        "Invalid 'identifiers' value: expected a non-empty array",
-      );
-    });
-
-    it('throws when identifiers array contains empty string', () => {
-      expect(() => isDeleteWithIdentifier({ identifiers: ['n', ''] })).toThrow(
-        'array element at index 1',
-      );
-    });
-
-    it('throws when identifiers is not string or array', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isDeleteWithIdentifier({ identifiers: 123 })).toThrow(
-        'expected a string or array',
+      expect(() => assertDeleteWithIdentifier({ identifiers: [] })).toThrow(
+        NeogmaConstraintError,
       );
     });
   });
@@ -178,15 +253,19 @@ describe('QueryBuilder.types type guards', () => {
       expect(isDeleteWithLiteral({ literal: 'n' })).toBe(true);
     });
 
-    it('throws when literal is empty string', () => {
-      expect(() => isDeleteWithLiteral({ literal: '' })).toThrow(
-        "Invalid 'literal' value",
-      );
+    it('returns false when literal is empty string', () => {
+      expect(isDeleteWithLiteral({ literal: '' })).toBe(false);
     });
 
-    it('throws when literal is not a string', () => {
+    it('returns false when literal is not a string', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isDeleteWithLiteral({ literal: 123 })).toThrow(
+      expect(isDeleteWithLiteral({ literal: 123 })).toBe(false);
+    });
+  });
+
+  describe('assertDeleteWithLiteral', () => {
+    it('throws when literal is empty string', () => {
+      expect(() => assertDeleteWithLiteral({ literal: '' })).toThrow(
         NeogmaConstraintError,
       );
     });
@@ -212,23 +291,37 @@ describe('QueryBuilder.types type guards', () => {
       );
     });
 
+    it('returns false when identifier is empty', () => {
+      expect(isRemoveProperties({ identifier: '', properties: ['name'] })).toBe(
+        false,
+      );
+    });
+
+    it('returns false when properties is empty array', () => {
+      expect(isRemoveProperties({ identifier: 'n', properties: [] })).toBe(
+        false,
+      );
+    });
+
+    it('returns false when properties is not string or array', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isRemoveProperties({ identifier: 'n', properties: 123 })).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('assertRemoveProperties', () => {
     it('throws when identifier is empty', () => {
       expect(() =>
-        isRemoveProperties({ identifier: '', properties: ['name'] }),
-      ).toThrow("Invalid 'identifier' value");
+        assertRemoveProperties({ identifier: '', properties: ['name'] }),
+      ).toThrow(NeogmaConstraintError);
     });
 
     it('throws when properties is empty array', () => {
       expect(() =>
-        isRemoveProperties({ identifier: 'n', properties: [] }),
-      ).toThrow("Invalid 'properties' value");
-    });
-
-    it('throws when properties is not string or array', () => {
-      expect(() =>
-        // @ts-expect-error - testing runtime behavior with invalid input
-        isRemoveProperties({ identifier: 'n', properties: 123 }),
-      ).toThrow('expected a string or array');
+        assertRemoveProperties({ identifier: 'n', properties: [] }),
+      ).toThrow(NeogmaConstraintError);
     });
   });
 
@@ -243,15 +336,25 @@ describe('QueryBuilder.types type guards', () => {
       expect(isRemoveLabels({ identifier: 'n', labels: 'Label' })).toBe(true);
     });
 
+    it('returns false when identifier is empty', () => {
+      expect(isRemoveLabels({ identifier: '', labels: ['Label'] })).toBe(false);
+    });
+
+    it('returns false when labels is empty array', () => {
+      expect(isRemoveLabels({ identifier: 'n', labels: [] })).toBe(false);
+    });
+  });
+
+  describe('assertRemoveLabels', () => {
     it('throws when identifier is empty', () => {
       expect(() =>
-        isRemoveLabels({ identifier: '', labels: ['Label'] }),
-      ).toThrow("Invalid 'identifier' value");
+        assertRemoveLabels({ identifier: '', labels: ['Label'] }),
+      ).toThrow(NeogmaConstraintError);
     });
 
     it('throws when labels is empty array', () => {
-      expect(() => isRemoveLabels({ identifier: 'n', labels: [] })).toThrow(
-        "Invalid 'labels' value",
+      expect(() => assertRemoveLabels({ identifier: 'n', labels: [] })).toThrow(
+        NeogmaConstraintError,
       );
     });
   });
@@ -272,23 +375,21 @@ describe('QueryBuilder.types type guards', () => {
       );
     });
 
-    it('throws when element is not an object', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isReturnObject([{ identifier: 'n' }, null])).toThrow(
-        'expected an object, got null',
-      );
+    it('returns false when element has invalid identifier', () => {
+      expect(isReturnObject([{ identifier: '' }])).toBe(false);
     });
+  });
 
+  describe('assertReturnObject', () => {
     it('throws when element has invalid identifier', () => {
-      expect(() => isReturnObject([{ identifier: '' }])).toThrow(
-        "'identifier' must be a non-empty string",
+      expect(() => assertReturnObject([{ identifier: '' }])).toThrow(
+        NeogmaConstraintError,
       );
     });
   });
 
   describe('isReturnParameter', () => {
     it('returns false when return key is missing', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
       expect(isReturnParameter({})).toBe(false);
     });
 
@@ -297,8 +398,20 @@ describe('QueryBuilder.types type guards', () => {
       expect(isReturnParameter({ return: 'n.name, m.age' })).toBe(true);
     });
 
-    it('returns false for empty string return', () => {
-      expect(isReturnParameter({ return: '' })).toBe(false);
+    it('returns true when return key is present (validation happens in getReturnString)', () => {
+      // Type guards now only check for key presence, validation happens in getReturnString
+      expect(isReturnParameter({ return: '' })).toBe(true);
+      expect(isReturnParameter({ return: [] })).toBe(true);
+      expect(isReturnParameter({ return: ['', { identifier: 'm' }] })).toBe(
+        true,
+      );
+      expect(isReturnParameter({ return: ['n', { identifier: '' }] })).toBe(
+        true,
+      );
+      expect(isReturnParameter({ return: ['n', ''] })).toBe(true);
+      expect(isReturnParameter({ return: [{ identifier: '' }] })).toBe(true);
+      expect(isReturnParameter({ return: [null] })).toBe(true);
+      expect(isReturnParameter({ return: [123] })).toBe(true);
     });
 
     it('returns true for valid string array return', () => {
@@ -315,10 +428,6 @@ describe('QueryBuilder.types type guards', () => {
       ).toBe(true);
     });
 
-    it('returns false for empty array return', () => {
-      expect(isReturnParameter({ return: [] })).toBe(false);
-    });
-
     it('returns true for mixed array (strings and objects)', () => {
       // Mixed arrays are now allowed - strings are raw, objects are escaped
       expect(isReturnParameter({ return: ['n', { identifier: 'm' }] })).toBe(
@@ -333,43 +442,25 @@ describe('QueryBuilder.types type guards', () => {
         }),
       ).toBe(true);
     });
+  });
 
-    it('throws for empty string in mixed array', () => {
-      expect(() =>
-        isReturnParameter({ return: ['', { identifier: 'm' }] }),
-      ).toThrow('expected a non-empty string');
-    });
-
-    it('throws for invalid identifier in mixed array', () => {
-      expect(() =>
-        isReturnParameter({ return: ['n', { identifier: '' }] }),
-      ).toThrow("'identifier' must be a non-empty string");
-    });
-
-    it('throws for empty string in string array', () => {
-      expect(() => isReturnParameter({ return: ['n', ''] })).toThrow(
-        'expected a non-empty string',
+  describe('assertReturnValue', () => {
+    it('throws for invalid return value with empty string in array', () => {
+      expect(() => assertReturnValue(['', { identifier: 'm' }])).toThrow(
+        NeogmaConstraintError,
       );
     });
 
-    it('throws for invalid identifier in object array', () => {
-      expect(() => isReturnParameter({ return: [{ identifier: '' }] })).toThrow(
-        "'identifier' must be a non-empty string",
-      );
+    it('throws for empty string', () => {
+      expect(() => assertReturnValue('')).toThrow(NeogmaConstraintError);
     });
 
-    it('throws for null in array', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isReturnParameter({ return: [null] })).toThrow(
-        'expected a string or object, got null',
-      );
+    it('does not throw for valid string', () => {
+      expect(() => assertReturnValue('n.name')).not.toThrow();
     });
 
-    it('throws for number in array', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isReturnParameter({ return: [123] })).toThrow(
-        'expected a string or object, got number',
-      );
+    it('does not throw for valid array', () => {
+      expect(() => assertReturnValue(['n', { identifier: 'm' }])).not.toThrow();
     });
   });
 
@@ -386,13 +477,18 @@ describe('QueryBuilder.types type guards', () => {
       expect(isNodeWithWhere({ where: { id: '123' } })).toBe(true);
     });
 
+    it('returns false when where is not a plain object', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isNodeWithWhere({ where: 'invalid' })).toBe(false);
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isNodeWithWhere({ where: ['array'] })).toBe(false);
+    });
+  });
+
+  describe('assertNodeWithWhere', () => {
     it('throws when where is not a plain object', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isNodeWithWhere({ where: 'invalid' })).toThrow(
-        "Invalid 'where' value",
-      );
-      // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isNodeWithWhere({ where: ['array'] })).toThrow(
+      expect(() => assertNodeWithWhere({ where: 'invalid' })).toThrow(
         NeogmaConstraintError,
       );
     });
@@ -407,15 +503,26 @@ describe('QueryBuilder.types type guards', () => {
       expect(isNodeWithLabel({ label: 'User' })).toBe(true);
     });
 
+    it('returns false when label is empty string', () => {
+      expect(isNodeWithLabel({ label: '' })).toBe(false);
+    });
+
+    it('returns false when label is not a string', () => {
+      // @ts-expect-error - testing runtime behavior with invalid input
+      expect(isNodeWithLabel({ label: 123 })).toBe(false);
+    });
+  });
+
+  describe('assertNodeWithLabel', () => {
     it('throws when label is empty string', () => {
-      expect(() => isNodeWithLabel({ label: '' })).toThrow(
-        "Invalid 'label' value",
+      expect(() => assertNodeWithLabel({ label: '' })).toThrow(
+        NeogmaConstraintError,
       );
     });
 
     it('throws when label is not a string', () => {
       // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isNodeWithLabel({ label: 123 })).toThrow(
+      expect(() => assertNodeWithLabel({ label: 123 })).toThrow(
         NeogmaConstraintError,
       );
     });
@@ -426,14 +533,24 @@ describe('QueryBuilder.types type guards', () => {
       expect(isNodeWithModel({ label: 'User' })).toBe(false);
     });
 
+    it('returns false when model is null', () => {
+      expect(isNodeWithModel({ model: null })).toBe(false);
+    });
+
+    it('returns false when model is undefined', () => {
+      expect(isNodeWithModel({ model: undefined })).toBe(false);
+    });
+  });
+
+  describe('assertNodeWithModel', () => {
     it('throws when model is null', () => {
-      expect(() => isNodeWithModel({ model: null })).toThrow(
-        "Invalid 'model' value",
+      expect(() => assertNodeWithModel({ model: null })).toThrow(
+        NeogmaConstraintError,
       );
     });
 
     it('throws when model is undefined', () => {
-      expect(() => isNodeWithModel({ model: undefined })).toThrow(
+      expect(() => assertNodeWithModel({ model: undefined })).toThrow(
         NeogmaConstraintError,
       );
     });
@@ -456,11 +573,20 @@ describe('QueryBuilder.types type guards', () => {
       ).toBe(true);
     });
 
+    it('returns false when properties is not a plain object', () => {
+      expect(
+        // @ts-expect-error - testing runtime behavior with invalid input
+        isNodeWithProperties({ label: 'User', properties: 'invalid' }),
+      ).toBe(false);
+    });
+  });
+
+  describe('assertNodeWithProperties', () => {
     it('throws when properties is not a plain object', () => {
       expect(() =>
         // @ts-expect-error - testing runtime behavior with invalid input
-        isNodeWithProperties({ label: 'User', properties: 'invalid' }),
-      ).toThrow("Invalid 'properties' value");
+        assertNodeWithProperties({ label: 'User', properties: 'invalid' }),
+      ).toThrow(NeogmaConstraintError);
     });
   });
 
@@ -481,11 +607,20 @@ describe('QueryBuilder.types type guards', () => {
       ).toBe(true);
     });
 
+    it('returns false when where is not a plain object', () => {
+      expect(
+        // @ts-expect-error - testing runtime behavior with invalid input
+        isRelationshipWithWhere({ direction: 'out', where: 'invalid' }),
+      ).toBe(false);
+    });
+  });
+
+  describe('assertRelationshipWithWhere', () => {
     it('throws when where is not a plain object', () => {
       expect(() =>
         // @ts-expect-error - testing runtime behavior with invalid input
-        isRelationshipWithWhere({ direction: 'out', where: 'invalid' }),
-      ).toThrow("Invalid 'where' value");
+        assertRelationshipWithWhere({ direction: 'out', where: 'invalid' }),
+      ).toThrow(NeogmaConstraintError);
     });
   });
 
@@ -513,21 +648,33 @@ describe('QueryBuilder.types type guards', () => {
       ).toBe(true);
     });
 
-    it('throws when properties is not a plain object', () => {
-      expect(() =>
+    it('returns false when properties is not a plain object', () => {
+      expect(
         isRelationshipWithProperties({
           direction: 'out',
           name: 'KNOWS',
           // @ts-expect-error - testing runtime behavior with invalid input
           properties: 'invalid',
         }),
-      ).toThrow("Invalid 'properties' value");
+      ).toBe(false);
+    });
+  });
+
+  describe('assertRelationshipWithProperties', () => {
+    it('throws when properties is not a plain object', () => {
+      expect(() =>
+        assertRelationshipWithProperties({
+          direction: 'out',
+          name: 'KNOWS',
+          // @ts-expect-error - testing runtime behavior with invalid input
+          properties: 'invalid',
+        }),
+      ).toThrow(NeogmaConstraintError);
     });
   });
 
   describe('isSetParameter', () => {
     it('returns false when set key is missing', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
       expect(isSetParameter({})).toBe(false);
     });
 
@@ -543,38 +690,185 @@ describe('QueryBuilder.types type guards', () => {
       ).toBe(true);
     });
 
+    it('returns true when set key is present (validation happens in getSetString)', () => {
+      // Type guards now only check for key presence
+      expect(isSetParameter({ set: '' })).toBe(true);
+      expect(isSetParameter({ set: '   ' })).toBe(true);
+      expect(
+        isSetParameter({
+          set: { identifier: '', properties: { name: 'test' } },
+        }),
+      ).toBe(true);
+      expect(
+        isSetParameter({ set: { identifier: 'n', properties: null } }),
+      ).toBe(true);
+      expect(isSetParameter({ set: 123 })).toBe(true);
+    });
+  });
+
+  describe('assertSetValue', () => {
     it('throws when set is empty string', () => {
-      expect(() => isSetParameter({ set: '' })).toThrow(
-        "Invalid 'set' value: expected a non-empty string",
-      );
+      expect(() => assertSetValue('')).toThrow(NeogmaConstraintError);
     });
 
-    it('throws when set is whitespace only', () => {
-      expect(() => isSetParameter({ set: '   ' })).toThrow(
-        "Invalid 'set' value: expected a non-empty string",
-      );
+    it('throws when set is whitespace-only string', () => {
+      expect(() => assertSetValue('   ')).toThrow(NeogmaConstraintError);
     });
 
     it('throws when set object has empty identifier', () => {
       expect(() =>
-        isSetParameter({
-          set: { identifier: '', properties: { name: 'test' } },
-        }),
-      ).toThrow("'identifier' must be a non-empty string");
+        assertSetValue({ identifier: '', properties: { name: 'test' } }),
+      ).toThrow(NeogmaConstraintError);
     });
 
-    it('throws when set object has invalid properties', () => {
+    it('throws when set object has null properties', () => {
       expect(() =>
-        // @ts-expect-error - testing runtime behavior with invalid input
-        isSetParameter({ set: { identifier: 'n', properties: null } }),
-      ).toThrow("'properties' must be an object");
+        // @ts-expect-error - testing runtime validation of invalid input
+        assertSetValue({ identifier: 'n', properties: null }),
+      ).toThrow(NeogmaConstraintError);
     });
 
-    it('throws when set is not string or object', () => {
-      // @ts-expect-error - testing runtime behavior with invalid input
-      expect(() => isSetParameter({ set: 123 })).toThrow(
-        'expected a string or object',
-      );
+    it('does not throw for valid string', () => {
+      expect(() => assertSetValue('n.name = "test"')).not.toThrow();
+    });
+
+    it('does not throw for valid object', () => {
+      expect(() =>
+        assertSetValue({ identifier: 'n', properties: { name: 'test' } }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('isOnCreateSetParameter', () => {
+    it('returns false when onCreateSet key is missing', () => {
+      expect(isOnCreateSetParameter({})).toBe(false);
+    });
+
+    it('returns true when onCreateSet key is present with string', () => {
+      expect(
+        isOnCreateSetParameter({ onCreateSet: 'n.created = timestamp()' }),
+      ).toBe(true);
+    });
+
+    it('returns true when onCreateSet key is present with object', () => {
+      expect(
+        isOnCreateSetParameter({
+          onCreateSet: { identifier: 'n', properties: { name: 'test' } },
+        }),
+      ).toBe(true);
+    });
+
+    it('returns true when onCreateSet key is present (validation happens in assertOnCreateSetValue)', () => {
+      // Type guard only checks for key presence
+      expect(isOnCreateSetParameter({ onCreateSet: '' })).toBe(true);
+      expect(isOnCreateSetParameter({ onCreateSet: 123 })).toBe(true);
+    });
+
+    it('returns false for null or undefined', () => {
+      expect(isOnCreateSetParameter(null)).toBe(false);
+      expect(isOnCreateSetParameter(undefined)).toBe(false);
+    });
+  });
+
+  describe('assertOnCreateSetValue', () => {
+    it('throws when onCreateSet is empty string', () => {
+      expect(() => assertOnCreateSetValue('')).toThrow(NeogmaConstraintError);
+    });
+
+    it('throws when onCreateSet object has empty identifier', () => {
+      expect(() =>
+        assertOnCreateSetValue({
+          identifier: '',
+          properties: { name: 'test' },
+        }),
+      ).toThrow(NeogmaConstraintError);
+    });
+
+    it('throws when onCreateSet object has null properties', () => {
+      expect(() =>
+        // @ts-expect-error - testing runtime validation of invalid input
+        assertOnCreateSetValue({ identifier: 'n', properties: null }),
+      ).toThrow(NeogmaConstraintError);
+    });
+
+    it('does not throw for valid string', () => {
+      expect(() =>
+        assertOnCreateSetValue('n.created = timestamp()'),
+      ).not.toThrow();
+    });
+
+    it('does not throw for valid object', () => {
+      expect(() =>
+        assertOnCreateSetValue({
+          identifier: 'n',
+          properties: { name: 'test' },
+        }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('isOnMatchSetParameter', () => {
+    it('returns false when onMatchSet key is missing', () => {
+      expect(isOnMatchSetParameter({})).toBe(false);
+    });
+
+    it('returns true when onMatchSet key is present with string', () => {
+      expect(
+        isOnMatchSetParameter({ onMatchSet: 'n.updated = timestamp()' }),
+      ).toBe(true);
+    });
+
+    it('returns true when onMatchSet key is present with object', () => {
+      expect(
+        isOnMatchSetParameter({
+          onMatchSet: { identifier: 'n', properties: { name: 'test' } },
+        }),
+      ).toBe(true);
+    });
+
+    it('returns true when onMatchSet key is present (validation happens in assertOnMatchSetValue)', () => {
+      // Type guard only checks for key presence
+      expect(isOnMatchSetParameter({ onMatchSet: '' })).toBe(true);
+      expect(isOnMatchSetParameter({ onMatchSet: 123 })).toBe(true);
+    });
+
+    it('returns false for null or undefined', () => {
+      expect(isOnMatchSetParameter(null)).toBe(false);
+      expect(isOnMatchSetParameter(undefined)).toBe(false);
+    });
+  });
+
+  describe('assertOnMatchSetValue', () => {
+    it('throws when onMatchSet is empty string', () => {
+      expect(() => assertOnMatchSetValue('')).toThrow(NeogmaConstraintError);
+    });
+
+    it('throws when onMatchSet object has empty identifier', () => {
+      expect(() =>
+        assertOnMatchSetValue({ identifier: '', properties: { name: 'test' } }),
+      ).toThrow(NeogmaConstraintError);
+    });
+
+    it('throws when onMatchSet object has null properties', () => {
+      expect(() =>
+        // @ts-expect-error - testing runtime validation of invalid input
+        assertOnMatchSetValue({ identifier: 'n', properties: null }),
+      ).toThrow(NeogmaConstraintError);
+    });
+
+    it('does not throw for valid string', () => {
+      expect(() =>
+        assertOnMatchSetValue('n.updated = timestamp()'),
+      ).not.toThrow();
+    });
+
+    it('does not throw for valid object', () => {
+      expect(() =>
+        assertOnMatchSetValue({
+          identifier: 'n',
+          properties: { name: 'test' },
+        }),
+      ).not.toThrow();
     });
   });
 });
