@@ -13,6 +13,10 @@ import type {
   GetRelationshipStringResult,
 } from './getRelationshipString.types';
 
+/**
+ * Generates a relationship pattern string for use in Cypher queries.
+ * Handles string literals, relationship objects with properties, and where conditions.
+ */
 export const getRelationshipString = (
   relationship: GetRelationshipStringRelationship,
   deps: GetRelationshipStringDeps,

@@ -64,5 +64,5 @@ export const getDeleteString = (dlt: GetDeleteStringDelete): string => {
     return `${dlt.detach ? 'DETACH ' : ''}DELETE ${dlt.literal}`;
   }
 
-  throw new NeogmaConstraintError('invalid delete configuration');
+  throw new NeogmaConstraintError('Invalid delete configuration');
 };

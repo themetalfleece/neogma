@@ -6,9 +6,14 @@ import type { CallI } from './getCallString.types';
  * @throws NeogmaConstraintError if value is not a non-empty string
  */
 export const assertCallValue = (call: CallI['call']): void => {
-  if (typeof call !== 'string' || call.trim().length === 0) {
+  if (typeof call !== 'string') {
     throw new NeogmaConstraintError(
       `Invalid 'call' value: expected a non-empty string, got ${typeof call}`,
+    );
+  }
+  if (call.trim().length === 0) {
+    throw new NeogmaConstraintError(
+      `Invalid 'call' value: expected a non-empty string, got empty string`,
     );
   }
 };

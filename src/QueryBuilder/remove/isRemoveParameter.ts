@@ -5,6 +5,10 @@ import type {
   RemovePropertiesI,
 } from './getRemoveString.types';
 
+/**
+ * Type guard to check if a parameter has a 'remove' key.
+ * Only checks for key presence; value validation happens in assertRemoveValue.
+ */
 export const isRemoveParameter = (param: ParameterI): param is RemoveI => {
   return (
     typeof param === 'object' &&
@@ -18,15 +22,15 @@ export const isRemoveParameter = (param: ParameterI): param is RemoveI => {
  * Use assertRemoveProperties() if you need validation with error throwing.
  */
 export const isRemoveProperties = (
-  _param: RemoveI['remove'],
-): _param is RemovePropertiesI => {
-  if (typeof _param !== 'object' || _param === null) {
+  param: RemoveI['remove'],
+): param is RemovePropertiesI => {
+  if (typeof param !== 'object' || param === null) {
     return false;
   }
-  if (!('properties' in _param) || !('identifier' in _param)) {
+  if (!('properties' in param) || !('identifier' in param)) {
     return false;
   }
-  const { identifier, properties } = _param as RemovePropertiesI;
+  const { identifier, properties } = param as RemovePropertiesI;
   if (typeof identifier !== 'string' || identifier.trim().length === 0) {
     return false;
   }
@@ -47,15 +51,15 @@ export const isRemoveProperties = (
  * Use assertRemoveLabels() if you need validation with error throwing.
  */
 export const isRemoveLabels = (
-  _param: RemoveI['remove'],
-): _param is RemoveLabelsI => {
-  if (typeof _param !== 'object' || _param === null) {
+  param: RemoveI['remove'],
+): param is RemoveLabelsI => {
+  if (typeof param !== 'object' || param === null) {
     return false;
   }
-  if (!('labels' in _param) || !('identifier' in _param)) {
+  if (!('labels' in param) || !('identifier' in param)) {
     return false;
   }
-  const { identifier, labels } = _param as RemoveLabelsI;
+  const { identifier, labels } = param as RemoveLabelsI;
   if (typeof identifier !== 'string' || identifier.trim().length === 0) {
     return false;
   }

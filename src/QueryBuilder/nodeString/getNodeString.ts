@@ -17,6 +17,10 @@ import type {
   GetNodeStringResult,
 } from './getNodeString.types';
 
+/**
+ * Generates a node pattern string for use in Cypher queries.
+ * Handles string literals, node objects with labels/models, and where conditions.
+ */
 export const getNodeString = (
   node: GetNodeStringNode,
   deps: GetNodeStringDeps,

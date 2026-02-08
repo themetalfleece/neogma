@@ -14,10 +14,10 @@ export type RemoveLabelsI = {
   labels: string | string[];
 };
 
-// REMOVE parameter
+/** REMOVE clause parameter */
 export type RemoveI = {
-  // REMOVE parameter
-  remove: string | RemovePropertiesI | RemoveLabelsI; // TODO also array of Properties|Labels
+  /** The remove expression - string literal, properties object, or labels object */
+  remove: string | RemovePropertiesI | RemoveLabelsI; // TODO: also support array of Properties|Labels
 };
 
 export type GetRemoveStringRemove = RemoveI['remove'];

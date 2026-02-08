@@ -9,7 +9,7 @@ export const assertSkipValue = (skip: SkipI['skip']): void => {
   if (typeof skip === 'string') {
     if (skip.trim().length === 0) {
       throw new NeogmaConstraintError(
-        `Invalid 'skip' value: expected a non-empty string or number`,
+        `Invalid 'skip' value: expected a non-empty string or number, got empty string`,
       );
     }
     return;

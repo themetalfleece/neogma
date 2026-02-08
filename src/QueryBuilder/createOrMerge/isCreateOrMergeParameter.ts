@@ -6,6 +6,10 @@ import type {
   MergeI,
 } from './getCreateOrMergeString.types';
 
+/**
+ * Type guard to check if a parameter has a 'create' key.
+ * Only checks for key presence; value validation happens in assertCreateValue.
+ */
 export const isCreateParameter = (param: ParameterI): param is CreateI => {
   return (
     typeof param === 'object' &&
@@ -14,6 +18,10 @@ export const isCreateParameter = (param: ParameterI): param is CreateI => {
   );
 };
 
+/**
+ * Type guard to check if a parameter has a 'merge' key.
+ * Only checks for key presence; value validation happens in assertMergeValue.
+ */
 export const isMergeParameter = (param: ParameterI): param is MergeI => {
   return (
     typeof param === 'object' && param !== null && Object.hasOwn(param, 'merge')

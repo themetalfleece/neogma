@@ -104,19 +104,20 @@ export const getMatchString = (
   }
 
   if (isMatchRelated(match)) {
-    // every even element is a node, every odd element is a relationship
+    // Pattern: node, relationship, node, ...
+    // Even indices (0, 2, 4...) are nodes, odd indices (1, 3, 5...) are relationships
     for (let index = 0; index < match.related.length; index++) {
       const element = match.related[index];
-      if (index % 2) {
-        // odd index = relationship
+      const isRelationshipIndex = index % 2 === 1;
+
+      if (isRelationshipIndex) {
         if (!isRelationship(element)) {
           throw new NeogmaConstraintError(
-            'odd argument of related is not a relationship',
+            `Expected relationship at index ${index}, got node`,
           );
         }
         collectResult(getRelationshipString(element, deps));
       } else {
-        // even index = node
         collectResult(getNodeString(element, deps));
       }
     }

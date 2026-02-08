@@ -6,9 +6,14 @@ import type { ForEachI } from './getForEachString.types';
  * @throws NeogmaConstraintError if value is not a non-empty string
  */
 export const assertForEachValue = (forEach: ForEachI['forEach']): void => {
-  if (typeof forEach !== 'string' || forEach.trim().length === 0) {
+  if (typeof forEach !== 'string') {
     throw new NeogmaConstraintError(
       `Invalid 'forEach' value: expected a non-empty string, got ${typeof forEach}`,
+    );
+  }
+  if (forEach.trim().length === 0) {
+    throw new NeogmaConstraintError(
+      `Invalid 'forEach' value: expected a non-empty string, got empty string`,
     );
   }
 };

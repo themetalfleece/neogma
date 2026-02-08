@@ -6,6 +6,10 @@ import type {
   GetLimitStringLimit,
 } from './getLimitString.types';
 
+/**
+ * Generates a LIMIT clause string.
+ * Accepts a string literal or a number that gets parameterized.
+ */
 export const getLimitString = (
   limit: GetLimitStringLimit,
   deps: GetLimitStringDeps,

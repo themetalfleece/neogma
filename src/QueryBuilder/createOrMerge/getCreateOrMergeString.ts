@@ -13,6 +13,10 @@ import type {
 } from './getCreateOrMergeString.types';
 import { isCreateMultiple, isCreateRelated } from './isCreateOrMergeParameter';
 
+/**
+ * Generates a CREATE or MERGE clause string.
+ * Supports string literals, single nodes, multiple nodes, and related node patterns.
+ */
 export const getCreateOrMergeString = (
   create: GetCreateOrMergeStringCreate,
   mode: GetCreateOrMergeStringMode,
@@ -40,21 +44,22 @@ export const getCreateOrMergeString = (
   }
 
   if (isCreateRelated(create)) {
-    // every even element is a node, every odd element is a relationship
+    // Pattern: node, relationship, node, ...
+    // Even indices (0, 2, 4...) are nodes, odd indices (1, 3, 5...) are relationships
     const parts: string[] = [];
 
     for (let index = 0; index < create.related.length; index++) {
       const element = create.related[index];
-      if (index % 2) {
-        // even, parse as relationship
+      const isRelationshipIndex = index % 2 === 1;
+
+      if (isRelationshipIndex) {
         if (!isRelationship(element)) {
           throw new NeogmaConstraintError(
-            'even argument of related is not a relationship',
+            `Expected relationship at index ${index}, got node`,
           );
         }
         parts.push(getRelationshipString(element, deps).statement);
       } else {
-        // odd, parse as node
         parts.push(getNodeString(element, deps).statement);
       }
     }

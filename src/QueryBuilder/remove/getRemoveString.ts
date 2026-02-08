@@ -71,5 +71,5 @@ export const getRemoveString = (remove: GetRemoveStringRemove): string => {
     return `REMOVE ${safeIdentifier}:${escapedLabels.join(':')}`;
   }
 
-  throw new NeogmaConstraintError('invalid remove configuration');
+  throw new NeogmaConstraintError('Invalid remove configuration');
 };

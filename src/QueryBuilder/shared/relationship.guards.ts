@@ -94,12 +94,12 @@ export const assertRelationshipWithProperties = (
  * Used to distinguish relationships from nodes in related arrays.
  */
 export const isRelationship = (
-  _relationship: RelationshipForMatchI | NodeForMatchI,
-): _relationship is RelationshipForMatchI => {
+  relationship: RelationshipForMatchI | NodeForMatchI,
+): relationship is RelationshipForMatchI => {
   return (
-    typeof _relationship === 'string' ||
-    (typeof _relationship === 'object' &&
-      _relationship !== null &&
-      'direction' in _relationship)
+    typeof relationship === 'string' ||
+    (typeof relationship === 'object' &&
+      relationship !== null &&
+      'direction' in relationship)
   );
 };

@@ -6,6 +6,10 @@ import type {
   GetSkipStringSkip,
 } from './getSkipString.types';
 
+/**
+ * Generates a SKIP clause string.
+ * Accepts a string literal or a number that gets parameterized.
+ */
 export const getSkipString = (
   skip: GetSkipStringSkip,
   deps: GetSkipStringDeps,

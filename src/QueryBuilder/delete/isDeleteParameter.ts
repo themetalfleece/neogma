@@ -21,15 +21,15 @@ export const isDeleteParameter = (param: unknown): param is DeleteI => {
  * Use assertDeleteWithIdentifier() if you need validation with error throwing.
  */
 export const isDeleteWithIdentifier = (
-  _param: DeleteI['delete'],
-): _param is DeleteByIdentifierI => {
-  if (typeof _param !== 'object' || _param === null) {
+  param: DeleteI['delete'],
+): param is DeleteByIdentifierI => {
+  if (typeof param !== 'object' || param === null) {
     return false;
   }
-  if (!('identifiers' in _param)) {
+  if (!('identifiers' in param)) {
     return false;
   }
-  const identifiers = (_param as DeleteByIdentifierI).identifiers;
+  const identifiers = (param as DeleteByIdentifierI).identifiers;
   if (typeof identifiers === 'string') {
     return identifiers.trim().length > 0;
   }
@@ -47,14 +47,14 @@ export const isDeleteWithIdentifier = (
  * Use assertDeleteWithLiteral() if you need validation with error throwing.
  */
 export const isDeleteWithLiteral = (
-  _param: DeleteI['delete'],
-): _param is DeleteLiteralI => {
-  if (typeof _param !== 'object' || _param === null) {
+  param: DeleteI['delete'],
+): param is DeleteLiteralI => {
+  if (typeof param !== 'object' || param === null) {
     return false;
   }
-  if (!('literal' in _param)) {
+  if (!('literal' in param)) {
     return false;
   }
-  const literal = (_param as DeleteLiteralI).literal;
+  const literal = (param as DeleteLiteralI).literal;
   return typeof literal === 'string' && literal.trim().length > 0;
 };

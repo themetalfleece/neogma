@@ -9,7 +9,7 @@ export const assertLimitValue = (limit: LimitI['limit']): void => {
   if (typeof limit === 'string') {
     if (limit.trim().length === 0) {
       throw new NeogmaConstraintError(
-        `Invalid 'limit' value: expected a non-empty string or number`,
+        `Invalid 'limit' value: expected a non-empty string or number, got empty string`,
       );
     }
     return;
