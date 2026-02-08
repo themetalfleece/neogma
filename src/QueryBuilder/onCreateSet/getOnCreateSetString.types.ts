@@ -1,5 +1,6 @@
 import type { BindParam } from '../../BindParam';
 import type { Neo4jSupportedProperties } from '../../QueryRunner/QueryRunner.types';
+import { isPlainObject } from '../../utils/object';
 
 /**
  * Parameters for the ON CREATE SET clause.
@@ -50,7 +51,6 @@ export const isOnCreateSetObject = (
   return (
     typeof obj.identifier === 'string' &&
     obj.identifier.trim().length > 0 &&
-    typeof obj.properties === 'object' &&
-    obj.properties !== null
+    isPlainObject(obj.properties)
   );
 };

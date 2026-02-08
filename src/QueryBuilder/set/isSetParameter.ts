@@ -1,3 +1,4 @@
+import { isPlainObject } from '../../utils/object';
 import type { SetI, SetObjectI } from './getSetString.types';
 
 /**
@@ -12,6 +13,7 @@ export const isSetParameter = (param: unknown): param is SetI => {
 
 /**
  * Type guard helper for SetObjectI. Returns true if the value is a valid SetObjectI.
+ * Rejects arrays for properties - only plain objects are accepted.
  */
 export const isSetObject = (set: SetI['set']): set is SetObjectI => {
   if (typeof set !== 'object' || set === null) {
@@ -21,7 +23,6 @@ export const isSetObject = (set: SetI['set']): set is SetObjectI => {
   return (
     typeof setObj.identifier === 'string' &&
     setObj.identifier.trim().length > 0 &&
-    typeof setObj.properties === 'object' &&
-    setObj.properties !== null
+    isPlainObject(setObj.properties)
   );
 };

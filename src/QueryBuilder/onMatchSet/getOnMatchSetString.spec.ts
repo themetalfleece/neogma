@@ -391,6 +391,22 @@ describe('getOnMatchSetString', () => {
         qb.onMatchSet({ identifier: '   ', properties: { status: 'active' } });
       }).toThrow("Invalid 'onMatchSet' value");
     });
+
+    it('rejects onMatchSet object with array as properties', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - properties must be a plain object, not an array
+        qb.onMatchSet({ identifier: 'n', properties: ['name', 'age'] });
+      }).toThrow("Invalid 'onMatchSet' value");
+    });
+
+    it('rejects onMatchSet object with null properties', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - properties must be a plain object, not null
+        qb.onMatchSet({ identifier: 'n', properties: null });
+      }).toThrow("Invalid 'onMatchSet' value");
+    });
   });
 
   describe('with array values', () => {

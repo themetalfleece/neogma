@@ -80,5 +80,21 @@ describe('getSetString', () => {
         qb.set({ identifier: '   ', properties: { name: 'test' } });
       }).toThrow("Invalid 'set' value");
     });
+
+    it('rejects set object with array as properties', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - properties must be a plain object, not an array
+        qb.set({ identifier: 'n', properties: ['name', 'age'] });
+      }).toThrow("Invalid 'set' value");
+    });
+
+    it('rejects set object with null properties', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - properties must be a plain object, not null
+        qb.set({ identifier: 'n', properties: null });
+      }).toThrow("Invalid 'set' value");
+    });
   });
 });

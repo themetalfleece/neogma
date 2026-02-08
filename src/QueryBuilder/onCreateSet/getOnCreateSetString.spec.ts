@@ -333,6 +333,22 @@ describe('getOnCreateSetString', () => {
         qb.onCreateSet({ identifier: '   ', properties: { name: 'test' } });
       }).toThrow("Invalid 'onCreateSet' value");
     });
+
+    it('rejects onCreateSet object with array as properties', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - properties must be a plain object, not an array
+        qb.onCreateSet({ identifier: 'n', properties: ['name', 'age'] });
+      }).toThrow("Invalid 'onCreateSet' value");
+    });
+
+    it('rejects onCreateSet object with null properties', () => {
+      const qb = new QueryBuilder();
+      expect(() => {
+        // @ts-expect-error - properties must be a plain object, not null
+        qb.onCreateSet({ identifier: 'n', properties: null });
+      }).toThrow("Invalid 'onCreateSet' value");
+    });
   });
 
   describe('with array values', () => {
