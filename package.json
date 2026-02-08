@@ -20,6 +20,7 @@
     "dist/**/*"
   ],
   "dependencies": {
+    "@types/revalidator": "^0.3.12",
     "clone": "^2.1.2",
     "neo4j-driver": "^6.0.1",
     "revalidator": "^0.3.1"
@@ -28,7 +29,6 @@
     "@types/clone": "^2.1.4",
     "@types/jest": "^30.0.0",
     "@types/node": ">=18.0.0",
-    "@types/revalidator": "^0.3.12",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
     "dotenv": "^17.2.3",
