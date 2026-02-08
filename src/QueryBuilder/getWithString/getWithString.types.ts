@@ -1,3 +1,0 @@
-import type { WithI } from '../QueryBuilder.types';
-
-export type GetWithStringWith = WithI['with'];

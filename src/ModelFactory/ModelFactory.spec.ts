@@ -985,3 +985,325 @@ describe('methods this context type safety', () => {
     expect(instance.getInitials()).toBe('JD');
   });
 });
+
+describe('relationship alias validation', () => {
+  it('rejects invalid alias at model creation time - starts with number', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            '123Invalid': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(
+      /Invalid identifier "123Invalid".*Identifiers must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('rejects invalid alias at model creation time - contains special characters', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            'my-orders': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(
+      /Invalid identifier "my-orders".*Identifiers must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('rejects invalid alias at model creation time - contains spaces', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            'my orders': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(
+      /Invalid identifier "my orders".*Identifiers must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('rejects potential Cypher injection in alias', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'TestModel',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            'Orders} DETACH DELETE n //': {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).toThrow(/Invalid identifier/);
+  });
+
+  it('rejects invalid alias when using addRelationships', () => {
+    const TestModel = ModelFactory(
+      {
+        label: 'AddRelTest',
+        schema: {
+          id: { type: 'string', required: true },
+        },
+      },
+      neogma,
+    );
+
+    expect(() => {
+      TestModel.addRelationships({
+        'bad-alias': {
+          model: Orders,
+          direction: 'out',
+          name: 'RELATES_TO',
+        },
+      } as any);
+    }).toThrow(
+      /Invalid identifier "bad-alias".*Identifiers must contain only alphanumeric characters and underscores/,
+    );
+  });
+
+  it('accepts valid alias with underscores', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ValidTest',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            my_orders: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).not.toThrow();
+  });
+
+  it('rejects reserved alias "node" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedNodeTest',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            node: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Relationship alias "node".*is reserved/);
+  });
+
+  it('rejects reserved alias "relationship" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedRelTest',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            relationship: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Relationship alias "relationship".*is reserved/);
+  });
+
+  it('rejects reserved alias "__collected" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedCollectedTest',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            __collected: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Relationship alias "__collected".*is reserved/);
+  });
+
+  it('rejects reserved alias when using addRelationships', () => {
+    const TestModel = ModelFactory(
+      {
+        label: 'AddRelReservedTest',
+        schema: {
+          id: { type: 'string', required: true },
+        },
+      },
+      neogma,
+    );
+
+    expect(() => {
+      TestModel.addRelationships({
+        node: {
+          model: Orders,
+          direction: 'out',
+          name: 'RELATES_TO',
+        },
+      } as any);
+    }).toThrow(/Relationship alias "node".*is reserved/);
+  });
+
+  it('accepts valid alias starting with underscore', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ValidTest2',
+          schema: {
+            id: { type: 'string', required: true },
+          },
+          relationships: {
+            _privateOrders: {
+              model: Orders,
+              direction: 'out',
+              name: 'RELATES_TO',
+            },
+          },
+        },
+        neogma,
+      );
+    }).not.toThrow();
+  });
+});
+
+describe('schema property validation', () => {
+  it('rejects reserved property "save" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedSaveTest',
+          schema: {
+            id: { type: 'string', required: true },
+            save: { type: 'string', required: false },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Schema property "save".*is reserved/);
+  });
+
+  it('rejects reserved property "delete" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedDeleteTest',
+          schema: {
+            id: { type: 'string', required: true },
+            delete: { type: 'string', required: false },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Schema property "delete".*is reserved/);
+  });
+
+  it('rejects reserved property "dataValues" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedDataValuesTest',
+          schema: {
+            id: { type: 'string', required: true },
+            dataValues: { type: 'string', required: false },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Schema property "dataValues".*is reserved/);
+  });
+
+  it('rejects reserved property "__existsInDatabase" at model definition', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ReservedExistsTest',
+          schema: {
+            id: { type: 'string', required: true },
+            __existsInDatabase: { type: 'boolean', required: false },
+          },
+        } as any,
+        neogma,
+      );
+    }).toThrow(/Schema property "__existsInDatabase".*is reserved/);
+  });
+
+  it('accepts valid property names', () => {
+    expect(() => {
+      ModelFactory(
+        {
+          label: 'ValidPropsTest',
+          schema: {
+            id: { type: 'string', required: true },
+            name: { type: 'string', required: true },
+            email: { type: 'string', required: false },
+            user_id: { type: 'string', required: false },
+          },
+        },
+        neogma,
+      );
+    }).not.toThrow();
+  });
+});

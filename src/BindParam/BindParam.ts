@@ -3,6 +3,7 @@ import clone from 'clone';
 import { NeogmaError } from '../Errors';
 import { NeogmaConstraintError } from '../Errors/NeogmaConstraintError';
 import { Literal } from '../Literal';
+import { sanitizeParamName } from '../utils/cypher';
 import { StringSequence } from '../utils/StringSequence';
 
 /**
@@ -64,21 +65,25 @@ export class BindParam {
 
   /**
    * Generates a unique parameter name that doesn't conflict with existing bind param keys.
-   * If the suffix itself is unique, it's returned as-is. Otherwise, generates a unique
+   * The suffix is sanitized to ensure it's a valid Cypher parameter name.
+   * If the sanitized suffix is unique, it's returned as-is. Otherwise, generates a unique
    * variant by appending a sequence (e.g., 'name__aaaa', 'name__aaab', etc.).
    *
-   * @param suffix - The base name to use for the parameter
-   * @returns A unique parameter name starting with the provided suffix
+   * @param suffix - The base name to use for the parameter (will be sanitized)
+   * @returns A unique, valid Cypher parameter name
    * @throws {NeogmaError} If unable to generate a unique name after 10,000 attempts
    */
   public getUniqueName(suffix: string): string {
-    if (!Object.hasOwn(this.bind, suffix)) {
-      return suffix;
+    // Sanitize to ensure valid Cypher parameter name
+    const safeSuffix = sanitizeParamName(suffix);
+
+    if (!Object.hasOwn(this.bind, safeSuffix)) {
+      return safeSuffix;
     } else {
       const stringSequence = new StringSequence('a', 'zzzz', 4);
 
       for (let generationTry = 0; generationTry < 10000; generationTry++) {
-        const newKey = suffix + '__' + stringSequence.getNextString(true);
+        const newKey = safeSuffix + '__' + stringSequence.getNextString(true);
         if (!Object.hasOwn(this.bind, newKey)) {
           return newKey;
         }
@@ -86,7 +91,7 @@ export class BindParam {
 
       throw new NeogmaError(
         'Max number of tries for string generation reached',
-        { suffix, attempts: 10000 },
+        { suffix: safeSuffix, attempts: 10000 },
       );
     }
   }
