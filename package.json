@@ -9,13 +9,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./dist/*": "./dist/*"
+    "./dist/*.js": "./dist/*.js",
+    "./dist/*.d.ts": "./dist/*.d.ts"
   },
   "sideEffects": false,
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "files": [
     "dist/**/*"
@@ -29,7 +30,7 @@
   "devDependencies": {
     "@types/clone": "^2.1.4",
     "@types/jest": "^30.0.0",
-    "@types/node": ">=18.0.0",
+    "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
     "dotenv": "^17.2.3",
