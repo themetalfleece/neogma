@@ -2,6 +2,9 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFiles: ['<rootDir>/src/test/setupTests.ts'],
+  // typebox v1 ships pure-ESM `.mjs` files; use a small custom transformer
+  // (jest.transformer.mjs.js) to compile them to CommonJS so they can be
+  // `require()`-d under Jest's CJS runtime.
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
@@ -12,7 +15,14 @@ module.exports = {
         },
       },
     ],
+    '^.+\\.mjs$': '<rootDir>/jest.transformer.mjs.js',
   },
+  // Don't ignore (i.e., do transform) any path that contains `/typebox/`,
+  // including pnpm's nested layout at `node_modules/.pnpm/typebox@<ver>/node_modules/typebox/`.
+  transformIgnorePatterns: [
+    'node_modules[\\\\/](?!(?:.*[\\\\/])?typebox[\\\\/])',
+  ],
+  moduleFileExtensions: ['ts', 'tsx', 'mjs', 'js', 'json'],
   // For a detailed explanation regarding each configuration property, visit:
 
   // https://jestjs.io/docs/en/configuration.html
@@ -155,6 +165,12 @@ module.exports = {
 
   // The glob patterns Jest uses to detect test files
   testMatch: ['**/*.spec.ts'],
+
+  // The example workspace is a self-contained app; keep its files out of
+  // the library's Jest run entirely so a stray *.spec.ts there can never
+  // bleed into CI for this package.
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/examples/'],
+  modulePathIgnorePatterns: ['<rootDir>/examples/'],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   // testPathIgnorePatterns: [

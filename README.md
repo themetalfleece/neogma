@@ -28,8 +28,14 @@
 ## Installation
 
 ```bash
-npm i neogma
+npm add neogma
+# or
+pnpm install neogma
+# or
+yarn add neogma
 ```
+
+> A runnable end-to-end example that exercises every public API is in [`examples/basic-app`](./examples/basic-app).
 
 ## Quick Start
 

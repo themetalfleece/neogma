@@ -1,0 +1,10 @@
+# pnpm workspace configuration
+# https://pnpm.io/pnpm-workspace_yaml
+packages:
+  - '.'
+  - 'examples/*'
+
+# Dependencies that are explicitly allowed to run install/build scripts.
+# pnpm 11+ blocks lifecycle scripts by default; list trusted packages here.
+allowBuilds:
+  unrs-resolver: true

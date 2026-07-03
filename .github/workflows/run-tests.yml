@@ -16,19 +16,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-
-      - name: Enable Corepack
-        run: corepack enable
+          cache: 'pnpm'
 
       - name: Start Neo4j with Docker Compose
         run: docker compose up -d
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: pnpm install --frozen-lockfile
 
       - name: Wait for Neo4j
         uses: ifaxity/wait-on-action@v1.1.0
@@ -42,7 +43,7 @@ jobs:
           NEO4J_URL: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: password
-        run: yarn test
+        run: pnpm test
 
       - name: Stop Neo4j
         if: always()

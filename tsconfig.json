@@ -9,7 +9,7 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "target": "es2020",
-    "lib": ["es2022"],
+    "lib": ["es2022", "esnext.decorators"],
     "strictNullChecks": true,
     "strictBindCallApply": true,
     "noImplicitReturns": true,
