@@ -1,8 +1,7 @@
-import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import type { QueryRunner } from '../../QueryRunner';
+import type { Neo4jSupportedProperties, QueryRunner } from '../../QueryRunner';
 import type { WhereParamsI } from '../../Where';
 import type { NeogmaModel } from '../model.types';
-import type { GenericConfiguration } from '../shared.types';
+import type { AnyObject, GenericConfiguration } from '../shared.types';
 
 // Static delete context
 export interface DeleteContext {
@@ -25,8 +24,8 @@ export interface DeleteParams<
 // Instance delete context
 export interface InstanceDeleteContext<
   Properties extends Neo4jSupportedProperties,
-  RelatedNodesToAssociateI extends Record<string, any>,
-  MethodsI extends Record<string, any>,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
 > {
   Model: NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, any>;
   primaryKeyField: string | undefined;

@@ -1,5 +1,13 @@
+import Type from 'typebox';
+
 import type { NeogmaInstance } from '..';
-import { ModelFactory } from '..';
+import {
+  Node,
+  NodeEntity,
+  Property,
+  Relationship,
+  toModel,
+} from '../Decorators';
 import type { ModelRelatedNodesI } from '../ModelFactory';
 import { Neogma } from '../Neogma';
 import type { QueryBuilder } from './QueryBuilder';
@@ -11,17 +19,14 @@ export const neogma = new Neogma({
   password: process.env.NEO4J_PASSWORD ?? '',
 });
 
-// Model A types and factory
+// Model A types
 export type ModelAAttributesI = {
   name: string;
   id: string;
 };
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ModelARelatedNodesI {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ModelAMethodsI {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ModelAStaticsI {}
+export type ModelARelatedNodesI = object;
+export type ModelAMethodsI = object;
+export type ModelAStaticsI = object;
 
 export type ModelAInstance = NeogmaInstance<
   ModelAAttributesI,
@@ -29,34 +34,7 @@ export type ModelAInstance = NeogmaInstance<
   ModelAMethodsI
 >;
 
-export const ModelA = ModelFactory<
-  ModelAAttributesI,
-  ModelARelatedNodesI,
-  ModelAStaticsI,
-  ModelAMethodsI
->(
-  {
-    label: 'ModelA',
-    schema: {
-      name: {
-        type: 'string',
-        minLength: 3,
-        required: true,
-      },
-      id: {
-        type: 'string',
-        required: true,
-      },
-    },
-    relationships: [],
-    primaryKeyField: 'id',
-    statics: {},
-    methods: {},
-  },
-  neogma,
-);
-
-// Model B types and factory
+// Model B types
 export type ModelBAttributesI = {
   name: string;
   id: string;
@@ -76,56 +54,62 @@ export interface ModelBRelatedNodesI {
   >;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ModelBMethodsI {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ModelBStaticsI {}
+export type ModelBMethodsI = object;
+export type ModelBStaticsI = object;
 
-export const ModelB = ModelFactory<
+// Decorated class definitions
+
+@Node({ label: 'ModelA', primaryKeyField: 'id' })
+class ModelANode extends NodeEntity {
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @Property(Type.String())
+  id!: string;
+}
+
+@Node({ label: 'ModelB', primaryKeyField: 'id' })
+class ModelBNode extends NodeEntity {
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @Property(Type.String())
+  id!: string;
+
+  @Property(Type.Number())
+  age!: number;
+
+  @Relationship({
+    name: 'RELNAME',
+    direction: 'out',
+    model: () => ModelANode,
+    properties: [
+      {
+        alias: 'Available',
+        property: 'available',
+        schema: Type.Number(),
+      },
+    ],
+  })
+  ModelA!: any;
+}
+
+// Create models via decorators. The decorator registry keys models by class
+// identity, so the locally-scoped ModelANode/ModelBNode declarations above
+// cannot collide with models registered by other test helper modules.
+export const ModelA = toModel<
+  ModelAAttributesI,
+  ModelARelatedNodesI,
+  ModelAStaticsI,
+  ModelAMethodsI
+>(ModelANode, neogma);
+
+export const ModelB = toModel<
   ModelBAttributesI,
   ModelBRelatedNodesI,
   ModelBStaticsI,
   ModelBMethodsI
->(
-  {
-    label: 'ModelB',
-    schema: {
-      name: {
-        type: 'string',
-        minLength: 3,
-        required: true,
-      },
-      id: {
-        type: 'string',
-        required: true,
-      },
-      age: {
-        type: 'number',
-        required: true,
-      },
-    },
-    relationships: {
-      ModelA: {
-        direction: 'out',
-        model: ModelA,
-        name: 'RELNAME',
-        properties: {
-          Available: {
-            property: 'available',
-            schema: {
-              type: 'number',
-              required: true,
-            },
-          },
-        },
-      },
-    },
-    primaryKeyField: 'id',
-    statics: {},
-    methods: {},
-  },
-  neogma,
-);
+>(ModelBNode, neogma);
 
 // Test helper functions
 export const expectStatementEquals = (

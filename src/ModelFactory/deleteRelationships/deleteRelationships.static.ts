@@ -1,8 +1,7 @@
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import { QueryBuilder } from '../../QueryBuilder';
-import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import { QueryRunner } from '../../QueryRunner';
+import { type Neo4jSupportedProperties, QueryRunner } from '../../QueryRunner';
 import type { RelationshipCrudContext } from '../relateTo/relateTo.types';
 import type { AnyObject } from '../shared.types';
 import type { DeleteRelationshipsParams } from './deleteRelationships.types';

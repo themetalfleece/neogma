@@ -1,8 +1,7 @@
-import type { QueryResult } from 'neo4j-driver';
-
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import type { CreateDataI, NeogmaInstance } from '../model.types';
+import type { CreateDataI, NeogmaInstance, UpdateDataI } from '../model.types';
+import type { AnyObject } from '../shared.types';
 import { getInstanceProperty } from '../utils/propertyAccessor';
 import type { SaveConfiguration, SaveContext } from './save.types';
 
@@ -11,8 +10,8 @@ import type { SaveConfiguration, SaveContext } from './save.types';
  */
 export async function save<
   Properties extends Neo4jSupportedProperties,
-  RelatedNodesToAssociateI extends Record<string, any>,
-  MethodsI extends Record<string, any>,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
 >(
   instance: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
   ctx: SaveContext<Properties, RelatedNodesToAssociateI, MethodsI>,
@@ -34,7 +33,7 @@ export async function save<
     );
 
     // if it exists in the database, update the node by only the fields which have changed
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     for (const [key, changed] of Object.entries(instance.changed)) {
       if (changed && ctx.schemaKeys.has(key)) {
         updateData[key] = getInstanceProperty(instance, key);
@@ -43,17 +42,19 @@ export async function save<
 
     const numberOfPropertiesToSet = Object.keys(updateData).length;
     if (numberOfPropertiesToSet) {
-      const updateRes = await ctx.Model.update(updateData as any, {
-        return: false,
-        session: config?.session,
-        where: {
-          [primaryKeyField]: getInstanceProperty(instance, primaryKeyField),
+      const updateRes = await ctx.Model.update(
+        updateData as UpdateDataI<Properties>,
+        {
+          return: false,
+          session: config?.session,
+          where: {
+            [primaryKeyField]: getInstanceProperty(instance, primaryKeyField),
+          },
         },
-      });
+      );
 
-      const propertiesSet = (
-        updateRes[1] as QueryResult
-      ).summary.counters.updates().propertiesSet;
+      const propertiesSet =
+        updateRes[1].summary.counters.updates().propertiesSet;
 
       if (propertiesSet !== numberOfPropertiesToSet) {
         throw new NeogmaConstraintError(

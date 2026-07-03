@@ -36,8 +36,7 @@ export class QueryRunner {
   public sessionParams?: SessionConfig;
   /** whether to log the statements and parameters with the given function */
   private logger:
-    | null
-    | ((...val: Array<string | boolean | AnyObject | number>) => any);
+    null | ((...val: Array<string | boolean | AnyObject | number>) => any);
   /** maps a session object to a uuid, for logging purposes */
   private sessionIdentifiers = new WeakMap<Runnable, string>([]);
 

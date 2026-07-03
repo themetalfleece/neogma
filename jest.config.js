@@ -9,7 +9,7 @@ module.exports = {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
-        tsconfig: 'tsconfig.spec.json',
+        tsconfig: 'tsconfig.json',
         diagnostics: {
           warnOnly: false, // Fail tests on TypeScript errors
         },

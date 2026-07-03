@@ -17,13 +17,10 @@ export type NodeForMatchObjectI = {
 
 /** node type which will be used for creating/merging */
 export type NodeForCreateI =
-  | string
-  | NodeForCreateWithLabelI
-  | NodeForCreateWithModelI;
+  string | NodeForCreateWithLabelI | NodeForCreateWithModelI;
 
 export type NodeForCreateObjectI =
-  | NodeForCreateWithLabelI
-  | NodeForCreateWithModelI;
+  NodeForCreateWithLabelI | NodeForCreateWithModelI;
 
 /** node type used for creating/merging, using a label */
 export type NodeForCreateWithLabelI = {

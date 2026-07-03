@@ -22,7 +22,7 @@ import type {
 import type {
   AnyObject,
   GenericConfiguration,
-  IValidationSchema,
+  PropertySchema,
 } from './shared.types';
 import type {
   InstanceUpdateRelationshipWhereClause,
@@ -69,11 +69,16 @@ export type RelationshipsI<RelatedNodesToAssociateI extends AnyObject> = {
     /** relationship properties */
     properties?: {
       /** the alias of the relationship property is the key */
-      [relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']]: {
+      [
+        relationshipPropertyAlias in keyof RelatedNodesToAssociateI[alias]['CreateRelationshipProperties']
+      ]: {
         /** the actual property to be used on the relationship */
         property: keyof RelatedNodesToAssociateI[alias]['RelationshipProperties'];
-        /** validation for the property */
-        schema: IValidationSchema;
+        /**
+         * Validation schema for the property. Provide a TypeBox `TSchema`
+         * (recommended) or a legacy revalidator-shaped entry.
+         */
+        schema: PropertySchema;
       };
     };
   };
@@ -601,13 +606,15 @@ export type NeogmaInstance<
  * This ensures strict property access checking even when the type extends Record<string, ...>.
  */
 export type RemoveIndexSignature<T> = {
-  [K in keyof T as string extends K
-    ? never
-    : number extends K
+  [
+    K in keyof T as string extends K
       ? never
-      : symbol extends K
+      : number extends K
         ? never
-        : K]: T[K];
+        : symbol extends K
+          ? never
+          : K
+  ]: T[K];
 };
 
 /**

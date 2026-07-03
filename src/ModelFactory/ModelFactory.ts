@@ -1,9 +1,9 @@
-import clone from 'clone';
+import { Value } from 'typebox/value';
 
+import { isTSchema } from '../Decorators/validatorAdapter';
 import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../QueryRunner';
-// Import operations from new directories
 import type { BuildContext } from './build';
 import {
   build as buildFn,
@@ -60,7 +60,7 @@ import { save as saveFn } from './save';
 import type {
   AnyObject,
   GenericConfiguration,
-  IValidationSchema,
+  PropertySchema,
 } from './shared.types';
 import type { UpdateContext, UpdateParams, UpdateResult } from './update';
 import { update as updateFn } from './update';
@@ -85,6 +85,32 @@ import {
   validateRelationshipAlias,
   validateSchemaPropertyName,
 } from './validation';
+
+/**
+ * Tracks which Neogma instances have already emitted the revalidator
+ * deprecation warning, so we surface it at most once per instance even when
+ * a codebase declares many models with legacy revalidator-shaped entries.
+ */
+const _warnedRevalidatorDeprecation = new WeakSet<Neogma>();
+
+function warnRevalidatorDeprecation(
+  neogma: Neogma,
+  modelName: string,
+  legacyPropertyKeys: string[],
+): void {
+  if (neogma.suppressRevalidatorDeprecation) return;
+  if (_warnedRevalidatorDeprecation.has(neogma)) return;
+  _warnedRevalidatorDeprecation.add(neogma);
+  console.warn(
+    `[neogma] Model "${modelName}" defines revalidator-shaped property ` +
+      `schemas (${legacyPropertyKeys.join(', ')}). Revalidator JSON-Schema ` +
+      `entries are supported as a legacy compatibility layer and will be ` +
+      `removed in the next major release. Migrate to TypeBox schemas ` +
+      `(e.g. \`Type.String({ minLength: 3 })\`). Pass ` +
+      `\`suppressRevalidatorDeprecation: true\` in the Neogma constructor ` +
+      `options to silence this warning while you migrate.`,
+  );
+}
 
 /**
  * Creates a Model class for interacting with Neo4j nodes of a specific type.
@@ -128,10 +154,13 @@ export const ModelFactory = <
   MethodsI extends AnyObject = object,
 >(
   parameters: {
+    /**
+     * Per-property schemas. Provide TypeBox `TSchema` entries (recommended)
+     * or legacy revalidator-shaped entries — each entry is routed to its
+     * native validator at runtime.
+     */
     schema: {
-      [index in keyof Properties]:
-        | IValidationSchema<Properties>
-        | Revalidator.JSONSchema<Properties>;
+      [index in keyof Properties]: PropertySchema<Properties>;
     };
     label: string | string[];
     statics?: Partial<StaticsI>;
@@ -174,8 +203,15 @@ export const ModelFactory = <
     MethodsI
   >;
 
+  // Value.Clone (from typebox) is a structuredClone-style deep clone that
+  // *preserves* non-enumerable property descriptors on TypeBox schemas
+  // (notably the `~kind` marker used by isTSchema at validation time).
+  // A naive deep clone strips non-enumerable properties and silently
+  // breaks the TypeBox/revalidator routing in the validator adapter.
   const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
-    clone(parameters.relationships) || {};
+    parameters.relationships
+      ? Value.Clone(parameters.relationships)
+      : ({} as Partial<RelationshipsI<RelatedNodesToAssociateI>>);
 
   // Validate relationship aliases at model definition time to prevent Cypher injection.
   // Aliases are used directly in query construction (e.g., as identifiers and return fields).
@@ -187,6 +223,34 @@ export const ModelFactory = <
   // with internal instance properties and methods.
   for (const propertyName of schemaKeys) {
     validateSchemaPropertyName(propertyName, modelName);
+  }
+
+  // Detect any legacy revalidator-shaped schema entries (on node schema
+  // AND on relationship property schemas) and emit the deprecation warning
+  // at most once per Neogma instance. TypeBox entries are the canonical
+  // form; the legacy fallback still works but will be removed in the next
+  // major release.
+  const legacyPropertyKeys: string[] = [];
+  for (const propertyName of schemaKeys) {
+    const entry = (schema as Record<string, unknown>)[propertyName];
+    if (entry != null && !isTSchema(entry)) {
+      legacyPropertyKeys.push(propertyName);
+    }
+  }
+  for (const alias in _relationships) {
+    const relationshipConfig = _relationships[alias];
+    if (!relationshipConfig?.properties) continue;
+    for (const propertyAlias in relationshipConfig.properties) {
+      const propertyEntry = relationshipConfig.properties[propertyAlias];
+      const entrySchema = (propertyEntry as { schema?: unknown } | undefined)
+        ?.schema;
+      if (entrySchema != null && !isTSchema(entrySchema)) {
+        legacyPropertyKeys.push(`${alias}.${propertyAlias}`);
+      }
+    }
+  }
+  if (legacyPropertyKeys.length > 0) {
+    warnRevalidatorDeprecation(neogma, modelName, legacyPropertyKeys);
   }
 
   // Define the Model class

@@ -1,10 +1,11 @@
 import revalidator from 'revalidator';
 
+import { checkSchema, isTSchema } from '../../Decorators/validatorAdapter';
 import { NeogmaInstanceValidationError } from '../../Errors/NeogmaInstanceValidationError';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaModel, RelationshipsI } from '../model.types';
-import type { AnyObject, IValidationSchema } from '../shared.types';
+import type { AnyObject, PropertySchema } from '../shared.types';
 import { validateRelationshipAlias } from '../validation';
 import type { RelationshipConfigContext } from './relationshipConfig.types';
 
@@ -122,7 +123,7 @@ export function getRelationshipProperties(
 ): Neo4jSupportedProperties {
   const keysToUse = Object.keys(relationship.properties || {});
   const relationshipProperties: Neo4jSupportedProperties = {};
-  const validationSchema: Record<string, IValidationSchema<AnyObject>> = {};
+  const validationSchema: Record<string, PropertySchema<AnyObject>> = {};
 
   for (const key of keysToUse) {
     const property = relationship.properties?.[key]?.property as string;
@@ -142,17 +143,35 @@ export function getRelationshipProperties(
     }
   }
 
-  const validationResult = revalidator.validate(relationshipProperties, {
-    type: 'object',
-    properties: validationSchema,
-  });
+  // Route each property to its native validator: TypeBox (primary) or
+  // revalidator (legacy compatibility).
+  const errors: Revalidator.IErrrorProperty[] = [];
+  const legacyEntries: Record<string, unknown> = {};
 
-  if (validationResult.errors.length) {
+  for (const [propName, schema] of Object.entries(validationSchema)) {
+    if (isTSchema(schema)) {
+      errors.push(
+        ...checkSchema(propName, schema, relationshipProperties[propName]),
+      );
+    } else {
+      legacyEntries[propName] = schema;
+    }
+  }
+
+  if (Object.keys(legacyEntries).length > 0) {
+    const validationResult = revalidator.validate(relationshipProperties, {
+      type: 'object',
+      properties: legacyEntries as Revalidator.ISchemas<AnyObject>,
+    });
+    errors.push(...validationResult.errors);
+  }
+
+  if (errors.length) {
     throw new NeogmaInstanceValidationError(
       `Could not validate relationship property`,
       {
         model: Model,
-        errors: validationResult.errors,
+        errors,
       },
     );
   }

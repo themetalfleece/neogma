@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig",
-  "compilerOptions": {
-    "noImplicitThis": true,
-    "useUnknownInCatchVariables": true,
-    "allowJs": true
-  },
-  "exclude": ["node_modules"]
-}

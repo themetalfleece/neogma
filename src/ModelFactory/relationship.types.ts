@@ -43,7 +43,9 @@ export type RelationshipTypePropertyForCreateI<
 export type RelatedNodesCreationParamI<
   RelatedNodesToAssociateI extends AnyObject,
 > = {
-  [key in keyof Partial<RelatedNodesToAssociateI>]: RelationshipTypePropertyForCreateI<
+  [
+    key in keyof Partial<RelatedNodesToAssociateI>
+  ]: RelationshipTypePropertyForCreateI<
     RelatedNodesToAssociateI[key]['CreateData'],
     RelatedNodesToAssociateI[key]['CreateRelationshipProperties']
   >;

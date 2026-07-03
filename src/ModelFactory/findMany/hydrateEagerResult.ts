@@ -41,8 +41,7 @@ function hydrateNestedRelationships(
       // Recursively hydrate nested relationships
       for (const nested of level.nestedLevels) {
         const nestedData = item[nested.alias] as
-          | RawCollectedRelationship[]
-          | undefined;
+          RawCollectedRelationship[] | undefined;
         if (nestedData && Array.isArray(nestedData)) {
           // Set the nested relationships on the target instance
           (targetInstance as Record<string, unknown>)[nested.alias] =

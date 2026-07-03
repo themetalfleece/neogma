@@ -58,7 +58,7 @@
     "clean": "rimraf -rf dist",
     "prepare": "pnpm clean && pnpm build",
     "prebuild": "pnpm lint && pnpm format",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "test": "jest"
   },
   "repository": {
