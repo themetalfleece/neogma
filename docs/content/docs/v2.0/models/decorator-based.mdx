@@ -1,0 +1,285 @@
+---
+title: Decorator-Based Models
+description: Define Neo4j models using TypeScript decorators with full type inference
+---
+
+# Decorator-based models
+
+Neogma v2 introduces a decorator-based API for defining models. This is the recommended approach - it reduces boilerplate and provides full type inference without separate interface declarations.
+
+## Overview
+
+A model is defined as a class with three decorators:
+
+- `@Node` - marks the class as a Neo4j node and sets the label
+- `@Property` - marks a field as a stored property, with optional TypeBox validation
+- `@Relationship` - declares a relationship to another model
+
+```typescript
+import { Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import type { Related } from 'neogma';
+
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  @Property(Type.String())
+  id!: string;
+
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @Property(Type.Optional(Type.Number({ minimum: 0 })))
+  age?: number;
+
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+  })
+  Orders!: Related<typeof OrderNode>;
+}
+
+// Register the model with neogma
+const Users = neogma.model(UserNode);
+```
+
+## The `@Node` decorator
+
+`@Node` marks a class as a Neo4j node. It accepts:
+
+| Option            | Type                 | Description                               |
+| ----------------- | -------------------- | ----------------------------------------- |
+| `label`           | `string \| string[]` | The Neo4j label (or labels) for this node |
+| `primaryKeyField` | `string` (optional)  | The property used as the primary key      |
+
+```typescript
+// Single label
+@Node({ label: 'User', primaryKeyField: 'id' })
+
+// Multiple labels
+@Node({ label: ['User', 'Person'], primaryKeyField: 'id' })
+```
+
+The class must extend `NodeEntity`:
+
+```typescript
+import { NodeEntity } from 'neogma';
+
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  // ...
+}
+```
+
+## The `@Property` decorator
+
+`@Property` marks a field as a Neo4j property. It optionally takes a TypeBox schema for validation:
+
+```typescript
+// With validation schema
+@Property(Type.String({ minLength: 3 }))
+name!: string;
+
+// Optional property
+@Property(Type.Optional(Type.Number()))
+age?: number;
+
+// Without validation (tracked but not validated)
+@Property()
+id!: string;
+```
+
+<Callout type="warn">
+  Use the definite assignment operator (`!`) for required properties, not
+  `declare`. The `declare` keyword cannot be used with TC39 decorators.
+</Callout>
+
+### Supported property types
+
+Neogma supports all types that Neo4j can store natively:
+
+- `string`
+- `number`
+- `boolean`
+- `string[]`, `number[]`, `boolean[]`
+
+Use TypeBox to define the validation:
+
+```typescript
+import { Type } from 'neogma';
+
+@Property(Type.String())              // string
+@Property(Type.Number())              // number
+@Property(Type.Boolean())             // boolean
+@Property(Type.Array(Type.String()))  // string[]
+@Property(Type.Optional(Type.String())) // string | undefined
+```
+
+## The `@Relationship` decorator
+
+`@Relationship` declares a relationship between two nodes:
+
+```typescript
+@Relationship({
+  name: 'PLACED',      // Neo4j relationship type
+  direction: 'out',    // 'in', 'out', or 'none'
+  model: () => OrderNode, // lazy reference to the target model
+})
+Orders!: Related<typeof OrderNode>;
+```
+
+### Relationship options
+
+| Option       | Type                              | Description                                                                  |
+| ------------ | --------------------------------- | ---------------------------------------------------------------------------- |
+| `name`       | `string`                          | The Neo4j relationship type (e.g., `'PLACED'`)                               |
+| `direction`  | `'in' \| 'out' \| 'none'`         | The relationship direction                                                   |
+| `model`      | `() => NodeEntityClass \| 'self'` | Lazy reference to the target model class, or `'self'` for self-relationships |
+| `properties` | `RelationshipPropertyEntry[]`     | Optional relationship property definitions                                   |
+
+### Relationship properties
+
+Relationships can have their own properties:
+
+```typescript
+@Relationship({
+  name: 'RATED',
+  direction: 'out',
+  model: () => ProductNode,
+  properties: [
+    {
+      property: 'rating',      // the actual Neo4j property name
+      alias: 'Rating',         // the alias used in create operations
+      schema: Type.Number({ minimum: 1, maximum: 5 }),
+    },
+    {
+      property: 'review',
+      alias: 'Review',
+      schema: Type.Optional(Type.String()),
+    },
+  ],
+})
+RatedProducts!: Related<
+  typeof ProductNode,
+  { Rating: number; Review?: string },  // create relationship properties
+  { rating: number; review?: string }   // relationship properties
+>;
+```
+
+### Self-relationships
+
+Use `'self'` for relationships that point back to the same model:
+
+```typescript
+@Node({ label: 'Person', primaryKeyField: 'id' })
+class PersonNode extends NodeEntity {
+  @Property(Type.String())
+  id!: string;
+
+  @Relationship({
+    name: 'KNOWS',
+    direction: 'out',
+    model: 'self',
+  })
+  Friends!: Related<typeof PersonNode>;
+}
+```
+
+### Circular references
+
+Relationships use lazy references (`() => TargetClass`) to handle circular dependencies. Neogma resolves them automatically when models are registered:
+
+```typescript
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @Relationship({ name: 'PLACED', direction: 'out', model: () => OrderNode })
+  Orders!: Related<typeof OrderNode>;
+}
+
+@Node({ label: 'Order' })
+class OrderNode extends NodeEntity {
+  @Relationship({ name: 'PLACED', direction: 'in', model: () => UserNode })
+  User!: Related<typeof UserNode>;
+}
+
+// Register in dependency order
+const Orders = neogma.model(OrderNode);
+const Users = neogma.model(UserNode);
+```
+
+## The `Related` type
+
+The `Related` type is used for relationship fields. It carries type information for the target model and optional relationship properties:
+
+```typescript
+import type { Related } from 'neogma';
+
+// Basic relationship (no relationship properties)
+Orders!: Related<typeof OrderNode>;
+
+// With create-time relationship properties and stored relationship properties
+RatedProducts!: Related<
+  typeof ProductNode,
+  { Rating: number },           // properties used when creating the relationship
+  { rating: number }            // properties stored on the relationship
+>;
+```
+
+## Registering models
+
+After defining your model classes, register them with your neogma instance using `neogma.model()`:
+
+```typescript
+const neogma = new Neogma({/* connection */});
+
+// Register models in dependency order
+// (referenced models should be registered first)
+const Orders = neogma.model(OrderNode);
+const Users = neogma.model(UserNode);
+```
+
+The returned value is a fully typed `NeogmaModel` with all CRUD methods, relationship operations, and type inference.
+
+## Adding custom static and instance methods
+
+You can define static and instance methods directly on your class:
+
+```typescript
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  @Property(Type.String()) id!: string;
+  @Property(Type.String()) name!: string;
+
+  // Instance method
+  getDisplayName(): string {
+    return `User: ${this.name}`;
+  }
+
+  // Static method
+  static async findByName(this: typeof Users, name: string) {
+    return this.findOne({ where: { name } });
+  }
+}
+
+const Users = neogma.model(UserNode);
+```
+
+## Using legacy experimental decorators
+
+If your project uses TypeScript's `experimentalDecorators` (common in NestJS projects), import from `neogma/legacy`:
+
+```typescript
+import { Node, Property, Relationship, NodeEntity } from 'neogma/legacy';
+import { Type } from 'neogma';
+import type { Related } from 'neogma';
+
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  @Property(Type.String())
+  id!: string;
+
+  @Property(Type.String())
+  name!: string;
+}
+```
+
+The model definition syntax is identical. The only difference is the import path. Both produce the same `NeogmaModel` when registered.

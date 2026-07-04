@@ -10,37 +10,55 @@
   <a href="https://www.npmjs.com/package/neogma"><img src="https://badgen.net/npm/v/neogma" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/neogma"><img src="https://badgen.net/npm/dm/neogma" alt="npm downloads"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://badgen.net/npm/types/tslib" alt="TypeScript"></a>
-  <a href="https://github.com/themetalfleece/neogma/blob/master/LICENSE"><img src="https://badgen.net/github/license/themetalfleece/neogma" alt="License"></a>
-  <a href="https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml"><img src="https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml/badge.svg?branch=master" alt="Tests"></a>
+  <a href="https://github.com/themetalfleece/neogma/blob/main/LICENSE"><img src="https://badgen.net/github/license/themetalfleece/neogma" alt="License"></a>
+  <a href="https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml"><img src="https://github.com/themetalfleece/neogma/actions/workflows/run-tests.yml/badge.svg?branch=main" alt="Tests"></a>
 </p>
+
+---
+
+## What's new in v2
+
+Neogma v2 introduces a **decorator-based model definition** that replaces the old `ModelFactory` boilerplate with simple, readable class decorators:
+
+- **`@Node`, `@Property`, `@Relationship` decorators** - define models with plain classes
+- **TypeBox validation** - powerful, type-safe schema validation built in
+- **Zero-boilerplate types** - no separate `*Properties`, `*Instance`, or `*RelatedNodes` interfaces needed
+- **Both decorator styles** - supports TC39 standard decorators and legacy experimental decorators
+
+v2 is **fully backwards compatible** with v1. `ModelFactory` still works and is not deprecated. Only the old revalidator validation schema is deprecated and will be removed in a future major release. Everyone is advised to upgrade to v2 to take advantage of the decorator-based API and TypeBox validation.
+
+> Looking for v1? The v1 source is on the [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1), and the v1 documentation is at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
 
 ---
 
 ## Why Neogma?
 
-- 🔷 **Fully Type-Safe** - Built-in TypeScript support with complete type inference
-- ⚡ **Flexible** - Use Models, Query Builders, or raw Cypher queries
-- 🔗 **Automatic Relationships** - Create and manage complex graph structures effortlessly
-- 📦 **Eager Loading** - Load nested relationships in a single query to avoid N+1 problems
-- ✅ **Validation** - Built-in schema validation for your data models
-- 🚀 **Production Ready** - Battle-tested with comprehensive test coverage
+- 🔷 **Fully type-safe** - built-in TypeScript support with complete type inference
+- 🎯 **Decorator-based models** - define nodes, properties, and relationships with simple decorators
+- ⚡ **Flexible** - use models, query builders, or raw Cypher queries
+- 🔗 **Automatic relationships** - create and manage complex graph structures effortlessly
+- 🌿 **Eager loading** - load nested relationships in a single query to avoid N+1 problems
+- ✅ **[TypeBox](https://github.com/sinclairzx81/typebox) validation** - powerful schema validation (included, no extra install)
+- 🛡️ **Parameterized queries** - all user input is passed as query parameters, never interpolated into Cypher strings
+- 🔄 **Session and transaction management** - built-in helpers for sessions, transactions, and automatic rollback
+- 🐈 **NestJS integration** - first-class support via `@neogma/nest`
+- 🚀 **Production ready** - battle-tested with comprehensive test coverage
 
 ## Installation
 
 ```bash
-npm add neogma
+npm install neogma
 # or
-pnpm install neogma
+pnpm add neogma
 # or
 yarn add neogma
 ```
 
-> A runnable end-to-end example that exercises every public API is in [`examples/basic-app`](./examples/basic-app).
-
 ## Quick Start
 
 ```typescript
-import { Neogma, ModelFactory, ModelRelatedNodesI, NeogmaInstance } from 'neogma';
+import { Neogma, Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import type { Related } from 'neogma';
 
 // Connect to Neo4j
 const neogma = new Neogma({
@@ -49,107 +67,97 @@ const neogma = new Neogma({
   password: 'password',
 });
 
-// Define your types
-type UserProperties = {
-  id: string;
-  name: string;
-  email: string;
-};
+// Define models with decorators
+@Node({ label: 'Order', primaryKeyField: 'id' })
+class OrderNode extends NodeEntity {
+  @Property(Type.String()) id!: string;
+  @Property(Type.String()) status!: string;
+}
 
-// Define a type-safe model
-const Users = ModelFactory<UserProperties>({
-  label: 'User',
-  schema: {
-    id: { type: 'string', required: true },
-    name: { type: 'string', required: true },
-    email: { type: 'string', required: true },
-  },
-  primaryKeyField: 'id',
-}, neogma);
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  @Property(Type.String()) id!: string;
 
-// Create - TypeScript validates properties
+  @Property(Type.String({ minLength: 1 }))
+  name!: string;
+
+  @Property(Type.Optional(Type.Number({ minimum: 0 })))
+  age?: number;
+
+  @Relationship({ name: 'PLACED', direction: 'out', model: () => OrderNode })
+  Orders!: Related<typeof OrderNode>;
+}
+
+// Register models (dependency order - referenced models first)
+const Orders = neogma.model(OrderNode);
+const Users = neogma.model(UserNode);
+
+// Create - TypeScript validates properties at compile time
 const user = await Users.createOne({
   id: '1',
   name: 'Alice',
-  email: 'alice@example.com',
+  age: 30,
+  Orders: {
+    attributes: [{ id: 'order-1', status: 'confirmed' }],
+  },
 });
 
-// Find - results are fully typed
-const found = await Users.findOne({ where: { email: 'alice@example.com' } });
-console.log(found?.name); // TypeScript knows this is string | undefined
-
-// Update
-user.name = 'Alicia';
-await user.save(); // the name change is reflected to the database
+// Eager-load relationships in one quer
+const found = await Users.findOne({
+  where: { name: 'Alice' },
+  relationships: { Orders: { where: { target: { status: 'confirmed' } } } },
+});
+console.log(found?.name);                   // string
+console.log(found?.Orders[0].node.status);  // string
+// console.log(found?.bogusValue);           // TypeScript error
 ```
 
-**[View full documentation →](https://themetalfleece.github.io/neogma)**
+For JavaScript projects or `ModelFactory` usage, see the [full documentation](https://neogma.themetalfleece.dev/docs/latest/models/model-factory).
 
 ---
 
-## Type Safety
+## Decorator styles
 
-Neogma's type system catches errors at compile time, not runtime:
+Neogma supports both TC39 standard decorators (recommended) and legacy experimental decorators.
 
-```typescript
-// ✅ TypeScript ensures correct property types
-await Users.createOne({ id: '1', name: 'John', age: 30 });
+### TC39 decorators (default)
 
-// ❌ Compile error: 'age' must be number
-await Users.createOne({ id: '1', name: 'John', age: 'thirty' });
-
-// ❌ Compile error: 'address' doesn't exist on UserProperties
-await Users.findOne({ where: { address: 'Infantino Street' } });
-
-// ✅ Query results are typed - IDE autocomplete works
-const user = await Users.findOne({ where: { id: '1' } });
-user?.age.toFixed(2); // TypeScript knows 'age' is a number
-```
-
----
-
-## Creating Nodes with Relationships
-
-Create nodes with their relationships in a single operation:
+No tsconfig changes needed. Import from `neogma`:
 
 ```typescript
-// ... define the Users and Orders model, and relate them
-
-await Users.createMany([
-  {
-    id: '1',
-    name: 'John',
-    age: 38,
-    // Create Order and link to John in one query
-    Orders: {
-      attributes: [{ id: '1', status: 'confirmed' }],
-    },
-  },
-]);
+import { Node, Property, Relationship, NodeEntity } from 'neogma';
 ```
 
-Result:
+### Legacy experimental decorators
 
-```
-    (User: John) ──CREATES──▶ (Order: confirmed)
+Enable in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
 ```
 
-All nodes and relationships are created in a single statement for optimal performance.
+Import from `neogma/legacy`:
+
+```typescript
+import { Node, Property, Relationship, NodeEntity } from 'neogma/legacy';
+```
 
 ---
 
 ## Query Builder
 
-Build complex Cypher queries programmatically with full type safety:
+Build complex Cypher queries programmatically:
 
 ```typescript
 import { QueryBuilder, BindParam } from 'neogma';
 
-const queryBuilder = new QueryBuilder()
-  .match({
-    identifier: 'u',
-    model: Users,
-  })
+const qb = new QueryBuilder()
+  .match({ identifier: 'u', model: Users })
   .where('u.age >= $minAge')
   .match({
     related: [
@@ -158,77 +166,89 @@ const queryBuilder = new QueryBuilder()
       { identifier: 'o', model: Orders },
     ],
   })
-  .where('o.status = $status')
   .return('u.name AS name, count(o) AS orderCount')
   .orderBy('orderCount DESC')
   .limit(10);
 
-const bindParam = new BindParam({ minAge: 18, status: 'confirmed' });
-const { records } = await queryBuilder.run(neogma.queryRunner, bindParam);
-```
-
-Parameters are automatically bound to prevent Cypher injection.
-
----
-
-## Finding Nodes
-
-Query nodes with flexible filtering:
-
-```typescript
-// Find with operators
-const activeUsers = await Users.findMany({
-  where: {
-    age: { $gte: 18 },
-    status: 'active',
-  },
-  order: [['name', 'ASC']],
-  limit: 10,
-});
-
-// Available operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $contains, $like
+const bp = new BindParam({ minAge: 18 });
+const { records } = await qb.run(neogma.queryRunner, bp);
 ```
 
 ---
 
-## Eager Loading Relationships
+## Eager Loading
 
-Load related nodes in a single query to avoid N+1 problems:
+Load related nodes in a single query:
 
 ```typescript
-// Load users with their orders and nested items
 const users = await Users.findMany({
   where: { status: 'active' },
   relationships: {
     Orders: {
-      where: { target: { status: 'completed' } },
+      where: { target: { status: 'confirmed' } },
       order: [{ on: 'target', property: 'createdAt', direction: 'DESC' }],
       limit: 5,
       relationships: {
-        Items: { limit: 10 }
-      }
-    }
-  }
+        Items: { limit: 10 },
+      },
+    },
+  },
 });
 
-// Access nested data
-users[0].Orders[0].node.id;              // Order id
-users[0].Orders[0].relationship.rating;  // Relationship property (e.g., 5)
-users[0].Orders[0].node.Items[0].node;   // Properties of the nested node
+users[0].Orders[0].node.status;       // Order property
+users[0].Orders[0].relationship;      // Relationship properties
 ```
 
-Features:
-- **Nested loading** - Load relationships to arbitrary depth
-- **Filtering** - Filter by target node or relationship properties at each level
-- **Ordering & pagination** - Apply `order`, `limit`, `skip` at each level
-- **Type-safe** - Relationship aliases are validated at compile time
-- **Single query** - Uses CALL subqueries for optimal performance
+---
+
+## NestJS Integration
+
+Use `@neogma/nest` for first-class NestJS support:
+
+```bash
+npm install @neogma/nest
+```
+
+```typescript
+import { Module } from '@nestjs/common';
+import { NeogmaModule } from '@neogma/nest';
+
+@Module({
+  imports: [
+    NeogmaModule.forRoot({
+      connection: { url: 'bolt://localhost:7687', username: 'neo4j', password: 'password' },
+    }),
+    NeogmaModule.forFeature([UserNode, OrderNode]),
+  ],
+})
+export class AppModule {}
+```
+
+See the [NestJS integration docs](https://neogma.themetalfleece.dev/docs/v2.0/integrations/nestjs) for full details.
+
+---
+
+## Example Applications
+
+Runnable examples are in the [`/examples`](./examples) directory:
+
+| Example                                                                 | Description                                  |
+| ----------------------------------------------------------------------- | -------------------------------------------- |
+| [`basic-app-decorators`](./examples/basic-app-decorators)               | TC39 decorator-based models (recommended)    |
+| [`basic-app-legacy-decorators`](./examples/basic-app-legacy-decorators) | Experimental (legacy) decorator-based models |
+| [`basic-app-js`](./examples/basic-app-js)                               | JavaScript with ModelFactory                 |
+| [`nestjs-app`](./examples/nestjs-app)                                   | NestJS integration with `@neogma/nest`       |
 
 ---
 
 ## Documentation
 
-Full documentation is available at **[themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma)**
+Full documentation is available at **[neogma.themetalfleece.dev](https://neogma.themetalfleece.dev)**
+
+For AI/LLM agents, the docs are also available in machine-readable formats:
+
+- [neogma.themetalfleece.dev/llms.txt](https://neogma.themetalfleece.dev/llms.txt) - page index
+- [neogma.themetalfleece.dev/llms-full.txt](https://neogma.themetalfleece.dev/llms-full.txt) - full documentation as markdown
 
 ## Contributing
 

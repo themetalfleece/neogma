@@ -1,0 +1,110 @@
+---
+title: Sessions and Transactions
+description: Manage Neo4j sessions and transactions for safe database operations
+---
+
+# Sessions and transactions
+
+Neogma provides helper functions for managing Neo4j sessions and transactions. These handle lifecycle, cleanup, and error handling automatically.
+
+## Sessions
+
+Use `getSession` to acquire a session that is automatically closed when the callback completes:
+
+```typescript
+import { getSession } from 'neogma';
+
+await getSession(neogma, async (session) => {
+  const user = await Users.createOne({ id: '1', name: 'Alice' }, { session });
+  console.log(user.name);
+});
+// session is closed automatically
+```
+
+## Transactions
+
+Use `getTransaction` for operations that should be atomic. If the callback throws, the transaction is rolled back:
+
+```typescript
+import { getTransaction } from 'neogma';
+
+await getTransaction(neogma, async (tx) => {
+  await Users.createOne({ id: '1', name: 'Alice' }, { session: tx });
+  await Orders.createOne({ id: 'order-1', status: 'pending' }, { session: tx });
+  // Both operations commit together, or both roll back on error
+});
+```
+
+### Rollback on error
+
+```typescript
+try {
+  await getTransaction(neogma, async (tx) => {
+    await Users.createOne({ id: '1', name: 'Alice' }, { session: tx });
+    throw new Error('Something went wrong');
+    // Transaction is automatically rolled back
+  });
+} catch (error) {
+  console.log('Transaction rolled back:', error.message);
+}
+```
+
+## Runnables
+
+`getRunnable` returns either a session or transaction depending on what was passed:
+
+```typescript
+import { getRunnable } from 'neogma';
+
+async function createUser(
+  data: { id: string; name: string },
+  sessionOrTx?: any,
+) {
+  return getRunnable(
+    neogma,
+    async (runnable) => {
+      return Users.createOne(data, { session: runnable });
+    },
+    sessionOrTx,
+  );
+}
+
+// Works with or without a transaction
+await createUser({ id: '1', name: 'Alice' }); // uses its own session
+await getTransaction(neogma, async (tx) => {
+  await createUser({ id: '2', name: 'Bob' }, tx); // uses the transaction
+});
+```
+
+## Passing sessions to model operations
+
+Most model methods accept an optional `session` parameter:
+
+```typescript
+await getSession(neogma, async (session) => {
+  // Create
+  await Users.createOne({ id: '1', name: 'Alice' }, { session });
+
+  // Find
+  const users = await Users.findMany({ where: { name: 'Alice' }, session });
+
+  // Update
+  await Users.update({ name: 'Alicia' }, { where: { id: '1' }, session });
+
+  // Delete
+  await Users.delete({ where: { id: '1' }, detach: true, session });
+});
+```
+
+## Database selection
+
+Specify a database when creating the Neogma instance:
+
+```typescript
+const neogma = new Neogma({
+  url: 'bolt://localhost:7687',
+  username: 'neo4j',
+  password: 'password',
+  database: 'my-database',
+});
+```

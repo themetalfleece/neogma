@@ -1,0 +1,57 @@
+---
+title: Deleting Nodes
+description: Delete nodes and optionally detach their relationships
+---
+
+# Deleting nodes
+
+## Instance `delete`
+
+Delete a specific node instance and return the number of deleted nodes:
+
+```typescript
+const user = await Users.findOne({ where: { id: '1' } });
+
+if (user) {
+  const deletedCount = await user.delete();
+  console.log(deletedCount); // 1
+}
+```
+
+### Detach delete
+
+By default, Neo4j cannot delete a node that has relationships. Use `detach: true` to delete the node and all its relationships:
+
+```typescript
+const deletedCount = await user.delete({ detach: true });
+console.log(deletedCount); // 1
+```
+
+## Static `delete`
+
+Delete nodes matching a condition:
+
+```typescript
+const deletedCount = await Users.delete({
+  where: { status: 'inactive' },
+  detach: true,
+});
+
+console.log(`Deleted ${deletedCount} nodes`);
+```
+
+The static `delete` returns the count of deleted nodes.
+
+### Using sessions and transactions
+
+```typescript
+import { getTransaction } from 'neogma';
+
+await getTransaction(neogma, async (tx) => {
+  await Users.delete({
+    where: { status: 'archived' },
+    detach: true,
+    session: tx,
+  });
+});
+```

@@ -1,0 +1,17 @@
+{
+  "title": "v2.0",
+  "description": "Neogma v2 documentation - decorators, TypeBox, and type-safe OGM",
+  "root": true,
+  "pages": [
+    "index",
+    "getting-started",
+    "models",
+    "relationships",
+    "crud-operations",
+    "query-builder",
+    "sessions-and-transactions",
+    "integrations",
+    "examples",
+    "migration"
+  ]
+}

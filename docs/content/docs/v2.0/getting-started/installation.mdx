@@ -1,0 +1,89 @@
+---
+title: Installation
+description: Install neogma and configure your TypeScript project
+---
+
+# Installation
+
+## Install neogma
+
+```bash
+npm install neogma
+# or
+pnpm add neogma
+# or
+yarn add neogma
+```
+
+Neogma includes TypeBox as a dependency, so you do not need to install it separately. You can import `Type`, `Value`, and `TSchema` directly from `neogma`.
+
+## TypeScript configuration
+
+Neogma v2 uses decorators. You can use either **TC39 standard decorators** (recommended) or **legacy experimental decorators**.
+
+### TC39 decorators (recommended)
+
+No extra configuration is needed. Make sure your `tsconfig.json` does **not** have `experimentalDecorators` enabled:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true
+    // Do NOT set "experimentalDecorators": true
+  }
+}
+```
+
+### Legacy experimental decorators
+
+If you prefer or need to use legacy experimental decorators (for example, in an existing NestJS project), enable them in your `tsconfig.json`:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+Then import decorators from `neogma/legacy` instead of `neogma`:
+
+```typescript
+// TC39 (default)
+import { Node, Property, Relationship, NodeEntity } from 'neogma';
+
+// Legacy experimental decorators
+import { Node, Property, Relationship, NodeEntity } from 'neogma/legacy';
+```
+
+Both paths produce the same models and are fully interchangeable at runtime.
+
+## Neo4j setup
+
+You need a running Neo4j instance. The easiest way to get started locally is with Docker:
+
+```yaml title="docker-compose.yml"
+services:
+  neo4j:
+    image: neo4j:5-enterprise
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+```
+
+```bash
+docker compose up -d
+```
+
+## Node.js version
+
+Neogma requires Node.js 18.14.0 or later.

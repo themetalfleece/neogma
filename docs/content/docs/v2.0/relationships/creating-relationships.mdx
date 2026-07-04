@@ -1,0 +1,117 @@
+---
+title: Creating Relationships
+description: Create relationships between nodes
+---
+
+# Creating relationships
+
+## During node creation
+
+When creating a node that references another node that does not exist yet, you can create both the node and the relationship in a single operation. Pass related node data in the create payload:
+
+```typescript
+// Create a user and their orders in a single operation
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  Orders: {
+    attributes: [
+      { id: 'order-1', status: 'confirmed' },
+      { id: 'order-2', status: 'pending' },
+    ],
+  },
+});
+```
+
+This creates the User node, both Order nodes, and the `PLACED` relationships in a single Cypher statement.
+
+### With relationship properties
+
+When the relationship has properties, include them alongside each target node:
+
+```typescript
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  Orders: {
+    attributes: [{ id: 'order-1', status: 'confirmed' }],
+    properties: [{ Quantity: 3, PlacedAt: '2024-01-15' }],
+  },
+});
+```
+
+The `properties` array is positional - each entry corresponds to the node at the same index in `attributes`.
+
+## Using `relateTo`
+
+If the target node already exists, `relateTo` creates a relationship to it by matching on properties. Use the `relateTo` instance method:
+
+```typescript
+const user = await Users.findOne({ where: { id: '1' } });
+const order = await Orders.findOne({ where: { id: 'order-5' } });
+
+if (user && order) {
+  const result = await user.relateTo({
+    alias: 'Orders',
+    where: { id: order.id },
+  });
+  console.log(result.summary.counters.updates().relationshipsCreated); // 1
+}
+```
+
+### With relationship properties
+
+Attach properties to the relationship by passing a `properties` object with aliased keys:
+
+```typescript
+const result = await user.relateTo({
+  alias: 'Orders',
+  where: { id: order.id },
+  properties: { Quantity: 2 },
+});
+console.log(result.summary.counters.updates().relationshipsCreated); // 1
+```
+
+## Using `createRelationship` (static)
+
+The static `createRelationship` method creates a relationship between nodes matched by their properties and returns a count of created relationships:
+
+```typescript
+const count = await Users.createRelationship({
+  source: { label: 'User' },
+  target: { label: 'Order' },
+  relationship: { name: 'PLACED', direction: 'out' },
+  where: {
+    source: { id: '1' },
+    target: { id: 'order-5' },
+  },
+});
+
+console.log(count); // 1
+```
+
+## Bulk creation with `createMany`
+
+Create multiple nodes along with their relationships in a single call, where each item can include nested related nodes:
+
+```typescript
+await Users.createMany([
+  {
+    id: '1',
+    name: 'Alice',
+    Orders: {
+      attributes: [{ id: 'order-1', status: 'confirmed' }],
+    },
+  },
+  {
+    id: '2',
+    name: 'Bob',
+    Orders: {
+      attributes: [
+        { id: 'order-2', status: 'pending' },
+        { id: 'order-3', status: 'confirmed' },
+      ],
+    },
+  },
+]);
+```

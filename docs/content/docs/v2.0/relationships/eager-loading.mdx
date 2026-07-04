@@ -1,0 +1,108 @@
+---
+title: Eager Loading
+description: Load nested relationships in a single query
+---
+
+# Eager loading
+
+Eager loading lets you fetch nodes along with their related nodes in a single query, avoiding N+1 query problems.
+
+## Basic eager loading
+
+Pass a `relationships` option to `findMany` or `findOne`:
+
+```typescript
+const users = await Users.findMany({
+  where: { name: 'Alice' },
+  relationships: {
+    Orders: true, // load all related Orders
+  },
+});
+
+for (const user of users) {
+  for (const order of user.Orders) {
+    console.log(order.node.status); // target node properties
+    console.log(order.relationship); // relationship properties (if any)
+  }
+}
+```
+
+## Filtering related nodes
+
+Filter which related nodes are loaded:
+
+```typescript
+const users = await Users.findMany({
+  relationships: {
+    Orders: {
+      where: {
+        target: { status: 'confirmed' },
+      },
+    },
+  },
+});
+```
+
+## Ordering and pagination
+
+Apply ordering, limits, and skip to related nodes:
+
+```typescript
+const users = await Users.findMany({
+  relationships: {
+    Orders: {
+      order: [{ on: 'target', property: 'createdAt', direction: 'DESC' }],
+      limit: 5,
+      skip: 0,
+    },
+  },
+});
+```
+
+## Nested relationships
+
+Load relationships to arbitrary depth:
+
+```typescript
+const users = await Users.findMany({
+  relationships: {
+    Orders: {
+      relationships: {
+        Items: {
+          limit: 10,
+          relationships: {
+            Tags: true,
+          },
+        },
+      },
+    },
+  },
+});
+
+// Access deeply nested data
+const tag = users[0].Orders[0].node.Items[0].node.Tags[0].node;
+```
+
+## Result shape
+
+Each eager-loaded relationship returns an array of objects with two properties:
+
+- `node` - the related node's properties (as a model instance)
+- `relationship` - the relationship's properties (if any)
+
+```typescript
+const users = await Users.findMany({
+  relationships: {
+    Orders: {
+      where: { target: { status: 'confirmed' } },
+    },
+  },
+});
+
+// Type: { node: OrderInstance; relationship: { rating?: number } }[]
+const orders = users[0].Orders;
+```
+
+## Performance
+
+Eager loading uses `CALL` subqueries internally, so all data is fetched in a single database round-trip. This is significantly more efficient than making separate queries for each relationship.

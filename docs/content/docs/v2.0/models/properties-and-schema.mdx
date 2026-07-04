@@ -1,0 +1,93 @@
+---
+title: Properties and Schema
+description: Understanding node properties, schemas, and type mappings
+---
+
+# Properties and schema
+
+## Property types
+
+Neo4j supports a specific set of property types. Neogma maps TypeScript types to their Neo4j equivalents:
+
+| TypeScript  | Neo4j           | TypeBox                      |
+| ----------- | --------------- | ---------------------------- |
+| `string`    | String          | `Type.String()`              |
+| `number`    | Integer / Float | `Type.Number()`              |
+| `boolean`   | Boolean         | `Type.Boolean()`             |
+| `string[]`  | List of String  | `Type.Array(Type.String())`  |
+| `number[]`  | List of Number  | `Type.Array(Type.Number())`  |
+| `boolean[]` | List of Boolean | `Type.Array(Type.Boolean())` |
+
+## Primary key
+
+Every model should define a primary key field. This field is used for lookups and relationship matching:
+
+```typescript
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  @Property(Type.String())
+  id!: string;
+
+  // ... other properties
+}
+```
+
+The primary key field name is passed to `@Node`, not to `@Property`.
+
+## Required vs. optional properties
+
+Use TypeScript's optional field syntax alongside `Type.Optional()`:
+
+```typescript
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  // Required: must be provided on create, always present on read
+  @Property(Type.String())
+  id!: string;
+
+  @Property(Type.String({ minLength: 1 }))
+  name!: string;
+
+  // Optional: can be undefined
+  @Property(Type.Optional(Type.String()))
+  bio?: string;
+
+  @Property(Type.Optional(Type.Number()))
+  age?: number;
+}
+```
+
+## Properties without validation
+
+You can use `@Property()` without a schema argument. The property is tracked (included in creates and updates) but not validated:
+
+```typescript
+@Property()
+externalId!: string; // tracked, but no validation
+```
+
+## Schema in ModelFactory (legacy)
+
+When using `ModelFactory`, schemas use the revalidator JSON Schema format:
+
+```typescript
+const Users = ModelFactory(
+  {
+    label: 'User',
+    schema: {
+      id: { type: 'string', required: true },
+      name: { type: 'string', required: true, minLength: 3 },
+      age: { type: 'number', required: false, minimum: 0 },
+      status: {
+        type: 'string',
+        required: true,
+        enum: ['active', 'inactive'],
+      },
+    },
+    primaryKeyField: 'id',
+  },
+  neogma,
+);
+```
+
+The revalidator schema format is deprecated. See [Validation](/docs/v2.0/models/validation) for the TypeBox alternative.

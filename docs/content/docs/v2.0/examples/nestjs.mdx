@@ -1,0 +1,52 @@
+---
+title: NestJS
+description: Example NestJS app with @neogma/nest module
+---
+
+# NestJS Example
+
+**Source**: [`examples/nestjs-app`](https://github.com/themetalfleece/neogma/tree/main/examples/nestjs-app)
+
+This example demonstrates a complete NestJS application using the `@neogma/nest` module for dependency injection, model registration, and CRUD endpoints.
+
+## What it demonstrates
+
+- `NeogmaModule.forRoot()` for connection setup
+- `NeogmaModule.forFeature()` for model registration
+- `@InjectModel()` for injecting models into services
+- `ModelOf` type helper for typed model injection
+- CRUD REST endpoints backed by neogma models
+- Health check endpoint
+
+## Key setup
+
+```typescript
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { NeogmaModule } from '@neogma/nest';
+import { UserNode, OrderNode } from './models';
+
+@Module({
+  imports: [
+    NeogmaModule.forRoot({
+      connection: {
+        url: 'bolt://localhost:7687',
+        username: 'neo4j',
+        password: 'password',
+      },
+    }),
+    NeogmaModule.forFeature([UserNode, OrderNode]),
+  ],
+})
+export class AppModule {}
+```
+
+## Running
+
+```bash
+cd examples/nestjs-app
+pnpm install
+pnpm start:dev
+```
+
+See the [NestJS integration docs](/docs/v2.0/integrations/nestjs) for full API reference.

@@ -1,0 +1,9 @@
+{
+  "title": "Models",
+  "pages": [
+    "decorator-based",
+    "model-factory",
+    "validation",
+    "properties-and-schema"
+  ]
+}

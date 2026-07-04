@@ -1,0 +1,6 @@
+{
+  "title": "latest",
+  "description": "Latest neogma documentation (currently v2.0)",
+  "root": true,
+  "pages": ["index"]
+}

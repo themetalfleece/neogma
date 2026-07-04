@@ -1,0 +1,47 @@
+---
+title: TC39 Decorators
+description: Example app using TC39 standard decorators (recommended)
+---
+
+# TC39 Decorators Example
+
+**Source**: [`examples/basic-app-decorators`](https://github.com/themetalfleece/neogma/tree/main/examples/basic-app-decorators)
+
+This is the **recommended** approach for new TypeScript projects. It uses TC39 standard decorators (stage 3) with no special tsconfig flags needed.
+
+## What it demonstrates
+
+- Model definition with `@Node`, `@Property`, `@Relationship`
+- TypeBox validation (`Type.String()`, `Type.Number()`, `Type.Optional()`)
+- Type inference with `Related<typeof OtherNode>`
+- Model registration with `neogma.model()`
+- CRUD operations (create, find, update, delete)
+- Eager loading of relationships
+- QueryBuilder with all clause types
+- Sessions and transactions (including rollback)
+- Error handling
+
+## Model definition
+
+```typescript
+import { Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import type { Related } from 'neogma';
+
+@Node({ label: 'User', primaryKeyField: 'id' })
+class UserNode extends NodeEntity {
+  @Property(Type.String()) id!: string;
+  @Property(Type.String({ minLength: 1 })) name!: string;
+  @Property(Type.Optional(Type.Number({ minimum: 0 }))) age?: number;
+
+  @Relationship({ name: 'HAS_ORDER', direction: 'out', model: () => OrderNode })
+  Orders!: Related<typeof OrderNode>;
+}
+```
+
+## Running
+
+```bash
+cd examples/basic-app-decorators
+pnpm install
+pnpm start
+```

@@ -1,0 +1,39 @@
+---
+title: Legacy Decorators
+description: Example app using experimental (legacy) decorators
+---
+
+# Legacy Decorators Example
+
+**Source**: [`examples/basic-app-legacy-decorators`](https://github.com/themetalfleece/neogma/tree/main/examples/basic-app-legacy-decorators)
+
+This example uses TypeScript's experimental decorators. Use this approach when your project already has `experimentalDecorators: true` in its tsconfig (common with NestJS, Angular, etc.).
+
+## Differences from TC39 decorators
+
+The only difference is the import path and tsconfig:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+```typescript
+// Import from 'neogma/legacy' instead of 'neogma'
+import { Node, Property, Relationship, NodeEntity, Type } from 'neogma/legacy';
+```
+
+Everything else (model definition, CRUD, QueryBuilder, etc.) is identical to the TC39 decorators example.
+
+## Running
+
+```bash
+cd examples/basic-app-legacy-decorators
+pnpm install
+pnpm start
+```

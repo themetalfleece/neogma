@@ -1,0 +1,133 @@
+---
+title: Finding Nodes
+description: Query nodes with filtering, ordering, and pagination
+---
+
+# Finding nodes
+
+## `findOne`
+
+Find a single node matching the given criteria:
+
+```typescript
+const user = await Users.findOne({
+  where: { id: '1' },
+});
+
+if (user) {
+  console.log(user.name);
+}
+```
+
+Returns the first matching instance, or `null` if no match is found.
+
+## `findMany`
+
+Find multiple nodes matching a filter and return them as an array of model instances:
+
+```typescript
+const users = await Users.findMany({
+  where: { status: 'active' },
+});
+
+console.log(users.length); // number of matching nodes
+```
+
+### Ordering
+
+Sort results by one or more properties:
+
+```typescript
+const users = await Users.findMany({
+  where: { status: 'active' },
+  order: [['name', 'ASC']],
+});
+
+console.log(users[0].name); // first user alphabetically
+```
+
+### Pagination
+
+Combine `limit` and `skip` to paginate through results:
+
+```typescript
+const users = await Users.findMany({
+  where: { status: 'active' },
+  order: [['name', 'ASC']],
+  limit: 10,
+  skip: 20,
+});
+
+console.log(users.length); // up to 10
+```
+
+## Where operators
+
+Neogma uses Symbol-based operators via the `Op` object. Import it from neogma:
+
+```typescript
+import { Op } from 'neogma';
+```
+
+| Operator        | Description           | Example                                          |
+| --------------- | --------------------- | ------------------------------------------------ |
+| (direct value)  | Equals                | `{ name: 'Alice' }`                              |
+| `[Op.eq]`       | Equals (explicit)     | `{ age: { [Op.eq]: 30 } }`                       |
+| `[Op.ne]`       | Not equals            | `{ status: { [Op.ne]: 'inactive' } }`            |
+| `[Op.gt]`       | Greater than          | `{ age: { [Op.gt]: 18 } }`                       |
+| `[Op.gte]`      | Greater than or equal | `{ age: { [Op.gte]: 18 } }`                      |
+| `[Op.lt]`       | Less than             | `{ age: { [Op.lt]: 65 } }`                       |
+| `[Op.lte]`      | Less than or equal    | `{ age: { [Op.lte]: 65 } }`                      |
+| `[Op.in]`       | In list               | `{ status: { [Op.in]: ['active', 'pending'] } }` |
+| `[Op.contains]` | Contains substring    | `{ name: { [Op.contains]: 'ali' } }`             |
+| `[Op.is]`       | IS (for null checks)  | `{ deletedAt: { [Op.is]: null } }`               |
+| `[Op.isNot]`    | IS NOT                | `{ deletedAt: { [Op.isNot]: null } }`            |
+
+### Combined operators
+
+Apply multiple operators to the same property to create range queries:
+
+```typescript
+const users = await Users.findMany({
+  where: {
+    age: { [Op.gte]: 18, [Op.lte]: 65 },
+    status: 'active',
+  },
+});
+
+console.log(users.length); // users aged 18-65
+```
+
+## Using sessions and transactions
+
+Pass a session or transaction to run the query within a managed session:
+
+```typescript
+import { getSession } from 'neogma';
+
+await getSession(neogma, async (session) => {
+  const users = await Users.findMany({
+    where: { status: 'active' },
+    session,
+  });
+  console.log(users.length);
+});
+```
+
+## With eager loading
+
+Load related nodes alongside the query in a single database round-trip:
+
+```typescript
+const users = await Users.findMany({
+  where: { status: 'active' },
+  relationships: {
+    Orders: {
+      where: { target: { status: 'confirmed' } },
+      limit: 5,
+    },
+  },
+});
+```
+
+See [Eager Loading](/docs/v2.0/relationships/eager-loading) for more details.

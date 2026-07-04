@@ -1,0 +1,44 @@
+---
+title: JavaScript
+description: Example app using ModelFactory with plain JavaScript
+---
+
+# JavaScript Example
+
+**Source**: [`examples/basic-app-js`](https://github.com/themetalfleece/neogma/tree/main/examples/basic-app-js)
+
+This example uses `ModelFactory` with plain JavaScript (no TypeScript, no decorators). Use this approach for JavaScript-only projects.
+
+## Model definition
+
+```javascript
+const { Neogma, ModelFactory, Type } = require('neogma');
+
+const Users = ModelFactory(
+  {
+    label: 'User',
+    schema: {
+      id: Type.String(),
+      name: Type.String(),
+      age: Type.Optional(Type.Number()),
+    },
+    primaryKeyField: 'id',
+    relationships: {
+      Orders: {
+        model: () => Orders,
+        direction: 'out',
+        name: 'HAS_ORDER',
+      },
+    },
+  },
+  neogma,
+);
+```
+
+## Running
+
+```bash
+cd examples/basic-app-js
+pnpm install
+pnpm start
+```

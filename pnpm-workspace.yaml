@@ -3,8 +3,11 @@
 packages:
   - '.'
   - 'packages/*'
+  - 'docs'
 
 # Dependencies that are explicitly allowed to run install/build scripts.
 # pnpm 11+ blocks lifecycle scripts by default; list trusted packages here.
 allowBuilds:
+  esbuild: true
+  sharp: true
   unrs-resolver: true
