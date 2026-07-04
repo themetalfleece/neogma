@@ -31,7 +31,7 @@
   "author": "Jason Athanasoglou <jathanasoglou@outlook.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=24.13.0"
+    "node": ">=18.14.0"
   },
   "files": [
     "dist/**/*"

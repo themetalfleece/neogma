@@ -11,6 +11,12 @@ on:
 jobs:
   runTests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22, 24]
+
+    name: Tests (Node ${{ matrix.node-version }})
 
     steps:
       - name: Checkout repository
@@ -19,10 +25,10 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
       - name: Start Neo4j with Docker Compose
