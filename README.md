@@ -112,7 +112,7 @@ console.log(found?.Orders[0].node.status);  // string
 // console.log(found?.bogusValue);           // TypeScript error
 ```
 
-For JavaScript projects or `ModelFactory` usage, see the [full documentation](https://neogma.themetalfleece.dev/docs/latest/models/model-factory).
+For JavaScript projects or `ModelFactory` usage, see the [full documentation](https://neogma.themetalfleece.dev/docs/models/model-factory).
 
 ---
 
@@ -224,7 +224,7 @@ import { NeogmaModule } from '@neogma/nest';
 export class AppModule {}
 ```
 
-See the [NestJS integration docs](https://neogma.themetalfleece.dev/docs/v2.0/integrations/nestjs) for full details.
+See the [NestJS integration docs](https://neogma.themetalfleece.dev/docs/integrations/nestjs) for full details.
 
 ---
 

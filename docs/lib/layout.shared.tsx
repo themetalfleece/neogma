@@ -24,7 +24,7 @@ export const layoutSharedConfig: BaseLayoutProps = {
   links: [
     {
       text: 'Documentation',
-      url: '/docs/latest',
+      url: '/docs',
       active: 'nested-url',
     },
     ...iconLinks,

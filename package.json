@@ -21,7 +21,9 @@
   },
   "typesVersions": {
     "*": {
-      "legacy": ["./dist/Decorators/legacy/index.d.ts"]
+      "legacy": [
+        "./dist/Decorators/legacy/index.d.ts"
+      ]
     }
   },
   "sideEffects": [
@@ -68,7 +70,9 @@
     "prepare": "pnpm clean && pnpm build",
     "prebuild": "pnpm lint && pnpm format",
     "build": "tsc -p tsconfig.build.json",
-    "test": "jest"
+    "test": "jest",
+    "docs:dev": "pnpm -C docs dev",
+    "docs:build": "pnpm -C docs build"
   },
   "repository": {
     "type": "git",

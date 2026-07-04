@@ -1,4 +1,15 @@
 {
-  "title": " ",
-  "pages": ["latest/...", "v2.0/..."]
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "models",
+    "relationships",
+    "crud-operations",
+    "query-builder",
+    "sessions-and-transactions",
+    "integrations",
+    "examples",
+    "migration"
+  ]
 }
