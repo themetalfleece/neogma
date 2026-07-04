@@ -11,8 +11,8 @@ export { Relationship } from './decorators/Relationship';
 // Base class
 export { NodeEntity } from './NodeEntity';
 
-// Conversion
-export { clearModelRegistry, toModel } from './toModel';
+// Conversion (toModel is intentionally NOT exported here — use neogma.model() instead)
+export { clearModelRegistry } from './toModel';
 
 // Inference helpers
 export type {

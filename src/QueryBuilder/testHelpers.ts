@@ -1,13 +1,8 @@
 import Type from 'typebox';
 
 import type { NeogmaInstance } from '..';
-import {
-  Node,
-  NodeEntity,
-  Property,
-  Relationship,
-  toModel,
-} from '../Decorators';
+import { Node, NodeEntity, Property, Relationship } from '../Decorators';
+import { toModel } from '../Decorators/toModel';
 import type { ModelRelatedNodesI } from '../ModelFactory';
 import { Neogma } from '../Neogma';
 import type { QueryBuilder } from './QueryBuilder';

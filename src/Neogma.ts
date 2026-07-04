@@ -1,10 +1,20 @@
 import type { Config, Driver, Session, Transaction } from 'neo4j-driver';
 import * as neo4j_driver from 'neo4j-driver';
 
+import type {
+  AsNeo4jProperties,
+  InferMethods,
+  InferProperties,
+  InferRelatedNodes,
+  InferStatics,
+  NodeEntityClass,
+} from './Decorators';
+import { toModel } from './Decorators/toModel';
 import { NeogmaConnectivityError } from './Errors/NeogmaConnectivityError';
 import type { NeogmaModel } from './ModelFactory';
+import type { AnyObject } from './ModelFactory/shared.types';
 import { QueryBuilder } from './QueryBuilder';
-import type { Runnable } from './QueryRunner';
+import type { Neo4jSupportedProperties, Runnable } from './QueryRunner';
 import { QueryRunner } from './QueryRunner';
 import { getRunnable, getSession, getTransaction } from './Sessions/Sessions';
 import {
@@ -201,4 +211,36 @@ export class Neogma {
       ...sessionConfig,
     });
   };
+
+  /**
+   * Registers a `@Node`-decorated class as a model.
+   * Convenience wrapper around `toModel(decoratedClass, neogma)`.
+   *
+   * @example
+   * ```ts
+   * const Users = neogma.model(UserNode);
+   * const user = await Users.createOne({ id: '1', name: 'Alice' });
+   * ```
+   */
+  public model<TClass extends NodeEntityClass>(
+    decoratedClass: TClass,
+  ): NeogmaModel<
+    AsNeo4jProperties<InferProperties<InstanceType<TClass>>>,
+    InferRelatedNodes<InstanceType<TClass>>,
+    InferMethods<InstanceType<TClass>>,
+    InferStatics<TClass>
+  >;
+  public model<
+    Properties extends Neo4jSupportedProperties,
+    RelatedNodesToAssociateI extends AnyObject = object,
+    StaticsI extends AnyObject = object,
+    MethodsI extends AnyObject = object,
+  >(
+    decoratedClass: NodeEntityClass,
+  ): NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, StaticsI>;
+  public model(
+    decoratedClass: NodeEntityClass,
+  ): NeogmaModel<any, any, any, any> {
+    return toModel(decoratedClass, this);
+  }
 }

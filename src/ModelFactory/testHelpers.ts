@@ -6,8 +6,8 @@ import {
   NodeEntity,
   Property,
   Relationship,
-  toModel,
 } from '../Decorators';
+import { toModel } from '../Decorators/toModel';
 import { Neogma } from '../Neogma';
 import {
   ModelFactory,

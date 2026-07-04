@@ -100,8 +100,8 @@ describe('public API surface (built dist/)', () => {
       expect(typeof api.NodeEntity).toBe('function');
     });
 
-    it('exports the toModel bridge', () => {
-      expect(typeof api.toModel).toBe('function');
+    it('does NOT export toModel (use neogma.model() instead)', () => {
+      expect(api.toModel).toBeUndefined();
     });
 
     it('exports clearModelRegistry (test-only helper)', () => {
@@ -185,10 +185,16 @@ describe('public API surface (built dist/)', () => {
   });
 
   describe('Sessions helpers', () => {
-    it('exports the session/transaction helpers', () => {
-      expect(typeof api.getSession).toBe('function');
-      expect(typeof api.getTransaction).toBe('function');
-      expect(typeof api.getRunnable).toBe('function');
+    it('does NOT export standalone session helpers (use Neogma instance methods instead)', () => {
+      expect(api.getSession).toBeUndefined();
+      expect(api.getTransaction).toBeUndefined();
+      expect(api.getRunnable).toBeUndefined();
+    });
+  });
+
+  describe('Neogma.model() convenience method', () => {
+    it('exports model() as an instance method on Neogma', () => {
+      expect(typeof (api.Neogma as any).prototype.model).toBe('function');
     });
   });
 

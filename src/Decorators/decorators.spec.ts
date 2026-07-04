@@ -17,8 +17,8 @@ import {
   NodeEntity,
   Property,
   Relationship,
-  toModel,
 } from './index';
+import { toModel } from './toModel';
 
 // ============ Type definitions ============
 

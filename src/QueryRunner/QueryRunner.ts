@@ -136,6 +136,8 @@ export class QueryRunner {
   };
 
   public static getResultProperties = getResultProperties;
+  /** @deprecated Use `result.summary.counters.updates().nodesDeleted` directly. */
   public static getNodesDeleted = getNodesDeleted;
+  /** @deprecated Use `result.summary.counters.updates().relationshipsDeleted` directly. */
   public static getRelationshipsDeleted = getRelationshipsDeleted;
 }

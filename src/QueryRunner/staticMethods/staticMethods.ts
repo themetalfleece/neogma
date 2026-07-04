@@ -7,10 +7,16 @@ export const getResultProperties = <T>(
   return result.records.map((v) => v.get(identifier).properties);
 };
 
+/**
+ * @deprecated Use `result.summary.counters.updates().nodesDeleted` directly.
+ */
 export const getNodesDeleted = (result: QueryResult): number => {
   return result.summary.counters.updates().nodesDeleted;
 };
 
+/**
+ * @deprecated Use `result.summary.counters.updates().relationshipsDeleted` directly.
+ */
 export const getRelationshipsDeleted = (result: QueryResult): number => {
   return result.summary.counters.updates().relationshipsDeleted;
 };
