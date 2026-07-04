@@ -1,4 +1,12 @@
-import { NEOGMA_NODE_KEY, type NodeMetadata } from '../metadata';
+import {
+  getClassMetadataStore,
+  NEOGMA_NODE_KEY,
+  NEOGMA_PROPERTIES_KEY,
+  NEOGMA_RELATIONSHIPS_KEY,
+  type NodeMetadata,
+  type PropertyMetadata,
+  type RelationshipMetadata,
+} from '../metadata';
 import type { NodeEntityClass } from '../types';
 
 interface NodeOptions {
@@ -30,7 +38,26 @@ export function Node(options: NodeOptions) {
       label: options.label,
       primaryKeyField: options.primaryKeyField,
     };
+    // TC39 standard metadata path
     context.metadata[NEOGMA_NODE_KEY] = metadata;
+
+    // Copy all accumulated metadata into the shared WeakMap store.
+    // @Property and @Relationship field decorators ran before this class
+    // decorator and wrote into context.metadata. We mirror everything into
+    // the WeakMap so toModel() has a single lookup path that works for both
+    // TC39 and legacy decorators.
+    const store = getClassMetadataStore(target);
+    store[NEOGMA_NODE_KEY] = metadata;
+    const props = context.metadata[NEOGMA_PROPERTIES_KEY] as
+      PropertyMetadata[] | undefined;
+    if (props) {
+      store[NEOGMA_PROPERTIES_KEY] = props;
+    }
+    const rels = context.metadata[NEOGMA_RELATIONSHIPS_KEY] as
+      RelationshipMetadata[] | undefined;
+    if (rels) {
+      store[NEOGMA_RELATIONSHIPS_KEY] = rels;
+    }
     return target;
   };
 }

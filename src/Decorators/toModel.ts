@@ -23,6 +23,7 @@ import {
   NEOGMA_RELATIONSHIPS_KEY,
   type NodeMetadata,
   type PropertyMetadata,
+  readClassMetadataStore,
   type RelationshipMetadata,
 } from './metadata';
 import type {
@@ -161,8 +162,10 @@ export function toModel<
   decoratedClass: NodeEntityClass,
   neogma: Neogma,
 ): NeogmaModel<Properties, RelatedNodesToAssociateI, MethodsI, StaticsI> {
-  // 1. Read metadata
-  const classMetadata = decoratedClass[Symbol.metadata];
+  // 1. Read metadata — prefer WeakMap store (works for both TC39 and legacy
+  // decorators), fall back to Symbol.metadata for backwards compatibility.
+  const wmStore = readClassMetadataStore(decoratedClass);
+  const classMetadata = wmStore ?? decoratedClass[Symbol.metadata];
   if (!classMetadata) {
     throw new NeogmaModelSchemaError(
       `Class "${decoratedClass.name}" has no decorator metadata. ` +
@@ -171,10 +174,12 @@ export function toModel<
     );
   }
 
-  const nodeMetadata = getMetadata<NodeMetadata>(
-    classMetadata,
-    NEOGMA_NODE_KEY,
-  );
+  const nodeMetadata = wmStore
+    ? (wmStore[NEOGMA_NODE_KEY] as NodeMetadata | undefined)
+    : getMetadata<NodeMetadata>(
+        classMetadata as DecoratorMetadataObject,
+        NEOGMA_NODE_KEY,
+      );
   if (!nodeMetadata) {
     throw new NeogmaModelSchemaError(
       `Class "${decoratedClass.name}" is missing @Node decorator.`,
@@ -182,13 +187,19 @@ export function toModel<
     );
   }
 
-  const propertyMetadataList =
-    getMetadata<PropertyMetadata[]>(classMetadata, NEOGMA_PROPERTIES_KEY) ?? [];
-  const relationshipMetadataList =
-    getMetadata<RelationshipMetadata[]>(
-      classMetadata,
-      NEOGMA_RELATIONSHIPS_KEY,
-    ) ?? [];
+  const propertyMetadataList = wmStore
+    ? (wmStore[NEOGMA_PROPERTIES_KEY] ?? [])
+    : (getMetadata<PropertyMetadata[]>(
+        classMetadata as DecoratorMetadataObject,
+        NEOGMA_PROPERTIES_KEY,
+      ) ?? []);
+
+  const relationshipMetadataList = wmStore
+    ? (wmStore[NEOGMA_RELATIONSHIPS_KEY] ?? [])
+    : (getMetadata<RelationshipMetadata[]>(
+        classMetadata as DecoratorMetadataObject,
+        NEOGMA_RELATIONSHIPS_KEY,
+      ) ?? []);
 
   // 2. Build schema for ModelFactory. Annotated @Property fields contribute
   // their TypeBox schema directly; bare `@Property()` (no schema argument)

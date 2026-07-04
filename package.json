@@ -9,10 +9,19 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./legacy": {
+      "types": "./dist/Decorators/legacy/index.d.ts",
+      "default": "./dist/Decorators/legacy/index.js"
+    },
     "./dist/*.js": "./dist/*.js",
     "./dist/*": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "legacy": ["./dist/Decorators/legacy/index.d.ts"]
     }
   },
   "sideEffects": [

@@ -13,6 +13,43 @@ export const NEOGMA_PROPERTIES_KEY = Symbol('neogma:properties');
 /** Metadata key for @Relationship decorator entries */
 export const NEOGMA_RELATIONSHIPS_KEY = Symbol('neogma:relationships');
 
+// ── WeakMap-based metadata store ────────────────────────────────
+// Both TC39 and legacy decorators write here. toModel() reads from here.
+// Using a WeakMap avoids polluting classes and allows GC of unused classes.
+
+interface ClassMetadataStore {
+  [NEOGMA_NODE_KEY]?: NodeMetadata;
+  [NEOGMA_PROPERTIES_KEY]?: PropertyMetadata[];
+  [NEOGMA_RELATIONSHIPS_KEY]?: RelationshipMetadata[];
+}
+
+const classMetadataMap = new WeakMap<object, ClassMetadataStore>();
+
+/**
+ * Returns (or creates) the metadata store for a class constructor.
+ * Used by both TC39 and legacy decorators.
+ * @internal
+ */
+export function getClassMetadataStore(target: object): ClassMetadataStore {
+  let store = classMetadataMap.get(target);
+  if (!store) {
+    store = {};
+    classMetadataMap.set(target, store);
+  }
+  return store;
+}
+
+/**
+ * Reads the metadata store for a class constructor.
+ * Returns undefined if no decorators have been applied.
+ * @internal
+ */
+export function readClassMetadataStore(
+  target: object,
+): ClassMetadataStore | undefined {
+  return classMetadataMap.get(target);
+}
+
 /**
  * Shape stored under {@link NEOGMA_NODE_KEY}.
  * @internal — produced/consumed by `@Node` and `toModel()`; not a public API.
