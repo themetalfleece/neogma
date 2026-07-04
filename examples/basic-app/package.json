@@ -13,7 +13,7 @@
     "format": "prettier --write \"src/**/*.{ts,json}\""
   },
   "dependencies": {
-    "neogma": "workspace:*",
+    "neogma": "link:../../",
     "dotenv": "^17.2.3"
   },
   "devDependencies": {

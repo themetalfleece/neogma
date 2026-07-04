@@ -13,9 +13,10 @@ module.exports = [
       'dist/**',
       '.vscode/**',
       'coverage/**',
-      // The example workspace has its own tsconfig/lint setup; don't pull
-      // it into the library's lint run.
+      // Examples and sub-packages have their own tsconfig/lint setup;
+      // don't pull them into the library's lint run.
       'examples/**',
+      'packages/**',
     ],
   },
   {

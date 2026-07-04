@@ -2,7 +2,7 @@
 # https://pnpm.io/pnpm-workspace_yaml
 packages:
   - '.'
-  - 'examples/*'
+  - 'packages/*'
 
 # Dependencies that are explicitly allowed to run install/build scripts.
 # pnpm 11+ blocks lifecycle scripts by default; list trusted packages here.
