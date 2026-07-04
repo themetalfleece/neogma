@@ -54,3 +54,37 @@ jobs:
       - name: Stop Neo4j
         if: always()
         run: docker compose down -v
+
+  exampleApps:
+    runs-on: ubuntu-latest
+    name: Example apps (build & typecheck)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build neogma
+        run: pnpm build
+
+      - name: Install & typecheck example apps
+        run: |
+          for app in basic-app-decorators basic-app-legacy-decorators nestjs-app; do
+            echo "::group::$app"
+            cd examples/$app
+            pnpm install --no-frozen-lockfile
+            pnpm exec tsc --noEmit
+            cd ../..
+            echo "::endgroup::"
+          done
