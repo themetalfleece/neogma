@@ -81,6 +81,9 @@ importers:
       '@nestjs/core':
         specifier: ^11.1.27
         version: 11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.27)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
@@ -105,6 +108,9 @@ importers:
       eslint-plugin-unused-imports:
         specifier: ^4.3.0
         version: 4.4.1(@typescript-eslint/eslint-plugin@8.62.0(@typescript-eslint/parser@8.62.0(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)
+      jest:
+        specifier: ^30.2.0
+        version: 30.4.2(@types/node@20.19.43)
       neogma:
         specifier: workspace:*
         version: link:../..
@@ -120,6 +126,9 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      ts-jest:
+        specifier: ^29.4.6
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
