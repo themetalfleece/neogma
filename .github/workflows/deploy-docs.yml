@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - features/decorators
+      - feature/decorators
     paths:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yml'
