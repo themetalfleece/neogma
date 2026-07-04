@@ -34,7 +34,6 @@ console.log(found?.Orders[0].node.status);  // string
 export default async function HomePage() {
   const highlighted = await highlight(heroCode, {
     lang: 'typescript',
-    themes: { light: 'github-light', dark: 'github-dark' },
   });
 
   return (
