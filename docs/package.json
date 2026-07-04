@@ -8,9 +8,12 @@
     "start": "next start",
     "postinstall": "fumadocs-mdx",
     "lint": "eslint --fix --quiet \"**/*.{ts,tsx}\"",
-    "format": "prettier --write \"**/*.{ts,tsx,css,json,mdx}\""
+    "format": "prettier --write \"**/*.{ts,tsx,css,json,mdx}\"",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.1",
     "@orama/orama": "^3.1.18",
     "fumadocs-core": "^16.10.7",
     "fumadocs-mdx": "^15.0.13",

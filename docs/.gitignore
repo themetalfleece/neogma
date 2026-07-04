@@ -1,5 +1,6 @@
 .next/
 .source/
+.open-next/
 node_modules/
 out/
 source.generated.ts
