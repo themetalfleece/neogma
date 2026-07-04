@@ -1,0 +1,14 @@
+{
+  "name": "@neogma-examples/basic-app-js",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runnable JavaScript example app demonstrating neogma with ModelFactory (no decorators, no TypeScript).",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "neogma": "link:../../",
+    "dotenv": "^17.2.3"
+  }
+}
