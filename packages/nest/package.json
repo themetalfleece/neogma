@@ -1,6 +1,6 @@
 {
   "name": "@neogma/nest",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "NestJS integration module for neogma - provides NeogmaModule with forRoot/forRootAsync, lifecycle management, and dependency injection.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
