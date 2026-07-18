@@ -13,18 +13,18 @@
   },
   "dependencies": {
     "@neogma/nest": "link:../../packages/nest",
-    "@nestjs/common": "^11.1.27",
-    "@nestjs/core": "^11.1.27",
-    "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/core": "^11.1.28",
+    "@nestjs/platform-express": "^11.1.28",
     "neogma": "link:../../",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.23",
-    "@nestjs/testing": "^11.1.27",
-    "@types/node": "^20.0.0",
-    "typescript": "^5.9.3"
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/testing": "^11.1.28",
+    "@types/node": "^26.1.1",
+    "typescript": "^6.0.3"
   }
 }

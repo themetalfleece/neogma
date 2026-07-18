@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "neogma": "link:../../",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.9.3"
+    "@types/node": "^26.1.1",
+    "typescript": "^6.0.3"
   }
 }

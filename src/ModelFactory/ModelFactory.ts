@@ -199,10 +199,10 @@ export const ModelFactory = <
 
   // Define the Model class
   const Model = class ModelClass implements InstanceMethodsI {
-    public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
-    public dataValues: InstanceMethodsI['dataValues'];
-    public changed: InstanceMethodsI['changed'];
-    public __relationshipData: InstanceMethodsI['__relationshipData'];
+    public __existsInDatabase!: InstanceMethodsI['__existsInDatabase'];
+    public dataValues!: InstanceMethodsI['dataValues'];
+    public changed!: InstanceMethodsI['changed'];
+    public __relationshipData!: InstanceMethodsI['__relationshipData'];
     public labels: string[] = [];
 
     public static relationships = _relationships;
@@ -874,22 +874,9 @@ export const ModelFactory = <
     }
   };
 
-  // Add statics
-  for (const staticKey in statics) {
-    if (!Object.hasOwn(statics, staticKey)) {
-      continue;
-    }
-    Model[staticKey as keyof typeof Model] = statics[staticKey];
-  }
-
-  // Add methods
-  for (const methodKey in methods) {
-    if (!Object.hasOwn(methods, methodKey)) {
-      continue;
-    }
-    Model.prototype[methodKey as keyof typeof Model.prototype] =
-      methods[methodKey];
-  }
+  // Add user-defined statics and instance methods to the Model class.
+  Object.assign(Model, statics);
+  Object.assign(Model.prototype, methods);
 
   // Add to modelsByName
   neogma.modelsByName[modelName] = Model;

@@ -87,6 +87,26 @@ export type WhereTypes = {
   };
 };
 
+/**
+ * Union of all operator object types. Used internally to safely extract
+ * operator values via dynamic symbol access without casting to
+ * `Record<symbol, unknown>`. Each key is optional because a where value
+ * object may carry any subset of operators.
+ */
+export type WhereOperatorObject = Partial<
+  WhereTypes['Eq'] &
+    WhereTypes['Ne'] &
+    WhereTypes['In'] &
+    WhereTypes['_In'] &
+    WhereTypes['Contains'] &
+    WhereTypes['Gt'] &
+    WhereTypes['Gte'] &
+    WhereTypes['Lt'] &
+    WhereTypes['Lte'] &
+    WhereTypes['Is'] &
+    WhereTypes['IsNot']
+>;
+
 // ============ Where Value Types ============
 
 /**
@@ -367,12 +387,12 @@ export const isOperator = {
     typeof value === 'object' &&
     value !== null &&
     Op.is in value &&
-    (value as Record<symbol, unknown>)[Op.is] === null,
+    (value as WhereOperatorObject)[Op.is] === null,
   isNot: (value: WhereValuesI): value is WhereTypes['IsNot'] =>
     typeof value === 'object' &&
     value !== null &&
     Op.isNot in value &&
-    (value as Record<symbol, unknown>)[Op.isNot] === null,
+    (value as WhereOperatorObject)[Op.isNot] === null,
 } as const;
 
 /**

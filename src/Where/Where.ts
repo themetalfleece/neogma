@@ -9,6 +9,7 @@ import type {
 import { escapeIfNeeded } from '../utils/cypher';
 import type {
   operators,
+  WhereOperatorObject,
   WhereParamsByIdentifierI,
   WhereParamsI,
   WhereValuesI,
@@ -198,11 +199,12 @@ export class Where {
     // Object with operator symbols - process each operator individually
     // Note: null already handled above, undefined is falsy, so this handles operator objects
     if (value && typeof value === 'object') {
+      const opObj = value as WhereOperatorObject;
       for (const { description } of Object.getOwnPropertySymbols(value)) {
         const operator = description as (typeof operators)[number];
         if (!operator || !isOperator[operator]?.(value)) continue;
 
-        const operatorValue = value[Op[operator]];
+        const operatorValue = opObj[Op[operator]];
         const nullCheckOp = Where.resolveNullCheckOperator(
           operator,
           operatorValue,
@@ -210,7 +212,7 @@ export class Where {
 
         if (nullCheckOp) {
           this.addNullCheckEntry(identifier, property, nullCheckOp);
-        } else {
+        } else if (operatorValue != null) {
           this.addBindParamDataEntry({
             identifier,
             property,
@@ -462,6 +464,7 @@ export class Where {
 
       // Check if value is an operator object
       if (typeof value === 'object') {
+        const opObj = value as WhereOperatorObject;
         let hasNonEqOperator = false;
         let hasEqWithValue = false;
 
@@ -469,7 +472,7 @@ export class Where {
           const operator = description as (typeof operators)[number];
           if (!operator || !isOperator[operator]?.(value)) continue;
 
-          const operatorValue = value[Op[operator]];
+          const operatorValue = opObj[Op[operator]];
 
           // Null checks and non-eq operators go to nonEqParams
           if (Where.resolveNullCheckOperator(operator, operatorValue)) {

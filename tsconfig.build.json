@@ -1,7 +1,13 @@
 {
   "extends": "./tsconfig",
   "compilerOptions": {
-    "lib": ["es2022", "esnext.decorators"]
+    "lib": ["es2022", "esnext.decorators"],
+    "types": ["node"]
   },
-  "exclude": ["node_modules", "**/*.spec.ts", "src/test/**"]
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "src/test/**",
+    "src/**/testHelpers.ts"
+  ]
 }

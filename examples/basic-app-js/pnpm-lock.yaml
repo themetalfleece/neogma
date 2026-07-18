@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       dotenv:
-        specifier: ^17.2.3
+        specifier: ^17.4.2
         version: 17.4.2
       neogma:
         specifier: link:../../
