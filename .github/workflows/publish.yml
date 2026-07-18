@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
@@ -36,10 +36,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Wait for Neo4j
-        uses: ifaxity/wait-on-action@v1.1.0
-        with:
-          resource: http://localhost:7474
-          timeout: 60000
+        run: |
+          timeout=60
+          while ! curl -sf http://localhost:7474 > /dev/null 2>&1; do
+            timeout=$((timeout - 1))
+            if [ "$timeout" -le 0 ]; then echo "Neo4j did not start in time"; exit 1; fi
+            sleep 1
+          done
 
       - name: Run tests
         env:
@@ -61,13 +64,13 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
