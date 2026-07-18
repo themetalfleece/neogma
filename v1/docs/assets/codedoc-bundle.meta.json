@@ -1,0 +1,121 @@
+{
+  "init": [
+    {
+      "name": "initJssCs",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/transport/setup-jss.js",
+      "hash": "6xTTcWlHMbjVl+GzxpY5cg=="
+    },
+    {
+      "name": "installTheme",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/content/theme.ts",
+      "hash": "k0RJlMezD9TCueLTouMphA=="
+    },
+    {
+      "name": "codeSelection",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/code/selection.js",
+      "hash": "214uuXJrA3tTChd52psomQ=="
+    },
+    {
+      "name": "sameLineLengthInCodes",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/code/same-line-length.js",
+      "hash": "uS7Q+fi3hIIxDVL1zvdrzQ=="
+    },
+    {
+      "name": "initHintBox",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/code/line-hint/index.js",
+      "hash": "VwQCRSDvJ3yUnK8dGlTkcw=="
+    },
+    {
+      "name": "initCodeLineRef",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/code/line-ref/index.js",
+      "hash": "4cnKPlcM6AMeD4GgkDODFg=="
+    },
+    {
+      "name": "initSmartCopy",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/code/smart-copy.js",
+      "hash": "6Wb+t8sR0UmsFJrJJJDoKA=="
+    },
+    {
+      "name": "copyHeadings",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/heading/copy-headings.js",
+      "hash": "G8Z4MxPXluQ/nB5Cg9Ek9w=="
+    },
+    {
+      "name": "contentNavHighlight",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/page/contentnav/highlight.js",
+      "hash": "Ib/M/BUSF3gwmR6CRXvxNQ=="
+    },
+    {
+      "name": "loadDeferredIFrames",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/transport/deferred-iframe.js",
+      "hash": "P7RK1qvkxszPXjemwcYSpg=="
+    },
+    {
+      "name": "smoothLoading",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/transport/smooth-loading.js",
+      "hash": "lLPnH8Qpvwm4sw59l+/DYA=="
+    },
+    {
+      "name": "tocHighlight",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/page/toc/toc-highlight.js",
+      "hash": "eFS7PirazKgKImALmcqXtg=="
+    },
+    {
+      "name": "postNavSearch",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/page/toc/search/post-nav/index.js",
+      "hash": "HdMNdlyh+SN5nPgp4M5FCQ=="
+    },
+    {
+      "name": "copyLineLinks",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/code/line-links/copy-line-link.js",
+      "hash": "W/7dCgGEUXV/77H3w/u9Jw=="
+    },
+    {
+      "name": "gatherFootnotes",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/footnote/gather-footnotes.js",
+      "hash": "awSurBo5aZYhj1YiV3xjJA=="
+    }
+  ],
+  "components": [
+    {
+      "name": "ToCPrevNext",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/page/toc/prevnext/index.js",
+      "hash": "1VYSfG1NOtFnNfpZYyXT3Q=="
+    },
+    {
+      "name": "CollapseControl",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/collapse/collapse-control.js",
+      "hash": "rZ6GD2xZ7Y/6jHZFQVwyHQ=="
+    },
+    {
+      "name": "GithubSearch",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/misc/github/search.js",
+      "hash": "Z1/BjHkYEBgiPvPHvCo5LA=="
+    },
+    {
+      "name": "ToCToggle",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/page/toc/toggle/index.js",
+      "hash": "pNQ45pxBuR50ci/77jtkyg=="
+    },
+    {
+      "name": "DarkModeSwitch",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/darkmode/index.js",
+      "hash": "BP7SoJ38K2MfOSaP/VtgTQ=="
+    },
+    {
+      "name": "ConfigTransport",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/transport/config.js",
+      "hash": "o8YL/Eofio1h7Dqa1zYYCQ=="
+    },
+    {
+      "name": "TabSelector",
+      "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/components/tabs/selector.js",
+      "hash": "fMnn5UcrAlFwT8hu+Sta/Q=="
+    }
+  ],
+  "renderer": {
+    "name": "getRenderer",
+    "filename": "C:/Users/jatha/Dev/neogma-doc/neogma/documentation/.codedoc/node_modules/@codedoc/core/dist/es5/transport/renderer.js",
+    "hash": "skLEv2viDKaGmwn1+8/BOQ=="
+  }
+}
