@@ -1,12 +1,32 @@
 # @neogma/nest
 
+<p>
+  <a href="https://www.npmjs.com/package/@neogma/nest"><img src="https://badgen.net/npm/v/@neogma/nest" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@neogma/nest"><img src="https://badgen.net/npm/dm/@neogma/nest" alt="npm downloads"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://badgen.net/npm/types/tslib" alt="TypeScript"></a>
+  <a href="https://github.com/themetalfleece/neogma/blob/main/LICENSE"><img src="https://badgen.net/github/license/themetalfleece/neogma" alt="License"></a>
+</p>
+
 NestJS integration module for [neogma](https://www.npmjs.com/package/neogma), a type-safe OGM for Neo4j.
+
+## Features
+
+- **`NeogmaModule.forRoot()`** -- synchronous connection setup with static options
+- **`NeogmaModule.forRootAsync()`** -- async configuration (e.g., from `ConfigService`)
+- **`NeogmaModule.forFeature()`** -- register decorated model classes as injectable providers
+- **`NeogmaService`** -- injectable service exposing the `Neogma` instance for raw queries
+- **`getModelToken()` / `ModelOf<T>`** -- type-safe DI token and model type helpers
+- **Automatic lifecycle** -- connects on module init, closes the driver on application shutdown
 
 ## Installation
 
 ```bash
 npm install @neogma/nest neogma @nestjs/common @nestjs/core
+# or
+pnpm add @neogma/nest neogma @nestjs/common @nestjs/core
 ```
+
+Requires `@nestjs/common` and `@nestjs/core` version 10 or later as peer dependencies.
 
 ## Usage
 
@@ -53,7 +73,7 @@ Models can use either TC39 decorators (import from `'neogma'`) or legacy decorat
 
 ```typescript
 // user.model.ts
-import { Node, PrimaryKey, Property, NodeEntity, Type } from 'neogma/legacy';
+import { Node, PrimaryKey, Property, NodeEntity, Type } from 'neogma';
 
 @Node({ label: 'User' })
 export class UserNode extends NodeEntity {
@@ -103,6 +123,22 @@ export class UsersService {
 }
 ```
 
+### 5. Inject NeogmaService for raw queries
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { NeogmaService } from '@neogma/nest';
+
+@Injectable()
+export class DatabaseService {
+  constructor(private readonly neogmaService: NeogmaService) {}
+
+  async runCustomQuery(cypher: string, params: Record<string, unknown>) {
+    return this.neogmaService.neogma.queryRunner.run(cypher, params);
+  }
+}
+```
+
 ## API
 
 | Export                               | Description                                                             |
@@ -114,6 +150,10 @@ export class UsersService {
 | `getModelToken(cls)`                 | Returns the DI injection token for a model class                        |
 | `ModelOf<T>`                         | Type helper that extracts the `NeogmaModel` type from a decorated class |
 | `NEOGMA_INSTANCE`                    | Injection token for the raw `Neogma` instance                           |
+
+## Documentation
+
+Full documentation at **[neogma.themetalfleece.dev/docs/integrations/nestjs](https://neogma.themetalfleece.dev/docs/integrations/nestjs)**
 
 ## Example
 

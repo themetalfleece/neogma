@@ -24,6 +24,7 @@ v2 replaces verbose factory configs with **decorators you can read at a glance**
 - **TypeBox validation** built in -- powerful schemas, no extra dependencies
 - **Zero boilerplate** -- no more separate `*Properties`, `*Instance`, or `*RelatedNodes` interfaces
 - **Both decorator styles** -- TC39 standard (recommended) and legacy experimental
+- **[`@neogma/nest`](./packages/nest)** -- first-class NestJS module with `forRoot`/`forRootAsync`, model DI via `forFeature`, and automatic connection lifecycle
 
 v2 is **fully backwards compatible**. Existing v1 code keeps working, but we recommend migrating for the improved DX. See the [migration guide](https://neogma.themetalfleece.dev/docs/migration) for step-by-step instructions.
 
@@ -226,11 +227,20 @@ users[0].Orders[0].relationship; // Relationship properties
 
 ## NestJS Integration
 
-Use `@neogma/nest` for first-class NestJS support:
+[`@neogma/nest`](./packages/nest) provides a dedicated NestJS module with dependency injection, connection lifecycle management, and model registration.
 
 ```bash
-npm install @neogma/nest
+npm install @neogma/nest neogma
+# or
+pnpm add @neogma/nest neogma
 ```
+
+**Features:**
+- `NeogmaModule.forRoot()` / `forRootAsync()` -- configure connection with static options or from `ConfigService`
+- `NeogmaModule.forFeature([...models])` -- register decorated model classes as injectable providers
+- `NeogmaService` -- injectable service exposing the `Neogma` instance for raw queries
+- `getModelToken()` / `ModelOf<T>` -- type-safe DI token helpers
+- Automatic connection lifecycle (connect on init, close on shutdown)
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -251,7 +261,24 @@ import { NeogmaModule } from '@neogma/nest';
 export class AppModule {}
 ```
 
-See the [NestJS integration docs](https://neogma.themetalfleece.dev/docs/integrations/nestjs) for full details.
+```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { getModelToken } from '@neogma/nest';
+import type { ModelOf } from '@neogma/nest';
+
+type UserModel = ModelOf<typeof UserNode>;
+
+@Injectable()
+export class UserService {
+  constructor(@Inject(getModelToken(UserNode)) private Users: UserModel) {}
+
+  async findAll() {
+    return this.Users.findMany({});
+  }
+}
+```
+
+See the [NestJS integration docs](https://neogma.themetalfleece.dev/docs/integrations/nestjs) and the [`nestjs-app` example](./examples/nestjs-app) for full details.
 
 ---
 
