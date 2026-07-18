@@ -169,8 +169,8 @@ module.exports = {
   // The example workspace is a self-contained app; keep its files out of
   // the library's Jest run entirely so a stray *.spec.ts there can never
   // bleed into CI for this package.
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/examples/'],
-  modulePathIgnorePatterns: ['<rootDir>/examples/'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/examples/', '<rootDir>/packages/'],
+  modulePathIgnorePatterns: ['<rootDir>/examples/', '<rootDir>/packages/'],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   // testPathIgnorePatterns: [

@@ -43,13 +43,19 @@ jobs:
           resource: http://localhost:7474
           timeout: 60000
 
-      - name: Run tests
+      - name: Run neogma tests
         env:
           CI: true
           NEO4J_URL: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: password
         run: pnpm test
+
+      - name: Build neogma (needed by @neogma/nest)
+        run: pnpm build
+
+      - name: Run @neogma/nest tests
+        run: pnpm --filter @neogma/nest test
 
       - name: Stop Neo4j
         if: always()
