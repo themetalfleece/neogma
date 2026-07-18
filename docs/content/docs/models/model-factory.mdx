@@ -1,82 +1,16 @@
 ---
-title: ModelFactory
-description: Define models using the ModelFactory function for JavaScript or existing codebases
+title: ModelFactory (JavaScript)
+description: Define models using the ModelFactory function for JavaScript projects
 ---
 
 # ModelFactory
 
-<Callout type="info">
-  `ModelFactory` is the v1 API for defining models. It is fully supported and
-  not deprecated. However, the old revalidator validation schema format is
-  deprecated and will be removed in a future major release - use TypeBox schemas
-  instead. New TypeScript projects should prefer the [decorator-based
-  API](/docs/models/decorator-based) for less boilerplate.
-</Callout>
+`ModelFactory` is the API for defining models in JavaScript projects where decorators are not available.
 
 ## Defining a model
 
-Use `ModelFactory` to define a model by passing a configuration object and a Neogma instance:
-
-```typescript
-import { Neogma, ModelFactory } from 'neogma';
-import type { ModelRelatedNodesI, NeogmaInstance } from 'neogma';
-
-const neogma = new Neogma({
-  url: 'bolt://localhost:7687',
-  username: 'neo4j',
-  password: 'password',
-});
-
-// Define property types
-type UserProperties = {
-  id: string;
-  name: string;
-  age?: number;
-};
-
-// Define related nodes
-interface UserRelatedNodes {
-  Orders: ModelRelatedNodesI<
-    typeof Orders,
-    OrderInstance,
-    { rating: number },
-    { Rating: number }
-  >;
-}
-
-// Define instance type
-type UserInstance = NeogmaInstance<UserProperties, UserRelatedNodes>;
-
-const Users = ModelFactory<UserProperties, UserRelatedNodes>(
-  {
-    label: 'User',
-    schema: {
-      id: { type: 'string', required: true },
-      name: { type: 'string', required: true },
-      age: { type: 'number', required: false },
-    },
-    primaryKeyField: 'id',
-    relationships: {
-      Orders: {
-        model: Orders,
-        direction: 'out',
-        name: 'PLACED',
-        properties: {
-          Rating: { property: 'rating', schema: { type: 'number' } },
-        },
-      },
-    },
-  },
-  neogma,
-);
-```
-
-## JavaScript usage
-
-ModelFactory works the same way in JavaScript, without the type annotations:
-
 ```javascript
-const { Neogma, ModelFactory } = require('neogma');
+const { Neogma, ModelFactory, Type } = require('neogma');
 
 const neogma = new Neogma({
   url: 'bolt://localhost:7687',
@@ -88,11 +22,18 @@ const Users = ModelFactory(
   {
     label: 'User',
     schema: {
-      id: { type: 'string', required: true },
-      name: { type: 'string', required: true },
-      age: { type: 'number', required: false },
+      id: Type.String(),
+      name: Type.String(),
+      age: Type.Optional(Type.Number()),
     },
     primaryKeyField: 'id',
+    relationships: {
+      Orders: {
+        model: () => Orders,
+        direction: 'out',
+        name: 'HAS_ORDER',
+      },
+    },
   },
   neogma,
 );
@@ -107,15 +48,13 @@ const user = await Users.createOne({
 
 ## Configuration options
 
-| Option            | Type                 | Description                                |
-| ----------------- | -------------------- | ------------------------------------------ |
-| `label`           | `string \| string[]` | Neo4j label(s) for this node               |
-| `schema`          | `object`             | Property definitions with validation rules |
-| `primaryKeyField` | `string`             | The property used as the primary key       |
-| `relationships`   | `object`             | Relationship definitions                   |
-| `statics`         | `object`             | Static methods added to the model          |
-| `methods`         | `object`             | Instance methods added to model instances  |
+| Option            | Type                 | Description                               |
+| ----------------- | -------------------- | ----------------------------------------- |
+| `label`           | `string \| string[]` | Neo4j label(s) for this node              |
+| `schema`          | `object`             | Property definitions with TypeBox schemas |
+| `primaryKeyField` | `string`             | The property used as the primary key      |
+| `relationships`   | `object`             | Relationship definitions                  |
+| `statics`         | `object`             | Static methods added to the model         |
+| `methods`         | `object`             | Instance methods added to model instances |
 
-## Migrating to decorators
-
-See the [migration guide](/docs/migration) for step-by-step instructions on converting ModelFactory definitions to the decorator-based API.
+For TypeScript projects, use the [decorator-based API](/docs/models/decorator-based) instead.

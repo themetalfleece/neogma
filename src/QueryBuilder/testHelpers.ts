@@ -1,7 +1,13 @@
 import Type from 'typebox';
 
 import type { NeogmaInstance } from '..';
-import { Node, NodeEntity, Property, Relationship } from '../Decorators';
+import {
+  Node,
+  NodeEntity,
+  PrimaryKey,
+  Property,
+  Relationship,
+} from '../Decorators';
 import { toModel } from '../Decorators/toModel';
 import type { ModelRelatedNodesI } from '../ModelFactory';
 import { Neogma } from '../Neogma';
@@ -54,21 +60,21 @@ export type ModelBStaticsI = object;
 
 // Decorated class definitions
 
-@Node({ label: 'ModelA', primaryKeyField: 'id' })
+@Node({ label: 'ModelA' })
 class ModelANode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 }
 
-@Node({ label: 'ModelB', primaryKeyField: 'id' })
+@Node({ label: 'ModelB' })
 class ModelBNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.Number())
@@ -78,13 +84,9 @@ class ModelBNode extends NodeEntity {
     name: 'RELNAME',
     direction: 'out',
     model: () => ModelANode,
-    properties: [
-      {
-        alias: 'Available',
-        property: 'available',
-        schema: Type.Number(),
-      },
-    ],
+    properties: {
+      Available: { property: 'available', schema: Type.Number() },
+    },
   })
   ModelA!: any;
 }

@@ -1,5 +1,4 @@
 import { randomUUID as uuid } from 'crypto';
-import Type from 'typebox';
 
 import type { NeogmaModel } from '../index';
 import { Neogma } from '../Neogma';
@@ -13,19 +12,11 @@ const { getResultProperties } = QueryRunner;
 let neogma: Neogma;
 
 beforeAll(async () => {
-  neogma = new Neogma(
-    {
-      url: process.env.NEO4J_URL ?? '',
-      username: process.env.NEO4J_USERNAME ?? '',
-      password: process.env.NEO4J_PASSWORD ?? '',
-    },
-    {
-      // This suite intentionally exercises the legacy revalidator schema
-      // path; silence the one-time deprecation warning so test output
-      // stays clean.
-      suppressRevalidatorDeprecation: true,
-    },
-  );
+  neogma = new Neogma({
+    url: process.env.NEO4J_URL ?? '',
+    username: process.env.NEO4J_USERNAME ?? '',
+    password: process.env.NEO4J_PASSWORD ?? '',
+  });
 
   await neogma.verifyConnectivity();
 });
@@ -1314,125 +1305,5 @@ describe('schema property validation', () => {
         neogma,
       );
     }).not.toThrow();
-  });
-});
-
-describe('revalidator deprecation warning', () => {
-  const makeNeogma = (suppress: boolean): Neogma =>
-    new Neogma(
-      {
-        url: process.env.NEO4J_URL ?? '',
-        username: process.env.NEO4J_USERNAME ?? '',
-        password: process.env.NEO4J_PASSWORD ?? '',
-      },
-      { suppressRevalidatorDeprecation: suppress },
-    );
-
-  let warnSpy: jest.SpyInstance;
-
-  beforeEach(() => {
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterEach(async () => {
-    warnSpy.mockRestore();
-  });
-
-  it('emits a one-time warning when a model declares revalidator-shaped schema entries', async () => {
-    const localNeogma = makeNeogma(false);
-    try {
-      ModelFactory(
-        {
-          label: 'RevalidatorWarnA',
-          schema: {
-            id: { type: 'string', required: true },
-            name: { type: 'string', required: true },
-          },
-        },
-        localNeogma,
-      );
-      ModelFactory(
-        {
-          label: 'RevalidatorWarnB',
-          schema: {
-            id: { type: 'string', required: true },
-            title: { type: 'string', required: true },
-          },
-        },
-        localNeogma,
-      );
-
-      const revalidatorWarnings = warnSpy.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('revalidator'),
-      );
-      expect(revalidatorWarnings).toHaveLength(1);
-      expect(revalidatorWarnings[0][0]).toMatch(/RevalidatorWarnA/);
-    } finally {
-      await localNeogma.driver.close();
-    }
-  });
-
-  it('does NOT warn when suppressRevalidatorDeprecation is set', async () => {
-    const localNeogma = makeNeogma(true);
-    try {
-      ModelFactory(
-        {
-          label: 'RevalidatorSuppressed',
-          schema: {
-            id: { type: 'string', required: true },
-            name: { type: 'string', required: true },
-          },
-        },
-        localNeogma,
-      );
-
-      const revalidatorWarnings = warnSpy.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('revalidator'),
-      );
-      expect(revalidatorWarnings).toHaveLength(0);
-    } finally {
-      await localNeogma.driver.close();
-    }
-  });
-
-  it('flags legacy relationship-property schemas as well as node schemas', async () => {
-    const localNeogma = makeNeogma(false);
-    try {
-      // Node schemas use TypeBox so ONLY the relationship-property schema is
-      // legacy. This isolates the "relationship path" branch of the detector.
-      ModelFactory(
-        {
-          label: 'RevalidatorRelTarget',
-          schema: {
-            id: Type.String(),
-          },
-          relationships: {
-            Uses: {
-              model: 'self',
-              direction: 'out',
-              name: 'USES',
-              properties: {
-                Since: {
-                  property: 'since',
-                  schema: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-        localNeogma,
-      );
-
-      const revalidatorWarnings = warnSpy.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('revalidator'),
-      );
-      expect(revalidatorWarnings).toHaveLength(1);
-      expect(revalidatorWarnings[0][0]).toMatch(/Uses\.Since/);
-    } finally {
-      await localNeogma.driver.close();
-    }
   });
 });

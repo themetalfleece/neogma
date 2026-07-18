@@ -4,6 +4,7 @@ import {
   clearModelRegistry,
   Node,
   NodeEntity,
+  PrimaryKey,
   Property,
   Relationship,
 } from '../Decorators';
@@ -181,24 +182,24 @@ export type UsersModel = NeogmaModel<
 
 // ============ Decorated Class Definitions ============
 
-@Node({ label: 'Supplier', primaryKeyField: 'id' })
+@Node({ label: 'Supplier' })
 class SupplierNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.Optional(Type.String()))
   country?: string;
 }
 
-@Node({ label: 'Product', primaryKeyField: 'id' })
+@Node({ label: 'Product' })
 class ProductNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.Optional(Type.Number()))
@@ -212,12 +213,12 @@ class ProductNode extends NodeEntity {
   Supplier!: any;
 }
 
-@Node({ label: 'Order', primaryKeyField: 'id' })
+@Node({ label: 'Order' })
 class OrderNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.Optional(Type.String()))
@@ -226,7 +227,7 @@ class OrderNode extends NodeEntity {
   // Products relationship added conditionally via addRelationships()
 }
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
@@ -234,20 +235,19 @@ class UserNode extends NodeEntity {
   @Property(Type.Optional(Type.Number({ minimum: 0 })))
   age?: number;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Relationship({
     name: 'CREATES',
     direction: 'out',
     model: () => OrderNode,
-    properties: [
-      {
-        alias: 'Rating',
+    properties: {
+      Rating: {
         property: 'rating',
         schema: Type.Number({ minimum: 1, maximum: 5 }),
       },
-    ],
+    },
   })
   Orders!: any;
 

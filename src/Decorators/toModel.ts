@@ -19,6 +19,7 @@ import type {
 import {
   getMetadata,
   NEOGMA_NODE_KEY,
+  NEOGMA_PRIMARY_KEY_FIELD,
   NEOGMA_PROPERTIES_KEY,
   NEOGMA_RELATIONSHIPS_KEY,
   type NodeMetadata,
@@ -109,8 +110,9 @@ export function clearModelRegistry(): void {
  * ```typescript
  * import Type from 'typebox';
  *
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
+ *   @PrimaryKey()
  *   @Property(Type.String()) id!: string;
  *   @Property(Type.String({ minLength: 3 })) name!: string;
  *
@@ -201,7 +203,36 @@ export function toModel<
         NEOGMA_RELATIONSHIPS_KEY,
       ) ?? []);
 
-  // 2. Build schema for ModelFactory. Annotated @Property fields contribute
+  // 2. Resolve primaryKeyField from @PrimaryKey decorator.
+  const resolvedPrimaryKeyField = wmStore
+    ? wmStore[NEOGMA_PRIMARY_KEY_FIELD]
+    : (getMetadata<string>(
+        classMetadata as DecoratorMetadataObject,
+        NEOGMA_PRIMARY_KEY_FIELD,
+      ) ?? undefined);
+
+  if (resolvedPrimaryKeyField !== undefined) {
+    // @PrimaryKey auto-registers as @Property in both TC39 and legacy paths,
+    // so normally this check is redundant. It remains as a safety net for
+    // edge cases (e.g. programmatic metadata construction).
+    const propertyKeys = (propertyMetadataList as PropertyMetadata[]).map(
+      (p) => p.propertyKey,
+    );
+    if (!propertyKeys.includes(resolvedPrimaryKeyField)) {
+      throw new NeogmaModelSchemaError(
+        `@PrimaryKey is applied to field "${resolvedPrimaryKeyField}" on class ` +
+          `"${decoratedClass.name}", but that field is not registered as a ` +
+          `property. This is unexpected — @PrimaryKey should auto-register ` +
+          `the field as a @Property.`,
+        {
+          className: decoratedClass.name,
+          propertyKey: resolvedPrimaryKeyField,
+        },
+      );
+    }
+  }
+
+  // 3. Build schema for ModelFactory. Annotated @Property fields contribute
   // their TypeBox schema directly; bare `@Property()` (no schema argument)
   // gets a `Type.Any()` placeholder — the property key is still tracked so
   // the field participates in create/update but no validation runs. This
@@ -214,7 +245,7 @@ export function toModel<
       propertyMetadata.schema ?? Type.Any();
   }
 
-  // 3. Build relationships config. Targets that haven't been converted yet
+  // 4. Build relationships config. Targets that haven't been converted yet
   // get a placeholder `model` reference that's patched in step 8 once the
   // target's own `toModel()` call lands. This is what makes circular
   // `A -> B -> A` model pairs work regardless of declaration order.
@@ -289,7 +320,7 @@ export function toModel<
     relationships[relationshipMetadata.alias] = relationshipConfig;
   }
 
-  // 4. Extract statics from the class
+  // 5. Extract statics from the class
   const classAsRecord = decoratedClass as unknown as Record<string, unknown>;
   const extractedStatics: Record<string, unknown> = {};
   const staticOwnKeys = Object.getOwnPropertyNames(decoratedClass).filter(
@@ -303,7 +334,7 @@ export function toModel<
     extractedStatics[key] = classAsRecord[key];
   }
 
-  // 5. Extract instance methods from prototype
+  // 6. Extract instance methods from prototype
   const prototypeAsRecord = decoratedClass.prototype as Record<string, unknown>;
   const extractedMethods: Record<string, unknown> = {};
   const prototypeOwnKeys = Object.getOwnPropertyNames(
@@ -316,7 +347,7 @@ export function toModel<
     extractedMethods[key] = prototypeAsRecord[key];
   }
 
-  // 6. Call ModelFactory with the assembled schema, relationships, statics,
+  // 7. Call ModelFactory with the assembled schema, relationships, statics,
   // and methods extracted from the decorated class.
   const model = ModelFactory<
     Properties,
@@ -329,7 +360,7 @@ export function toModel<
         [K in keyof Properties]: PropertySchema<Properties>;
       },
       label: nodeMetadata.label,
-      primaryKeyField: nodeMetadata.primaryKeyField as Extract<
+      primaryKeyField: resolvedPrimaryKeyField as Extract<
         keyof Properties,
         string
       >,
@@ -349,11 +380,11 @@ export function toModel<
     neogma,
   );
 
-  // 7. Register in model registry for relationship resolution
+  // 8. Register in model registry for relationship resolution
   modelRegistry.set(decoratedClass, model);
   const untypedModel = model as unknown as UntypedNeogmaModel;
 
-  // 8. Queue this model's deferred relationship targets. ModelFactory has
+  // 9. Queue this model's deferred relationship targets. ModelFactory has
   // cloned the relationships object, so we point the pending queue at the
   // model's live `relationships` static — that's what the query path reads.
   for (const deferred of deferredTargets) {
@@ -363,7 +394,7 @@ export function toModel<
     pendingRelationshipResolutions.set(deferred.targetClass, queue);
   }
 
-  // 9. Flush any pending resolutions waiting on THIS class — earlier
+  // 10. Flush any pending resolutions waiting on THIS class — earlier
   // `toModel()` calls that pointed at this class before it was built.
   // Patching `waiter.ownerModel.relationships[waiter.alias].model` mutates
   // ModelFactory's live clone in place.

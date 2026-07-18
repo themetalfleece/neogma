@@ -1,13 +1,20 @@
 import type { ModelOf } from '@neogma/nest';
 import { getModelToken } from '@neogma/nest';
 import type { Related } from 'neogma/legacy';
-import { Node, NodeEntity, Property, Relationship, Type } from 'neogma/legacy';
+import {
+  Node,
+  NodeEntity,
+  PrimaryKey,
+  Property,
+  Relationship,
+  Type,
+} from 'neogma/legacy';
 
 import { OrderNode } from './OrderNode';
 
-@Node({ label: 'NestUser', primaryKeyField: 'id' })
+@Node({ label: 'NestUser' })
 export class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 2 }))
@@ -23,13 +30,12 @@ export class UserNode extends NodeEntity {
     name: 'PLACED',
     direction: 'out',
     model: () => OrderNode,
-    properties: [
-      {
-        alias: 'Rating',
+    properties: {
+      Rating: {
         property: 'rating',
         schema: Type.Number({ minimum: 1, maximum: 5 }),
       },
-    ],
+    },
   })
   Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
 }

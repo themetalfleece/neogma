@@ -5,23 +5,31 @@ description: Define Neo4j models using TypeScript decorators with full type infe
 
 # Decorator-based models
 
-Neogma v2 introduces a decorator-based API for defining models. This is the recommended approach - it reduces boilerplate and provides full type inference without separate interface declarations.
+Define models using decorators for full type inference without separate interface declarations.
 
 ## Overview
 
-A model is defined as a class with three decorators:
+A model is defined as a class with four decorators:
 
 - `@Node` - marks the class as a Neo4j node and sets the label
+- `@PrimaryKey` - marks a field as the primary key (also registers it as a property)
 - `@Property` - marks a field as a stored property, with optional TypeBox validation
 - `@Relationship` - declares a relationship to another model
 
 ```typescript
-import { Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
 import type { Related } from 'neogma';
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 3 }))
@@ -46,17 +54,19 @@ const Users = neogma.model(UserNode);
 
 `@Node` marks a class as a Neo4j node. It accepts:
 
-| Option            | Type                 | Description                               |
-| ----------------- | -------------------- | ----------------------------------------- |
-| `label`           | `string \| string[]` | The Neo4j label (or labels) for this node |
-| `primaryKeyField` | `string` (optional)  | The property used as the primary key      |
+| Option  | Type                 | Description                                                           |
+| ------- | -------------------- | --------------------------------------------------------------------- |
+| `label` | `string \| string[]` | The Neo4j label (or labels) for this node. Defaults to the class name |
 
 ```typescript
-// Single label
-@Node({ label: 'User', primaryKeyField: 'id' })
+// Explicit label
+@Node({ label: 'User' })
 
 // Multiple labels
-@Node({ label: ['User', 'Person'], primaryKeyField: 'id' })
+@Node({ label: ['User', 'Person'] })
+
+// Label inferred from class name (becomes 'UserNode')
+@Node()
 ```
 
 The class must extend `NodeEntity`:
@@ -64,11 +74,31 @@ The class must extend `NodeEntity`:
 ```typescript
 import { NodeEntity } from 'neogma';
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
   // ...
 }
 ```
+
+## The `@PrimaryKey` decorator
+
+`@PrimaryKey` marks a field as the primary key for the model. It also registers the field as a property, so you do not need to add `@Property` separately.
+
+```typescript
+// With validation schema
+@PrimaryKey(Type.String())
+id!: string;
+
+// With stricter validation
+@PrimaryKey(Type.String({ format: 'uuid' }))
+id!: string;
+
+// Without validation (tracked but not validated)
+@PrimaryKey()
+id!: string;
+```
+
+Each model must have exactly one `@PrimaryKey` field. The primary key is used for lookups and relationship matching.
 
 ## The `@Property` decorator
 
@@ -85,7 +115,7 @@ age?: number;
 
 // Without validation (tracked but not validated)
 @Property()
-id!: string;
+externalId!: string;
 ```
 
 <Callout type="warn">
@@ -134,29 +164,21 @@ Orders!: Related<typeof OrderNode>;
 | `name`       | `string`                          | The Neo4j relationship type (e.g., `'PLACED'`)                               |
 | `direction`  | `'in' \| 'out' \| 'none'`         | The relationship direction                                                   |
 | `model`      | `() => NodeEntityClass \| 'self'` | Lazy reference to the target model class, or `'self'` for self-relationships |
-| `properties` | `RelationshipPropertyEntry[]`     | Optional relationship property definitions                                   |
+| `properties` | `object \| array`                 | Optional relationship property definitions (object syntax recommended)       |
 
 ### Relationship properties
 
-Relationships can have their own properties:
+Relationships can have their own properties. Use the object syntax (recommended), where keys are aliases:
 
 ```typescript
 @Relationship({
   name: 'RATED',
   direction: 'out',
   model: () => ProductNode,
-  properties: [
-    {
-      property: 'rating',      // the actual Neo4j property name
-      alias: 'Rating',         // the alias used in create operations
-      schema: Type.Number({ minimum: 1, maximum: 5 }),
-    },
-    {
-      property: 'review',
-      alias: 'Review',
-      schema: Type.Optional(Type.String()),
-    },
-  ],
+  properties: {
+    Rating: { property: 'rating', schema: Type.Number({ minimum: 1, maximum: 5 }) },
+    Review: { property: 'review', schema: Type.Optional(Type.String()) },
+  },
 })
 RatedProducts!: Related<
   typeof ProductNode,
@@ -165,14 +187,24 @@ RatedProducts!: Related<
 >;
 ```
 
+When the alias and Neo4j property name are the same, pass just the schema:
+
+```typescript
+properties: {
+  rating: Type.Number({ minimum: 1, maximum: 5 }),
+}
+```
+
+The array syntax is also supported for backwards compatibility. See [Defining Relationships](/docs/relationships/defining-relationships#relationship-properties) for the full reference.
+
 ### Self-relationships
 
 Use `'self'` for relationships that point back to the same model:
 
 ```typescript
-@Node({ label: 'Person', primaryKeyField: 'id' })
+@Node({ label: 'Person' })
 class PersonNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Relationship({
@@ -244,9 +276,9 @@ The returned value is a fully typed `NeogmaModel` with all CRUD methods, relatio
 You can define static and instance methods directly on your class:
 
 ```typescript
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) name!: string;
 
   // Instance method
@@ -268,13 +300,19 @@ const Users = neogma.model(UserNode);
 If your project uses TypeScript's `experimentalDecorators` (common in NestJS projects), import from `neogma/legacy`:
 
 ```typescript
-import { Node, Property, Relationship, NodeEntity } from 'neogma/legacy';
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+} from 'neogma/legacy';
 import { Type } from 'neogma';
 import type { Related } from 'neogma';
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String())

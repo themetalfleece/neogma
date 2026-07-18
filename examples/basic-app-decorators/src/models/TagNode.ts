@@ -1,8 +1,8 @@
-import { Node, NodeEntity, Property, Type } from 'neogma';
+import { Node, NodeEntity, PrimaryKey, Property, Type } from 'neogma';
 
-@Node({ label: ['ExampleTag', 'Searchable'], primaryKeyField: 'id' })
+@Node({ label: ['ExampleTag', 'Searchable'] })
 export class TagNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 1 }))

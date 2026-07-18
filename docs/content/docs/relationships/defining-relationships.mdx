@@ -5,23 +5,28 @@ description: Define relationships between Neo4j node models
 
 # Defining relationships
 
-Relationships in Neo4j connect nodes. In neogma, you define them on your model classes using the `@Relationship` decorator or in the `ModelFactory` configuration.
-
-## With decorators
+Relationships in Neo4j connect nodes. In neogma, you define them on your model classes using the `@Relationship` decorator.
 
 ```typescript
-import { Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
 import type { Related } from 'neogma';
 
-@Node({ label: 'Order', primaryKeyField: 'id' })
+@Node({ label: 'Order' })
 class OrderNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) status!: string;
 }
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) name!: string;
 
   @Relationship({
@@ -33,7 +38,7 @@ class UserNode extends NodeEntity {
 }
 ```
 
-### Direction
+## Direction
 
 The `direction` option specifies the relationship direction from the perspective of the current node:
 
@@ -41,9 +46,51 @@ The `direction` option specifies the relationship direction from the perspective
 - `'in'` - the relationship goes **from** the target **to** this node: `(User)<-[:PLACED]-(Order)`
 - `'none'` - no direction: `(User)-[:PLACED]-(Order)`
 
-### Relationship properties
+## Relationship properties
 
-Relationships can carry their own properties. Define them in the `properties` array:
+Relationships can carry their own properties. Define them using the object syntax (recommended) or the array syntax.
+
+### Object syntax (recommended)
+
+Keys are aliases. Each value is either `{ property, schema? }` when the alias differs from the Neo4j property name, or a bare TypeBox schema as shorthand when they match:
+
+```typescript
+@Relationship({
+  name: 'PLACED',
+  direction: 'out',
+  model: () => OrderNode,
+  properties: {
+    // Full form: alias "PlacedAt" maps to Neo4j property "placedAt"
+    PlacedAt: { property: 'placedAt', schema: Type.String() },
+    // Full form: alias "Quantity" maps to Neo4j property "quantity"
+    Quantity: { property: 'quantity', schema: Type.Number({ minimum: 1 }) },
+  },
+})
+Orders!: Related<
+  typeof OrderNode,
+  { PlacedAt: string; Quantity: number },  // CreateRelationshipProperties
+  { placedAt: string; quantity: number }   // RelationshipProperties
+>;
+```
+
+When the alias and the Neo4j property name are the same, you can use the shorthand form with just the schema:
+
+```typescript
+@Relationship({
+  name: 'PLACED',
+  direction: 'out',
+  model: () => OrderNode,
+  properties: {
+    // Shorthand: alias and property name are both "quantity"
+    quantity: Type.Number({ minimum: 1 }),
+  },
+})
+Orders!: Related<typeof OrderNode, { quantity: number }, { quantity: number }>;
+```
+
+### Array syntax
+
+The array syntax is also supported:
 
 ```typescript
 @Relationship({
@@ -72,17 +119,17 @@ Orders!: Related<
 
 The `Related` type accepts three type parameters:
 
-| Parameter | Purpose | Example |
-|-----------|---------|---------|
-| 1st: Target model | The decorated class of the target node | `typeof OrderNode` |
-| 2nd: `CreateRelationshipProperties` | Shape used when creating relationships (uses **aliases**) | `{ PlacedAt: string }` |
-| 3rd: `RelationshipProperties` | Shape of properties as stored in Neo4j (uses **property names**) | `{ placedAt: string }` |
+| Parameter                           | Purpose                                                          | Example                |
+| ----------------------------------- | ---------------------------------------------------------------- | ---------------------- |
+| 1st: Target model                   | The decorated class of the target node                           | `typeof OrderNode`     |
+| 2nd: `CreateRelationshipProperties` | Shape used when creating relationships (uses **aliases**)        | `{ PlacedAt: string }` |
+| 3rd: `RelationshipProperties`       | Shape of properties as stored in Neo4j (uses **property names**) | `{ placedAt: string }` |
 
 The second parameter (aliases) is what you pass to `relateTo()` or nested `createOne()`. The third parameter (property names) is what you get back when reading relationships from the database.
 
 If your relationship has no properties, use `Related<typeof OrderNode>` with no extra parameters.
 
-### Bidirectional relationships
+## Bidirectional relationships
 
 Define the relationship on both sides to enable navigation in either direction:
 
@@ -100,14 +147,14 @@ class OrderNode extends NodeEntity {
 }
 ```
 
-### Self-referencing relationships
+## Self-referencing relationships
 
 Use `'self'` as the model reference:
 
 ```typescript
-@Node({ label: 'Category', primaryKeyField: 'id' })
+@Node({ label: 'Category' })
 class CategoryNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) name!: string;
 
   @Relationship({
@@ -117,32 +164,6 @@ class CategoryNode extends NodeEntity {
   })
   Children!: Related<typeof CategoryNode>;
 }
-```
-
-## With ModelFactory (legacy)
-
-```typescript
-const Users = ModelFactory<UserProperties, UserRelatedNodes>(
-  {
-    label: 'User',
-    schema: {/* ... */},
-    primaryKeyField: 'id',
-    relationships: {
-      Orders: {
-        model: Orders,
-        direction: 'out',
-        name: 'PLACED',
-        properties: {
-          Quantity: {
-            property: 'quantity',
-            schema: { type: 'number' },
-          },
-        },
-      },
-    },
-  },
-  neogma,
-);
 ```
 
 ## Registration order

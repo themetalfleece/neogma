@@ -1,6 +1,7 @@
 import {
   getClassMetadataStore,
   NEOGMA_NODE_KEY,
+  NEOGMA_PRIMARY_KEY_FIELD,
   NEOGMA_PROPERTIES_KEY,
   NEOGMA_RELATIONSHIPS_KEY,
   type NodeMetadata,
@@ -10,33 +11,34 @@ import {
 import type { NodeEntityClass } from '../types';
 
 interface NodeOptions {
-  /** The Neo4j label(s) for this node type */
-  label: string | string[];
-  /** Optional primary key field name */
-  primaryKeyField?: string;
+  /** The Neo4j label(s) for this node type. If omitted, the class name is used. */
+  label?: string | string[];
 }
 
 /**
  * Class decorator that marks a class as a Neogma node model.
  *
- * @param options - Node configuration
+ * @param options - Optional node configuration. When omitted or when `label`
+ *   is not provided, the class name is used as the Neo4j label.
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
- * class UserNode extends NodeEntity {
- *   // ...properties and relationships
- * }
+ * // Explicit label
+ * @Node({ label: 'User' })
+ * class UserNode extends NodeEntity { ... }
+ *
+ * // Label inferred from class name -> 'UserNode'
+ * @Node()
+ * class UserNode extends NodeEntity { ... }
  * ```
  */
-export function Node(options: NodeOptions) {
+export function Node(options?: NodeOptions) {
   return function <T extends NodeEntityClass>(
     target: T,
     context: ClassDecoratorContext<T>,
   ): T {
     const metadata: NodeMetadata = {
-      label: options.label,
-      primaryKeyField: options.primaryKeyField,
+      label: options?.label ?? context.name ?? target.name,
     };
     // TC39 standard metadata path
     context.metadata[NEOGMA_NODE_KEY] = metadata;
@@ -57,6 +59,11 @@ export function Node(options: NodeOptions) {
       RelationshipMetadata[] | undefined;
     if (rels) {
       store[NEOGMA_RELATIONSHIPS_KEY] = rels;
+    }
+    const primaryKey = context.metadata[NEOGMA_PRIMARY_KEY_FIELD] as
+      string | undefined;
+    if (primaryKey !== undefined) {
+      store[NEOGMA_PRIMARY_KEY_FIELD] = primaryKey;
     }
     return target;
   };

@@ -9,9 +9,9 @@ Neogma is a fully type-safe Object-Graph-Mapping (OGM) framework for Neo4j and T
 
 ## What's new in v2
 
-Neogma v2 introduces a **decorator-based model definition** that reduces boilerplate and makes your code more readable:
+Neogma v2 introduces a **decorator-based model definition** with simple, readable class decorators:
 
-- **`@Node`, `@Property`, `@Relationship` decorators** - define models with simple class decorators instead of configuration objects
+- **`@Node`, `@PrimaryKey`, `@Property`, `@Relationship` decorators** - define models with plain classes
 - **[TypeBox](https://github.com/sinclairzx81/typebox) validation** - use TypeBox schemas for powerful, type-safe validation (supports complex validations like unions, patterns, and custom constraints)
 - **Less boilerplate** - no need for separate type interfaces; types are inferred directly from your class
 - **Full backwards compatibility** - the `ModelFactory` API still works; only the old revalidator validation schema is deprecated and will be removed in a future major release
@@ -40,7 +40,15 @@ See the [migration guide](/docs/migration) for step-by-step instructions on upgr
 ## Quick example
 
 ```typescript
-import { Neogma, Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
 import type { Related } from 'neogma';
 
 const neogma = new Neogma({
@@ -49,15 +57,15 @@ const neogma = new Neogma({
   password: 'password',
 });
 
-@Node({ label: 'Order', primaryKeyField: 'id' })
+@Node({ label: 'Order' })
 class OrderNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) status!: string;
 }
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
 
   @Property(Type.String({ minLength: 1 }))
   name!: string;
@@ -84,8 +92,8 @@ const found = await Users.findOne({
   where: { name: 'Alice' },
   relationships: { Orders: { where: { target: { status: 'confirmed' } } } },
 });
-console.log(found?.name);                   // string
-console.log(found?.Orders[0].node.status);  // string
+console.log(found?.name); // string
+console.log(found?.Orders[0].node.status); // string
 // console.log(found?.bogusValue);           // TypeScript error
 ```
 

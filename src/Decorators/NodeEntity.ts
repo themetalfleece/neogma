@@ -4,12 +4,13 @@
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
- *   @Property(z.string())
+ *   @PrimaryKey()
+ *   @Property(Type.String())
  *   id!: string;
  *
- *   @Property(z.string().min(3))
+ *   @Property(Type.String({ minLength: 3 }))
  *   name!: string;
  * }
  * ```

@@ -13,6 +13,9 @@ export const NEOGMA_PROPERTIES_KEY = Symbol('neogma:properties');
 /** Metadata key for @Relationship decorator entries */
 export const NEOGMA_RELATIONSHIPS_KEY = Symbol('neogma:relationships');
 
+/** Metadata key for @PrimaryKey decorator */
+export const NEOGMA_PRIMARY_KEY_FIELD = Symbol('neogma:primaryKeyField');
+
 // ── WeakMap-based metadata store ────────────────────────────────
 // Both TC39 and legacy decorators write here. toModel() reads from here.
 // Using a WeakMap avoids polluting classes and allows GC of unused classes.
@@ -21,6 +24,7 @@ interface ClassMetadataStore {
   [NEOGMA_NODE_KEY]?: NodeMetadata;
   [NEOGMA_PROPERTIES_KEY]?: PropertyMetadata[];
   [NEOGMA_RELATIONSHIPS_KEY]?: RelationshipMetadata[];
+  [NEOGMA_PRIMARY_KEY_FIELD]?: string;
 }
 
 const classMetadataMap = new WeakMap<object, ClassMetadataStore>();
@@ -56,7 +60,6 @@ export function readClassMetadataStore(
  */
 export interface NodeMetadata {
   label: string | string[];
-  primaryKeyField?: string;
 }
 
 /**
@@ -69,7 +72,7 @@ export interface PropertyMetadata {
 }
 
 /**
- * Per-property config stored on a `@Relationship` definition.
+ * Per-property config stored on a `@Relationship` definition (internal form).
  * @internal — produced/consumed by `@Relationship` and `toModel()`; not a public API.
  */
 export interface RelationshipPropertyEntry {
@@ -80,6 +83,35 @@ export interface RelationshipPropertyEntry {
   /** TypeBox schema for this relationship property */
   schema?: TSchema;
 }
+
+/**
+ * Object-syntax relationship property config.
+ *
+ * Keys are aliases; values are either:
+ * - `{ property: string; schema?: TSchema }` when alias !== Neo4j property name
+ * - a bare `TSchema` when alias === Neo4j property name (shorthand)
+ *
+ * @example
+ * ```typescript
+ * // Full form — alias "Rating" maps to Neo4j property "rating"
+ * properties: { Rating: { property: 'rating', schema: Type.Number() } }
+ *
+ * // Shorthand — alias and property name are the same ("rating")
+ * properties: { rating: Type.Number() }
+ * ```
+ */
+export type RelationshipPropertyObject = Record<
+  string,
+  TSchema | { property: string; schema?: TSchema }
+>;
+
+/**
+ * Accepted input forms for relationship properties in decorator options.
+ * The array form is the legacy syntax; the object form is the preferred
+ * ergonomic syntax.
+ */
+export type RelationshipPropertyInput =
+  RelationshipPropertyEntry[] | RelationshipPropertyObject;
 
 /**
  * One entry per `@Relationship`-decorated field.
@@ -123,4 +155,57 @@ export function getOrCreateMetadata<T>(
     metadata[key] = defaultValue;
   }
   return metadata[key] as T;
+}
+
+/**
+ * Normalizes relationship property input (array or object form) into the
+ * internal array-of-entries form.
+ *
+ * - Array input: returned as-is (legacy syntax).
+ * - Object input: keys are aliases. Each value is either a bare `TSchema`
+ *   (shorthand: alias === property name) or `{ property, schema? }`.
+ *
+ * @internal
+ */
+export function normalizeRelationshipProperties(
+  input: RelationshipPropertyInput | undefined,
+): RelationshipPropertyEntry[] | undefined {
+  if (!input) return undefined;
+
+  // Array form — legacy syntax, pass through.
+  if (Array.isArray(input)) {
+    return input;
+  }
+
+  // Object form — convert to array.
+  const entries: RelationshipPropertyEntry[] = [];
+  for (const [alias, value] of Object.entries(input)) {
+    if (isRelPropertyTSchema(value)) {
+      // Shorthand: alias === property name, value is the schema
+      entries.push({ alias, property: alias, schema: value });
+    } else {
+      // Full form: { property, schema? }
+      const obj = value as { property: string; schema?: TSchema };
+      entries.push({ alias, property: obj.property, schema: obj.schema });
+    }
+  }
+  return entries.length > 0 ? entries : undefined;
+}
+
+/**
+ * Detects whether a value is a TSchema (TypeBox schema).
+ * TypeBox v1 attaches a non-enumerable `~kind` string to every schema.
+ * We also check for `type` as a string to cover cloned schemas where
+ * `~kind` may have been stripped.
+ * @internal
+ */
+function isRelPropertyTSchema(value: unknown): value is TSchema {
+  if (value === null || typeof value !== 'object') return false;
+  const rec = value as Record<string, unknown>;
+  // TypeBox v1 canonical detection
+  if (typeof rec['~kind'] === 'string') return true;
+  // Fallback: has `type` (string) but NOT `property` (which would be our
+  // full-form object syntax)
+  if (typeof rec['type'] === 'string' && !('property' in rec)) return true;
+  return false;
 }

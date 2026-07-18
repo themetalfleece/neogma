@@ -10,7 +10,16 @@ This guide walks you through creating a simple application with neogma. You will
 ## 1. Set up the connection
 
 ```typescript
-import { Neogma, Node, Property, Relationship, NodeEntity, Type, Op } from 'neogma';
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+  Op,
+} from 'neogma';
 import type { Related } from 'neogma';
 
 const neogma = new Neogma({
@@ -23,18 +32,18 @@ const neogma = new Neogma({
 ## 2. Define your models
 
 ```typescript
-@Node({ label: 'Order', primaryKeyField: 'id' })
+@Node({ label: 'Order' })
 class OrderNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String())
   status!: string;
 }
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 1 }))

@@ -1,10 +1,10 @@
 import type { ModelOf } from '@neogma/nest';
 import { getModelToken } from '@neogma/nest';
-import { Node, NodeEntity, Property, Type } from 'neogma/legacy';
+import { Node, NodeEntity, PrimaryKey, Property, Type } from 'neogma/legacy';
 
-@Node({ label: 'NestOrder', primaryKeyField: 'id' })
+@Node({ label: 'NestOrder' })
 export class OrderNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String())

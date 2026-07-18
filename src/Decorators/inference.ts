@@ -31,6 +31,62 @@ export type AsNeo4jProperties<T> = {
 };
 
 /**
+ * Mapping that describes relationship properties: alias → `{ property, type }`.
+ *
+ * Used with {@link CreateRelProps} and {@link RelPropsFrom} to declare
+ * both the create-data (alias-keyed) and relationship (property-keyed)
+ * types from a single definition.
+ *
+ * @example
+ * ```typescript
+ * // Define the property mapping once:
+ * type OrderRelDef = {
+ *   Rating: { property: 'rating'; type: number };
+ *   Quantity: { property: 'quantity'; type: number };
+ * };
+ *
+ * // Use with Related:
+ * Orders!: Related<typeof OrderNode, CreateRelProps<OrderRelDef>, RelPropsFrom<OrderRelDef>>;
+ *
+ * // CreateRelProps<OrderRelDef> = { Rating: number; Quantity: number }
+ * // RelPropsFrom<OrderRelDef>  = { rating: number; quantity: number }
+ * ```
+ */
+export type RelPropsDef = Record<string, { property: string; type: unknown }>;
+
+/**
+ * Extracts the alias-keyed create-data shape from a {@link RelPropsDef}.
+ *
+ * `{ Rating: { property: 'rating'; type: number } }` → `{ Rating: number }`
+ *
+ * @example
+ * ```typescript
+ * type Def = { Rating: { property: 'rating'; type: number } };
+ * type Create = CreateRelProps<Def>;
+ * //   ^? { Rating: number }
+ * ```
+ */
+export type CreateRelProps<T extends RelPropsDef> = {
+  [K in keyof T]: T[K]['type'];
+};
+
+/**
+ * Extracts the property-keyed relationship shape from a {@link RelPropsDef}.
+ *
+ * `{ Rating: { property: 'rating'; type: number } }` → `{ rating: number }`
+ *
+ * @example
+ * ```typescript
+ * type Def = { Rating: { property: 'rating'; type: number } };
+ * type Rel = RelPropsFrom<Def>;
+ * //   ^? { rating: number }
+ * ```
+ */
+export type RelPropsFrom<T extends RelPropsDef> = {
+  [K in keyof T as T[K]['property']]: T[K]['type'];
+};
+
+/**
  * Branded handle for a related-node field on a decorated class.
  *
  * Use as the field's type so that `toModel(MyNode, neogma)` can infer the
@@ -39,17 +95,28 @@ export type AsNeo4jProperties<T> = {
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
- *   @Property(Type.String()) id!: string;
+ *   @PrimaryKey(Type.String())
+ *   id!: string;
+ *
+ *   // With RelProps helpers (define once, derive both types):
+ *   type OrderRelDef = { Rating: { property: 'rating'; type: number } };
  *
  *   @Relationship({
  *     name: 'CREATES',
  *     direction: 'out',
  *     model: () => OrderNode,
- *     properties: [{ alias: 'Rating', property: 'rating', schema: Type.Number() }],
+ *     properties: { Rating: { property: 'rating', schema: Type.Number() } },
  *   })
- *   Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
+ *   Orders!: Related<typeof OrderNode, CreateRelProps<OrderRelDef>, RelPropsFrom<OrderRelDef>>;
+ *
+ *   // Or explicit two-type form:
+ *   // Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
+ *
+ *   // No relationship properties:
+ *   @Relationship({ name: 'TAGGED_AS', direction: 'out', model: () => TagNode })
+ *   Tags!: Related<typeof TagNode>;
  * }
  * ```
  */
@@ -79,7 +146,7 @@ export type Related<
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
  *   @Property(Type.String()) id!: string;
  *   @Property(Type.String()) name!: string;
@@ -111,7 +178,7 @@ export type InferProperties<T> = {
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
  *   @Property(Type.String()) id!: string;
  *
@@ -140,7 +207,7 @@ export type InferRelatedNodes<T> = {
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
  *   @Property(Type.String()) id!: string;
  *   @Property(Type.String()) name!: string;
@@ -165,7 +232,7 @@ export type InferMethods<T> = {
  *
  * @example
  * ```typescript
- * @Node({ label: 'User', primaryKeyField: 'id' })
+ * @Node({ label: 'User' })
  * class UserNode extends NodeEntity {
  *   @Property(Type.String()) id!: string;
  *

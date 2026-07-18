@@ -23,6 +23,7 @@ import { closeNeogma, getNeogma } from '../../ModelFactory/testHelpers';
 import { NodeEntity } from '../NodeEntity';
 import { clearModelRegistry, toModel } from '../toModel';
 import { Node } from './Node';
+import { PrimaryKey } from './PrimaryKey';
 import { Property } from './Property';
 import { Relationship } from './Relationship';
 
@@ -92,16 +93,13 @@ function createSupplierClass() {
     'name',
     Property(Type.String({ minLength: 3 })),
   );
-  applyPropertyDecorator(SupplierNode, 'id', Property(Type.String()));
+  applyPropertyDecorator(SupplierNode, 'id', PrimaryKey(Type.String()));
   applyPropertyDecorator(
     SupplierNode,
     'country',
     Property(Type.Optional(Type.String())),
   );
-  return applyClassDecorator(
-    SupplierNode,
-    Node({ label: 'LegacySupplier', primaryKeyField: 'id' }),
-  );
+  return applyClassDecorator(SupplierNode, Node({ label: 'LegacySupplier' }));
 }
 
 function createOrderClass() {
@@ -115,16 +113,13 @@ function createOrderClass() {
     'name',
     Property(Type.String({ minLength: 3 })),
   );
-  applyPropertyDecorator(OrderNode, 'id', Property(Type.String()));
+  applyPropertyDecorator(OrderNode, 'id', PrimaryKey(Type.String()));
   applyPropertyDecorator(
     OrderNode,
     'status',
     Property(Type.Optional(Type.String())),
   );
-  return applyClassDecorator(
-    OrderNode,
-    Node({ label: 'LegacyOrder', primaryKeyField: 'id' }),
-  );
+  return applyClassDecorator(OrderNode, Node({ label: 'LegacyOrder' }));
 }
 
 function createUserClass(OrderNodeRef: abstract new (...args: any[]) => any) {
@@ -152,7 +147,7 @@ function createUserClass(OrderNodeRef: abstract new (...args: any[]) => any) {
     'age',
     Property(Type.Optional(Type.Number({ minimum: 0 }))),
   );
-  applyPropertyDecorator(UserNode, 'id', Property(Type.String()));
+  applyPropertyDecorator(UserNode, 'id', PrimaryKey(Type.String()));
   applyPropertyDecorator(
     UserNode,
     'Orders',
@@ -160,19 +155,15 @@ function createUserClass(OrderNodeRef: abstract new (...args: any[]) => any) {
       name: 'CREATES',
       direction: 'out',
       model: () => OrderNodeRef as any,
-      properties: [
-        {
-          alias: 'Rating',
+      properties: {
+        Rating: {
           property: 'rating',
           schema: Type.Number({ minimum: 1, maximum: 5 }),
         },
-      ],
+      },
     }),
   );
-  return applyClassDecorator(
-    UserNode,
-    Node({ label: 'LegacyUser', primaryKeyField: 'id' }),
-  );
+  return applyClassDecorator(UserNode, Node({ label: 'LegacyUser' }));
 }
 
 function createTagClass() {
@@ -195,7 +186,7 @@ function createCategoryClass() {
     Parent!: any;
     Siblings!: any;
   }
-  applyPropertyDecorator(CategoryNode, 'id', Property(Type.String()));
+  applyPropertyDecorator(CategoryNode, 'id', PrimaryKey(Type.String()));
   applyPropertyDecorator(CategoryNode, 'name', Property(Type.String()));
   applyPropertyDecorator(
     CategoryNode,
@@ -207,10 +198,7 @@ function createCategoryClass() {
     'Siblings',
     Relationship({ name: 'SIBLING_OF', direction: 'none', model: 'self' }),
   );
-  return applyClassDecorator(
-    CategoryNode,
-    Node({ label: 'LegacyCategory', primaryKeyField: 'id' }),
-  );
+  return applyClassDecorator(CategoryNode, Node({ label: 'LegacyCategory' }));
 }
 
 // ============ Test setup ============
@@ -475,7 +463,7 @@ describe('Legacy decorator-based model creation', () => {
         A!: any;
       }
 
-      applyPropertyDecorator(CircANode, 'id', Property(Type.String()));
+      applyPropertyDecorator(CircANode, 'id', PrimaryKey(Type.String()));
       applyPropertyDecorator(
         CircANode,
         'B',
@@ -485,12 +473,9 @@ describe('Legacy decorator-based model creation', () => {
           model: () => CircBNode as any,
         }),
       );
-      const A = applyClassDecorator(
-        CircANode,
-        Node({ label: 'LegacyCircA', primaryKeyField: 'id' }),
-      );
+      const A = applyClassDecorator(CircANode, Node({ label: 'LegacyCircA' }));
 
-      applyPropertyDecorator(CircBNode, 'id', Property(Type.String()));
+      applyPropertyDecorator(CircBNode, 'id', PrimaryKey(Type.String()));
       applyPropertyDecorator(
         CircBNode,
         'A',
@@ -500,10 +485,7 @@ describe('Legacy decorator-based model creation', () => {
           model: () => CircANode as any,
         }),
       );
-      const B = applyClassDecorator(
-        CircBNode,
-        Node({ label: 'LegacyCircB', primaryKeyField: 'id' }),
-      );
+      const B = applyClassDecorator(CircBNode, Node({ label: 'LegacyCircB' }));
 
       return { A, B };
     }
@@ -594,6 +576,245 @@ describe('Legacy decorator-based model creation', () => {
 
       const siblings = Categories.getRelationshipConfiguration('Siblings');
       expect(siblings.direction).toBe('none');
+    });
+  });
+
+  describe('@PrimaryKey decorator', () => {
+    it('sets primaryKeyField via @PrimaryKey (auto-registers @Property)', () => {
+      class PKNode extends NodeEntity {
+        id!: string;
+        name!: string;
+      }
+      applyPropertyDecorator(PKNode, 'id', PrimaryKey(Type.String()));
+      applyPropertyDecorator(PKNode, 'name', Property(Type.String()));
+      const PKNodeDecorated = applyClassDecorator(
+        PKNode,
+        Node({ label: 'LegacyPKUser' }),
+      );
+
+      const Model = toModel(PKNodeDecorated, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('id');
+    });
+
+    it('auto-registers as @Property without explicit @Property', () => {
+      class PKAutoNode extends NodeEntity {
+        id!: string;
+      }
+      applyPropertyDecorator(PKAutoNode, 'id', PrimaryKey());
+      const PKAutoDecorated = applyClassDecorator(
+        PKAutoNode,
+        Node({ label: 'LegacyPKAuto' }),
+      );
+
+      // Should NOT throw — @PrimaryKey auto-registers as @Property
+      const Model = toModel(PKAutoDecorated, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('id');
+    });
+
+    it('throws when @PrimaryKey is applied to two fields', () => {
+      class PKDupNode extends NodeEntity {
+        id!: string;
+        uuid!: string;
+      }
+      applyPropertyDecorator(PKDupNode, 'id', PrimaryKey());
+      expect(() => {
+        applyPropertyDecorator(PKDupNode, 'uuid', PrimaryKey());
+      }).toThrow(NeogmaModelSchemaError);
+    });
+
+    it('works on a non-id field', () => {
+      class PKEmailNode extends NodeEntity {
+        email!: string;
+        name!: string;
+      }
+      applyPropertyDecorator(PKEmailNode, 'email', PrimaryKey(Type.String()));
+      applyPropertyDecorator(PKEmailNode, 'name', Property(Type.String()));
+      const PKEmailDecorated = applyClassDecorator(
+        PKEmailNode,
+        Node({ label: 'LegacyPKEmail' }),
+      );
+
+      const Model = toModel(PKEmailDecorated, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('email');
+    });
+
+    it('does not duplicate @Property when stacked with @Property (backwards compat)', () => {
+      class PKStackedNode extends NodeEntity {
+        id!: string;
+      }
+      applyPropertyDecorator(PKStackedNode, 'id', Property(Type.String()));
+      applyPropertyDecorator(PKStackedNode, 'id', PrimaryKey(Type.String()));
+      const PKStackedDecorated = applyClassDecorator(
+        PKStackedNode,
+        Node({ label: 'LegacyPKStacked' }),
+      );
+
+      // Should not throw — @PrimaryKey skips property registration when
+      // @Property already registered the field.
+      const Model = toModel(PKStackedDecorated, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('id');
+    });
+  });
+
+  describe('@PrimaryKey schema validation', () => {
+    it('rejects invalid values via schema', async () => {
+      class PKSchemaNode extends NodeEntity {
+        id!: string;
+      }
+      applyPropertyDecorator(
+        PKSchemaNode,
+        'id',
+        PrimaryKey(Type.String({ minLength: 5 })),
+      );
+      const PKSchemaDecorated = applyClassDecorator(
+        PKSchemaNode,
+        Node({ label: 'LegacyPKSchemaReject' }),
+      );
+
+      const Model = toModel(PKSchemaDecorated, getNeogma());
+      const instance = Model.build({ id: 'ab' });
+      // minLength: 5 should be enforced
+      await expect(instance.validate()).rejects.toThrow(
+        NeogmaInstanceValidationError,
+      );
+    });
+
+    it('passes validation when value satisfies schema', async () => {
+      class PKSchemaPassNode extends NodeEntity {
+        id!: string;
+      }
+      applyPropertyDecorator(
+        PKSchemaPassNode,
+        'id',
+        PrimaryKey(Type.String({ minLength: 5 })),
+      );
+      const PKSchemaPassDecorated = applyClassDecorator(
+        PKSchemaPassNode,
+        Node({ label: 'LegacyPKSchemaPass' }),
+      );
+
+      const Model = toModel(PKSchemaPassDecorated, getNeogma());
+      const instance = Model.build({ id: 'abcdef' });
+      await expect(instance.validate()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('Optional @Node label', () => {
+    it('infers label from class name when label is omitted', () => {
+      class LegacyInferredNode extends NodeEntity {
+        id!: string;
+      }
+      applyPropertyDecorator(
+        LegacyInferredNode,
+        'id',
+        PrimaryKey(Type.String()),
+      );
+      const InferredDecorated = applyClassDecorator(
+        LegacyInferredNode,
+        Node(),
+      );
+
+      const Model = toModel(InferredDecorated, getNeogma());
+      expect(Model.getModelName()).toBe('LegacyInferredNode');
+      expect(Model.getRawLabels()).toEqual(['LegacyInferredNode']);
+    });
+
+    it('uses explicit label when provided', () => {
+      class LegacyExplicitNode extends NodeEntity {
+        id!: string;
+      }
+      applyPropertyDecorator(
+        LegacyExplicitNode,
+        'id',
+        PrimaryKey(Type.String()),
+      );
+      const ExplicitDecorated = applyClassDecorator(
+        LegacyExplicitNode,
+        Node({ label: 'CustomLegacyLabel' }),
+      );
+
+      const Model = toModel(ExplicitDecorated, getNeogma());
+      expect(Model.getModelName()).toBe('CustomLegacyLabel');
+    });
+  });
+
+  describe('Relationship properties object syntax', () => {
+    it('accepts shorthand when alias === property (bare schema)', () => {
+      const OrderNode = createOrderClass();
+
+      class ShorthandRelNode extends NodeEntity {
+        id!: string;
+        name!: string;
+        Items!: any;
+      }
+      applyPropertyDecorator(
+        ShorthandRelNode,
+        'id',
+        PrimaryKey(Type.String()),
+      );
+      applyPropertyDecorator(
+        ShorthandRelNode,
+        'name',
+        Property(Type.String()),
+      );
+      applyPropertyDecorator(
+        ShorthandRelNode,
+        'Items',
+        Relationship({
+          name: 'HAS_ITEM',
+          direction: 'out',
+          model: () => OrderNode as any,
+          properties: {
+            quantity: Type.Number({ minimum: 1 }),
+          },
+        }),
+      );
+      const ShorthandDecorated = applyClassDecorator(
+        ShorthandRelNode,
+        Node({ label: 'LegacyShorthandRel' }),
+      );
+
+      toModel<LegacyOrderAttrs>(OrderNode, getNeogma());
+      const Model = toModel(ShorthandDecorated, getNeogma());
+      const rel = Model.getRelationshipConfiguration('Items');
+      expect(rel.name).toBe('HAS_ITEM');
+      expect(rel.properties).toBeDefined();
+    });
+
+    it('accepts array syntax (legacy passthrough)', () => {
+      const OrderNode = createOrderClass();
+
+      class ArrayRelNode extends NodeEntity {
+        id!: string;
+        Items!: any;
+      }
+      applyPropertyDecorator(ArrayRelNode, 'id', PrimaryKey(Type.String()));
+      applyPropertyDecorator(
+        ArrayRelNode,
+        'Items',
+        Relationship({
+          name: 'HAS_ITEM',
+          direction: 'out',
+          model: () => OrderNode as any,
+          properties: [
+            {
+              alias: 'Quantity',
+              property: 'quantity',
+              schema: Type.Number(),
+            },
+          ],
+        }),
+      );
+      const ArrayDecorated = applyClassDecorator(
+        ArrayRelNode,
+        Node({ label: 'LegacyArrayRel' }),
+      );
+
+      toModel<LegacyOrderAttrs>(OrderNode, getNeogma());
+      const Model = toModel(ArrayDecorated, getNeogma());
+      const rel = Model.getRelationshipConfiguration('Items');
+      expect(rel.name).toBe('HAS_ITEM');
+      expect(rel.properties).toBeDefined();
     });
   });
 

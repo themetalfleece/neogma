@@ -1,11 +1,18 @@
 import type { Related } from 'neogma';
-import { Node, NodeEntity, Property, Relationship, Type } from 'neogma';
+import {
+  Node,
+  NodeEntity,
+  PrimaryKey,
+  Property,
+  Relationship,
+  Type,
+} from 'neogma';
 
 import { OrderItemNode } from './OrderItemNode';
 
-@Node({ label: 'ExampleOrder', primaryKeyField: 'id' })
+@Node({ label: 'ExampleOrder' })
 export class OrderNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 1 }))
@@ -21,13 +28,9 @@ export class OrderNode extends NodeEntity {
     name: 'CONTAINS',
     direction: 'out',
     model: () => OrderItemNode,
-    properties: [
-      {
-        alias: 'Quantity',
-        property: 'quantity',
-        schema: Type.Number({ minimum: 1 }),
-      },
-    ],
+    properties: {
+      Quantity: { property: 'quantity', schema: Type.Number({ minimum: 1 }) },
+    },
   })
   Items!: Related<
     typeof OrderItemNode,

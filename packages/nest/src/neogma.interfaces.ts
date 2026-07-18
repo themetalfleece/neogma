@@ -12,7 +12,6 @@ export interface NeogmaModuleOptions {
   /** Optional Neogma constructor options (logger, etc.). */
   options?: {
     logger?: (message: string) => void;
-    suppressRevalidatorDeprecation?: boolean;
     [key: string]: unknown;
   };
 }

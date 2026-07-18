@@ -35,18 +35,6 @@ interface ConnectParamsI {
 interface ConnectOptionsI extends Config {
   /** whether to log the statements and parameters to the console */
   logger?: QueryRunner['logger'];
-  /**
-   * Set to `true` to silence the one-time `console.warn` emitted the first
-   * time a revalidator-shaped property schema is detected on a model built
-   * against this Neogma instance.
-   *
-   * Revalidator JSON-Schema entries (e.g. `{ type: 'string', required: true }`)
-   * are supported as a legacy compatibility layer but will be removed in the
-   * next major release. Migrate each entry to TypeBox (`Type.String()`,
-   * `Type.Number()`, …) to silence the warning permanently, or pass this
-   * flag while you migrate.
-   */
-  suppressRevalidatorDeprecation?: boolean;
 }
 
 /**
@@ -71,13 +59,6 @@ export class Neogma {
   public modelsByName: Record<string, NeogmaModel<any, any, any, any>> = {};
   /** The default database name used for queries */
   public database?: string;
-  /**
-   * When true, suppresses the one-time deprecation warning emitted when a
-   * revalidator-shaped property schema is detected. Set via the
-   * `suppressRevalidatorDeprecation` constructor option. Read by
-   * `ModelFactory` at model-build time.
-   */
-  public readonly suppressRevalidatorDeprecation: boolean;
 
   /**
    * Creates a new Neogma instance and establishes a connection to the Neo4j database.
@@ -92,9 +73,6 @@ export class Neogma {
    */
   constructor(params: ConnectParamsI, options?: ConnectOptionsI) {
     const { url, username, password } = params;
-
-    this.suppressRevalidatorDeprecation =
-      options?.suppressRevalidatorDeprecation === true;
 
     try {
       this.driver = neo4j.driver(

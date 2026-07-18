@@ -15,6 +15,7 @@ import {
   clearModelRegistry,
   Node,
   NodeEntity,
+  PrimaryKey,
   Property,
   Relationship,
 } from './index';
@@ -55,31 +56,31 @@ interface DecUsersStatics {
 
 // ============ Decorated class definitions ============
 
-@Node({ label: 'DecSupplier', primaryKeyField: 'id' })
+@Node({ label: 'DecSupplier' })
 class SupplierNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.Optional(Type.String()))
   country?: string;
 }
 
-@Node({ label: 'DecOrder', primaryKeyField: 'id' })
+@Node({ label: 'DecOrder' })
 class OrderNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.Optional(Type.String()))
   status?: string;
 }
 
-@Node({ label: 'DecUser', primaryKeyField: 'id' })
+@Node({ label: 'DecUser' })
 class UserNode extends NodeEntity {
   @Property(Type.String({ minLength: 3 }))
   name!: string;
@@ -87,20 +88,19 @@ class UserNode extends NodeEntity {
   @Property(Type.Optional(Type.Number({ minimum: 0 })))
   age?: number;
 
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Relationship({
     name: 'CREATES',
     direction: 'out',
     model: () => OrderNode,
-    properties: [
-      {
-        alias: 'Rating',
+    properties: {
+      Rating: {
         property: 'rating',
         schema: Type.Number({ minimum: 1, maximum: 5 }),
       },
-    ],
+    },
   })
   Orders!: any;
 
@@ -124,9 +124,9 @@ class TagNode extends NodeEntity {
 }
 
 // Self-referencing relationship with direction 'in'.
-@Node({ label: 'DecCategory', primaryKeyField: 'id' })
+@Node({ label: 'DecCategory' })
 class CategoryNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String())
@@ -379,9 +379,9 @@ describe('Decorator-based model creation', () => {
     // Two classes that reference each other. Regardless of the order in
     // which `toModel()` is called for them, both `.relationships[…].model`
     // fields must end up pointing at the fully-built peer model.
-    @Node({ label: 'DecCircA', primaryKeyField: 'id' })
+    @Node({ label: 'DecCircA' })
     class CircANode extends NodeEntity {
-      @Property(Type.String())
+      @PrimaryKey(Type.String())
       id!: string;
 
       @Relationship({
@@ -392,9 +392,9 @@ describe('Decorator-based model creation', () => {
       B!: any;
     }
 
-    @Node({ label: 'DecCircB', primaryKeyField: 'id' })
+    @Node({ label: 'DecCircB' })
     class CircBNode extends NodeEntity {
-      @Property(Type.String())
+      @PrimaryKey(Type.String())
       id!: string;
 
       @Relationship({
@@ -484,6 +484,242 @@ describe('Decorator-based model creation', () => {
 
       const siblings = Categories.getRelationshipConfiguration('Siblings');
       expect(siblings.direction).toBe('none');
+    });
+  });
+
+  describe('@PrimaryKey decorator', () => {
+    it('sets primaryKeyField via @PrimaryKey (auto-registers @Property)', () => {
+      @Node({ label: 'PKUser' })
+      class PKUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Property(Type.String())
+        name!: string;
+      }
+
+      const Users = toModel(PKUserNode, getNeogma());
+      expect(Users.getPrimaryKeyField()).toBe('id');
+    });
+
+    it('auto-registers as @Property without explicit @Property', () => {
+      @Node({ label: 'PKAutoProperty' })
+      class PKAutoPropertyNode extends NodeEntity {
+        @PrimaryKey()
+        id!: string;
+      }
+
+      // Should NOT throw — @PrimaryKey auto-registers as @Property
+      const Model = toModel(PKAutoPropertyNode, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('id');
+    });
+
+    it('throws when @PrimaryKey is applied to two fields', () => {
+      expect(() => {
+        @Node({ label: 'PKDuplicate' })
+        class PKDuplicateNode extends NodeEntity {
+          @PrimaryKey(Type.String())
+          id!: string;
+
+          @PrimaryKey(Type.String())
+          uuid!: string;
+        }
+        // Force evaluation
+        void PKDuplicateNode;
+      }).toThrow(NeogmaModelSchemaError);
+    });
+
+    it('works on a non-id field', () => {
+      @Node({ label: 'PKEmail' })
+      class PKEmailNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        email!: string;
+
+        @Property(Type.String())
+        name!: string;
+      }
+
+      const Model = toModel(PKEmailNode, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('email');
+    });
+
+    it('does not duplicate @Property when stacked with @Property (backwards compat)', () => {
+      @Node({ label: 'PKStacked' })
+      class PKStackedNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        @Property(Type.String())
+        id!: string;
+      }
+
+      // Should not throw — @PrimaryKey skips property registration when
+      // @Property already registered the field.
+      const Model = toModel(PKStackedNode, getNeogma());
+      expect(Model.getPrimaryKeyField()).toBe('id');
+    });
+
+    it('passes schema to property registration', async () => {
+      @Node({ label: 'PKSchema' })
+      class PKSchemaNode extends NodeEntity {
+        @PrimaryKey(Type.String({ minLength: 5 }))
+        id!: string;
+      }
+
+      const Model = toModel(PKSchemaNode, getNeogma());
+      const instance = Model.build({ id: 'ab' });
+      // minLength: 5 should be enforced
+      await expect(instance.validate()).rejects.toThrow(
+        NeogmaInstanceValidationError,
+      );
+    });
+  });
+
+  describe('Optional @Node label', () => {
+    it('infers label from class name when label is omitted', () => {
+      @Node()
+      class InferredLabelNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const Model = toModel(InferredLabelNode, getNeogma());
+      expect(Model.getModelName()).toBe('InferredLabelNode');
+      expect(Model.getRawLabels()).toEqual(['InferredLabelNode']);
+    });
+
+    it('uses explicit label when provided', () => {
+      @Node({ label: 'ExplicitLabel' })
+      class ExplicitLabelNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const Model = toModel(ExplicitLabelNode, getNeogma());
+      expect(Model.getModelName()).toBe('ExplicitLabel');
+    });
+  });
+
+  describe('Relationship properties object syntax', () => {
+    it('accepts object syntax with alias !== property', () => {
+      @Node({ label: 'ObjSyntaxUser' })
+      class ObjSyntaxUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'RATES',
+          direction: 'out',
+          model: () => OrderNode,
+          properties: {
+            Rating: {
+              property: 'rating',
+              schema: Type.Number({ minimum: 1, maximum: 5 }),
+            },
+          },
+        })
+        Orders!: any;
+      }
+
+      toModel<DecOrderAttrs>(OrderNode, getNeogma());
+      const Users = toModel(ObjSyntaxUserNode, getNeogma());
+      const rel = Users.getRelationshipConfiguration('Orders');
+      expect(rel.name).toBe('RATES');
+      expect(rel.properties).toBeDefined();
+    });
+
+    it('accepts shorthand when alias === property (bare schema)', async () => {
+      @Node({ label: 'ShorthandUser' })
+      class ShorthandUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Property(Type.String())
+        name!: string;
+
+        @Relationship({
+          name: 'RATES',
+          direction: 'out',
+          model: () => OrderNode,
+          properties: {
+            rating: Type.Number({ minimum: 1, maximum: 5 }),
+          },
+        })
+        Orders!: any;
+      }
+
+      toModel<DecOrderAttrs>(OrderNode, getNeogma());
+      const Users = toModel(ShorthandUserNode, getNeogma());
+      const rel = Users.getRelationshipConfiguration('Orders');
+      expect(rel.properties).toBeDefined();
+
+      // Verify schema validation still works
+      await expect(
+        Users.createOne({
+          id: uuid(),
+          name: 'User',
+          Orders: {
+            properties: [{ id: uuid(), name: 'Order', rating: 10 }],
+          },
+        }),
+      ).rejects.toThrow(NeogmaInstanceValidationError);
+    });
+  });
+
+  describe('@PrimaryKey schema validation (positive case)', () => {
+    it('passes validation when value satisfies schema', async () => {
+      @Node({ label: 'PKValidPass' })
+      class PKValidPassNode extends NodeEntity {
+        @PrimaryKey(Type.String({ minLength: 5 }))
+        id!: string;
+      }
+
+      const Model = toModel(PKValidPassNode, getNeogma());
+      const instance = Model.build({ id: 'abcdef' });
+      // Should not throw — value satisfies minLength: 5
+      await expect(instance.validate()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('@Node() with no arguments', () => {
+    it('works when called with zero arguments (no options object)', () => {
+      @Node()
+      class BareNodeDecNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const Model = toModel(BareNodeDecNode, getNeogma());
+      expect(Model.getModelName()).toBe('BareNodeDecNode');
+      expect(Model.getRawLabels()).toEqual(['BareNodeDecNode']);
+    });
+  });
+
+  describe('Relationship properties array syntax (legacy passthrough)', () => {
+    it('accepts array syntax and normalizes correctly', () => {
+      @Node({ label: 'ArraySyntaxUser' })
+      class ArraySyntaxUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'RATES',
+          direction: 'out',
+          model: () => OrderNode,
+          properties: [
+            {
+              alias: 'Rating',
+              property: 'rating',
+              schema: Type.Number({ minimum: 1, maximum: 5 }),
+            },
+          ],
+        })
+        Orders!: any;
+      }
+
+      toModel<DecOrderAttrs>(OrderNode, getNeogma());
+      const Users = toModel(ArraySyntaxUserNode, getNeogma());
+      const rel = Users.getRelationshipConfiguration('Orders');
+      expect(rel.name).toBe('RATES');
+      expect(rel.properties).toBeDefined();
     });
   });
 

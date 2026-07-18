@@ -18,14 +18,14 @@
 
 ## What's new in v2
 
-Neogma v2 introduces a **decorator-based model definition** that replaces the old `ModelFactory` boilerplate with simple, readable class decorators:
+Neogma v2 introduces a **decorator-based model definition** with simple, readable class decorators:
 
-- **`@Node`, `@Property`, `@Relationship` decorators** - define models with plain classes
+- **`@Node`, `@PrimaryKey`, `@Property`, `@Relationship` decorators** - define models with plain classes
 - **TypeBox validation** - powerful, type-safe schema validation built in
 - **Zero-boilerplate types** - no separate `*Properties`, `*Instance`, or `*RelatedNodes` interfaces needed
 - **Both decorator styles** - supports TC39 standard decorators and legacy experimental decorators
 
-v2 is **fully backwards compatible** with v1. `ModelFactory` still works and is not deprecated. Only the old revalidator validation schema is deprecated and will be removed in a future major release. Everyone is advised to upgrade to v2 to take advantage of the decorator-based API and TypeBox validation.
+v2 is **fully backwards compatible** with v1. We suggest upgrading to v2 for extended support and new features.
 
 > Looking for v1? The v1 source is on the [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1), and the v1 documentation is at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
 
@@ -57,7 +57,7 @@ yarn add neogma
 ## Quick Start
 
 ```typescript
-import { Neogma, Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import { Neogma, Node, PrimaryKey, Property, Relationship, NodeEntity, Type } from 'neogma';
 import type { Related } from 'neogma';
 
 // Connect to Neo4j
@@ -68,15 +68,15 @@ const neogma = new Neogma({
 });
 
 // Define models with decorators
-@Node({ label: 'Order', primaryKeyField: 'id' })
+@Node({ label: 'Order' })
 class OrderNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) status!: string;
 }
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
 
   @Property(Type.String({ minLength: 1 }))
   name!: string;
@@ -102,17 +102,15 @@ const user = await Users.createOne({
   },
 });
 
-// Eager-load relationships in one quer
+// Eager-load relationships in one query
 const found = await Users.findOne({
   where: { name: 'Alice' },
   relationships: { Orders: { where: { target: { status: 'confirmed' } } } },
 });
-console.log(found?.name);                   // string
-console.log(found?.Orders[0].node.status);  // string
+console.log(found?.name); // string
+console.log(found?.Orders[0].node.status); // string
 // console.log(found?.bogusValue);           // TypeScript error
 ```
-
-For JavaScript projects or `ModelFactory` usage, see the [full documentation](https://neogma.themetalfleece.dev/docs/models/model-factory).
 
 ---
 
@@ -125,7 +123,7 @@ Neogma supports both TC39 standard decorators (recommended) and legacy experimen
 No tsconfig changes needed. Import from `neogma`:
 
 ```typescript
-import { Node, Property, Relationship, NodeEntity } from 'neogma';
+import { Node, PrimaryKey, Property, Relationship, NodeEntity } from 'neogma';
 ```
 
 ### Legacy experimental decorators
@@ -144,7 +142,7 @@ Enable in `tsconfig.json`:
 Import from `neogma/legacy`:
 
 ```typescript
-import { Node, Property, Relationship, NodeEntity } from 'neogma/legacy';
+import { Node, Primarykey, Property, Relationship, NodeEntity } from 'neogma/legacy';
 ```
 
 ---
@@ -195,8 +193,8 @@ const users = await Users.findMany({
   },
 });
 
-users[0].Orders[0].node.status;       // Order property
-users[0].Orders[0].relationship;      // Relationship properties
+users[0].Orders[0].node.status; // Order property
+users[0].Orders[0].relationship; // Relationship properties
 ```
 
 ---
@@ -216,7 +214,11 @@ import { NeogmaModule } from '@neogma/nest';
 @Module({
   imports: [
     NeogmaModule.forRoot({
-      connection: { url: 'bolt://localhost:7687', username: 'neo4j', password: 'password' },
+      connection: {
+        url: 'bolt://localhost:7687',
+        username: 'neo4j',
+        password: 'password',
+      },
     }),
     NeogmaModule.forFeature([UserNode, OrderNode]),
   ],

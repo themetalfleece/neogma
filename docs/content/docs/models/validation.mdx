@@ -5,9 +5,9 @@ description: Validate node properties using TypeBox schemas
 
 # Validation
 
-Neogma validates node properties before they are persisted to Neo4j. In v2, validation uses [TypeBox](https://github.com/sinclairzx81/typebox) schemas.
+Neogma validates node properties before they are persisted to Neo4j using [TypeBox](https://github.com/sinclairzx81/typebox) schemas.
 
-## TypeBox validation (recommended)
+## TypeBox validation
 
 TypeBox provides type-safe validation schemas. Import `Type` directly from neogma:
 
@@ -99,24 +99,3 @@ try {
   }
 }
 ```
-
-## Legacy validation (revalidator)
-
-The v1 validation format using [revalidator](https://github.com/flatiron/revalidator) JSON Schema is still supported but deprecated:
-
-```typescript
-// Deprecated - use TypeBox instead
-const Users = ModelFactory(
-  {
-    label: 'User',
-    schema: {
-      name: { type: 'string', required: true, minLength: 3 },
-      age: { type: 'number', required: false, minimum: 0 },
-    },
-    primaryKeyField: 'id',
-  },
-  neogma,
-);
-```
-
-The revalidator format will be removed in a future major release. See the [migration guide](/docs/migration) for conversion instructions.

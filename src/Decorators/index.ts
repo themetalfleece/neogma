@@ -5,6 +5,7 @@ import './polyfill';
 
 // Decorators
 export { Node } from './decorators/Node';
+export { PrimaryKey } from './decorators/PrimaryKey';
 export { Property } from './decorators/Property';
 export { Relationship } from './decorators/Relationship';
 
@@ -17,11 +18,14 @@ export { clearModelRegistry } from './toModel';
 // Inference helpers
 export type {
   AsNeo4jProperties,
+  CreateRelProps,
   InferMethods,
   InferProperties,
   InferRelatedNodes,
   InferStatics,
   Related,
+  RelPropsDef,
+  RelPropsFrom,
 } from './inference';
 
 // Types

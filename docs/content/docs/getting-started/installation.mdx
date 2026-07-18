@@ -56,10 +56,16 @@ Then import decorators from `neogma/legacy` instead of `neogma`:
 
 ```typescript
 // TC39 (default)
-import { Node, Property, Relationship, NodeEntity } from 'neogma';
+import { Node, PrimaryKey, Property, Relationship, NodeEntity } from 'neogma';
 
 // Legacy experimental decorators
-import { Node, Property, Relationship, NodeEntity } from 'neogma/legacy';
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+} from 'neogma/legacy';
 ```
 
 Both paths produce the same models and are fully interchangeable at runtime.

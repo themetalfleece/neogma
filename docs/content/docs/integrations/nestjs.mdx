@@ -92,13 +92,13 @@ Define your models with decorators, then register them with `forFeature`. Since 
 
 ```typescript
 // models/user.model.ts
-import { Node, Property, NodeEntity, Type } from 'neogma/legacy';
+import { Node, PrimaryKey, Property, NodeEntity, Type } from 'neogma/legacy';
 import { getModelToken } from '@neogma/nest';
 import type { ModelOf } from '@neogma/nest';
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 export class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) name!: string;
 }
 
@@ -108,13 +108,13 @@ export const USERS_TOKEN = getModelToken(UserNode);
 
 ```typescript
 // models/order.model.ts
-import { Node, Property, NodeEntity, Type } from 'neogma/legacy';
+import { Node, PrimaryKey, Property, NodeEntity, Type } from 'neogma/legacy';
 import { getModelToken } from '@neogma/nest';
 import type { ModelOf } from '@neogma/nest';
 
-@Node({ label: 'Order', primaryKeyField: 'id' })
+@Node({ label: 'Order' })
 export class OrderNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) status!: string;
 }
 

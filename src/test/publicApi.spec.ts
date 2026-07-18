@@ -37,9 +37,8 @@ const distApi = require(distEntry) as Record<string, unknown>;
  * pulled from `dist/` ARE these signatures; we just have to tell TS so the
  * `@NodeDec(...)` / `@PropertyDec(...)` call sites below typecheck.
  */
-type NodeDecoratorFactory = (opts: {
-  label: string | string[];
-  primaryKeyField?: string;
+type NodeDecoratorFactory = (opts?: {
+  label?: string | string[];
 }) => <T extends new (...args: never[]) => object>(
   target: T,
   context: ClassDecoratorContext<T>,
@@ -47,15 +46,19 @@ type NodeDecoratorFactory = (opts: {
 type PropertyDecoratorFactory = (
   schema?: unknown,
 ) => (value: undefined, context: ClassFieldDecoratorContext) => void;
+type PrimaryKeyDecoratorFactory = (
+  schema?: unknown,
+) => (value: undefined, context: ClassFieldDecoratorContext) => void;
 
 const NodeDec = distApi.Node as NodeDecoratorFactory;
-const PropertyDec = distApi.Property as PropertyDecoratorFactory;
+const _PropertyDec = distApi.Property as PropertyDecoratorFactory;
+const PrimaryKeyDec = distApi.PrimaryKey as PrimaryKeyDecoratorFactory;
 const NodeEntityClass = distApi.NodeEntity as new () => object;
 const TypeBuilder = distApi.Type as { String: (opts?: unknown) => unknown };
 
-@NodeDec({ label: 'PublicApiTestNode', primaryKeyField: 'id' })
+@NodeDec({ label: 'PublicApiTestNode' })
 class PublicApiTestNode extends NodeEntityClass {
-  @PropertyDec(TypeBuilder.String())
+  @PrimaryKeyDec(TypeBuilder.String())
   id!: any;
 }
 
@@ -90,8 +93,9 @@ describe('public API surface (built dist/)', () => {
   });
 
   describe('decorator API', () => {
-    it('exports @Node, @Property, @Relationship decorator factories', () => {
+    it('exports @Node, @PrimaryKey, @Property, @Relationship decorator factories', () => {
       expect(typeof api.Node).toBe('function');
+      expect(typeof api.PrimaryKey).toBe('function');
       expect(typeof api.Property).toBe('function');
       expect(typeof api.Relationship).toBe('function');
     });

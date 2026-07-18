@@ -11,7 +11,7 @@ This is the **recommended** approach for new TypeScript projects. It uses TC39 s
 
 ## What it demonstrates
 
-- Model definition with `@Node`, `@Property`, `@Relationship`
+- Model definition with `@Node`, `@PrimaryKey`, `@Property`, `@Relationship`
 - TypeBox validation (`Type.String()`, `Type.Number()`, `Type.Optional()`)
 - Type inference with `Related<typeof OtherNode>`
 - Model registration with `neogma.model()`
@@ -24,12 +24,19 @@ This is the **recommended** approach for new TypeScript projects. It uses TC39 s
 ## Model definition
 
 ```typescript
-import { Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
 import type { Related } from 'neogma';
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String({ minLength: 1 })) name!: string;
   @Property(Type.Optional(Type.Number({ minimum: 0 }))) age?: number;
 

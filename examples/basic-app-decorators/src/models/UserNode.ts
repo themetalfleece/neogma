@@ -1,12 +1,19 @@
 import type { Related } from 'neogma';
-import { Node, NodeEntity, Property, Relationship, Type } from 'neogma';
+import {
+  Node,
+  NodeEntity,
+  PrimaryKey,
+  Property,
+  Relationship,
+  Type,
+} from 'neogma';
 
 import { OrderNode } from './OrderNode';
 import { TagNode } from './TagNode';
 
-@Node({ label: 'ExampleUser', primaryKeyField: 'id' })
+@Node({ label: 'ExampleUser' })
 export class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 2 }))
@@ -22,13 +29,12 @@ export class UserNode extends NodeEntity {
     name: 'CREATES',
     direction: 'out',
     model: () => OrderNode,
-    properties: [
-      {
-        alias: 'Rating',
+    properties: {
+      Rating: {
         property: 'rating',
         schema: Type.Number({ minimum: 1, maximum: 5 }),
       },
-    ],
+    },
   })
   Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
 

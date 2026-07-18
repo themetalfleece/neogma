@@ -25,7 +25,14 @@ The only difference is the import path and tsconfig:
 
 ```typescript
 // Import from 'neogma/legacy' instead of 'neogma'
-import { Node, Property, Relationship, NodeEntity, Type } from 'neogma/legacy';
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma/legacy';
 ```
 
 Everything else (model definition, CRUD, QueryBuilder, etc.) is identical to the TC39 decorators example.

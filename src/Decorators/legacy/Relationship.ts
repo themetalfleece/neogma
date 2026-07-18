@@ -2,8 +2,9 @@ import { NeogmaModelSchemaError } from '../../Errors';
 import {
   getClassMetadataStore,
   NEOGMA_RELATIONSHIPS_KEY,
+  normalizeRelationshipProperties,
   type RelationshipMetadata,
-  type RelationshipPropertyEntry,
+  type RelationshipPropertyInput,
 } from '../metadata';
 import type { NodeEntityClass } from '../types';
 
@@ -17,8 +18,11 @@ interface RelationshipOptions {
    * Use a function to avoid circular reference issues: `() => OrderNode`
    */
   model: (() => NodeEntityClass) | 'self';
-  /** Relationship property configurations */
-  properties?: RelationshipPropertyEntry[];
+  /**
+   * Relationship property configurations. Accepts object or array syntax.
+   * @see RelationshipPropertyInput
+   */
+  properties?: RelationshipPropertyInput;
 }
 
 /**
@@ -31,6 +35,9 @@ interface RelationshipOptions {
  *   name: 'CREATES',
  *   direction: 'out',
  *   model: () => OrderNode,
+ *   properties: {
+ *     Rating: { property: 'rating', schema: Type.Number() },
+ *   },
  * })
  * Orders!: Related<typeof OrderNode>;
  * ```
@@ -55,7 +62,7 @@ export function Relationship(options: RelationshipOptions) {
       direction: options.direction,
       name: options.name,
       model: options.model,
-      properties: options.properties,
+      properties: normalizeRelationshipProperties(options.properties),
     });
   };
 }

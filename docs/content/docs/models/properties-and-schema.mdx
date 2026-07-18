@@ -20,29 +20,39 @@ Neo4j supports a specific set of property types. Neogma maps TypeScript types to
 
 ## Primary key
 
-Every model should define a primary key field. This field is used for lookups and relationship matching:
+Every model must define a primary key field using the `@PrimaryKey` decorator. This field is used for lookups and relationship matching. `@PrimaryKey` also registers the field as a property, so you do not need to add `@Property` separately:
 
 ```typescript
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   // ... other properties
 }
 ```
 
-The primary key field name is passed to `@Node`, not to `@Property`.
+You can pass a TypeBox schema for validation, or omit it for an unvalidated primary key:
+
+```typescript
+// With validation
+@PrimaryKey(Type.String({ format: 'uuid' }))
+id!: string;
+
+// Without validation
+@PrimaryKey()
+id!: string;
+```
 
 ## Required vs. optional properties
 
 Use TypeScript's optional field syntax alongside `Type.Optional()`:
 
 ```typescript
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
   // Required: must be provided on create, always present on read
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 1 }))
@@ -65,29 +75,3 @@ You can use `@Property()` without a schema argument. The property is tracked (in
 @Property()
 externalId!: string; // tracked, but no validation
 ```
-
-## Schema in ModelFactory (legacy)
-
-When using `ModelFactory`, schemas use the revalidator JSON Schema format:
-
-```typescript
-const Users = ModelFactory(
-  {
-    label: 'User',
-    schema: {
-      id: { type: 'string', required: true },
-      name: { type: 'string', required: true, minLength: 3 },
-      age: { type: 'number', required: false, minimum: 0 },
-      status: {
-        type: 'string',
-        required: true,
-        enum: ['active', 'inactive'],
-      },
-    },
-    primaryKeyField: 'id',
-  },
-  neogma,
-);
-```
-
-The revalidator schema format is deprecated. See [Validation](/docs/models/validation) for the TypeBox alternative.

@@ -2,8 +2,9 @@ import { NeogmaModelSchemaError } from '../../Errors';
 import {
   getOrCreateMetadata,
   NEOGMA_RELATIONSHIPS_KEY,
+  normalizeRelationshipProperties,
   type RelationshipMetadata,
-  type RelationshipPropertyEntry,
+  type RelationshipPropertyInput,
 } from '../metadata';
 import type { NodeEntityClass } from '../types';
 
@@ -17,8 +18,24 @@ interface RelationshipOptions {
    * Use a function to avoid circular reference issues: `() => OrderNode`
    */
   model: (() => NodeEntityClass) | 'self';
-  /** Relationship property configurations */
-  properties?: RelationshipPropertyEntry[];
+  /**
+   * Relationship property configurations. Accepts two forms:
+   *
+   * **Object syntax (preferred)** — keys are aliases:
+   * ```typescript
+   * properties: {
+   *   Rating: { property: 'rating', schema: Type.Number() },
+   *   // Shorthand when alias === property name:
+   *   quantity: Type.Number(),
+   * }
+   * ```
+   *
+   * **Array syntax (legacy):**
+   * ```typescript
+   * properties: [{ alias: 'Rating', property: 'rating', schema: Type.Number() }]
+   * ```
+   */
+  properties?: RelationshipPropertyInput;
 }
 
 /**
@@ -36,13 +53,9 @@ interface RelationshipOptions {
  *   name: 'CREATES',
  *   direction: 'out',
  *   model: () => OrderNode,
- *   properties: [
- *     {
- *       alias: 'Rating',
- *       property: 'rating',
- *       schema: Type.Number({ minimum: 1, maximum: 5 }),
- *     },
- *   ],
+ *   properties: {
+ *     Rating: { property: 'rating', schema: Type.Number({ minimum: 1, maximum: 5 }) },
+ *   },
  * })
  * Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
  * ```
@@ -70,7 +83,7 @@ export function Relationship(options: RelationshipOptions) {
       direction: options.direction,
       name: options.name,
       model: options.model,
-      properties: options.properties,
+      properties: normalizeRelationshipProperties(options.properties),
     });
   };
 }

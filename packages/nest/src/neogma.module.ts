@@ -1,6 +1,6 @@
 import type { DynamicModule } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
-import { clearModelRegistry, toModel } from 'neogma';
+import { clearModelRegistry } from 'neogma';
 
 import { NEOGMA_INSTANCE, NEOGMA_MODULE_OPTIONS } from './neogma.constants';
 import type {
@@ -130,7 +130,7 @@ export class NeogmaModule {
 
     const providers = models.map((cls) => ({
       provide: getModelToken(cls),
-      useFactory: (svc: NeogmaService) => toModel(cls as any, svc.neogma),
+      useFactory: (svc: NeogmaService) => svc.neogma.model(cls as any),
       inject: [NeogmaService],
     }));
 

@@ -11,6 +11,7 @@ import {
   clearModelRegistry,
   Node,
   NodeEntity,
+  PrimaryKey,
   Property,
   Relationship,
   Type,
@@ -22,9 +23,9 @@ import type { ModelOf } from './neogma.types';
 
 // ============ Test model classes (legacy decorators) ============
 
-@Node({ label: 'TestOrder', primaryKeyField: 'id' })
+@Node({ label: 'TestOrder' })
 class TestOrderNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 1 }))
@@ -34,9 +35,9 @@ class TestOrderNode extends NodeEntity {
   quantity!: number;
 }
 
-@Node({ label: 'TestUser', primaryKeyField: 'id' })
+@Node({ label: 'TestUser' })
 class TestUserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 2 }))

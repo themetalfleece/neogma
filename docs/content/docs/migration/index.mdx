@@ -5,11 +5,11 @@ description: Upgrade from neogma v1 to v2 with the decorator-based API
 
 # Migrating from v1
 
-Neogma v2 is fully backwards compatible with v1. Your existing `ModelFactory` code will continue to work. The `ModelFactory` API itself is not deprecated, but the old revalidator validation schema is deprecated and will be removed in a future major release. We recommend migrating to the decorator-based API with TypeBox validation for the best experience.
+This guide walks you through upgrading from neogma v1 to v2.
 
 ## What changed in v2
 
-- **Decorator-based models** - define models with `@Node`, `@Property`, `@Relationship` instead of `ModelFactory`
+- **Decorator-based models** - define models with `@Node`, `@PrimaryKey`, `@Property`, `@Relationship` instead of `ModelFactory`
 - **TypeBox validation** - use TypeBox schemas instead of revalidator JSON Schema
 - **Type inference** - no more separate interface declarations; types are inferred from the class
 - **`neogma.model()`** - register decorated classes instead of calling `ModelFactory` directly
@@ -67,12 +67,20 @@ const Users = ModelFactory<UserProperties, UserRelatedNodes>(
 **After (v2):**
 
 ```typescript
-import { Neogma, Node, Property, Relationship, NodeEntity, Type } from 'neogma';
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
 import type { Related } from 'neogma';
 
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String())
+  @PrimaryKey(Type.String())
   id!: string;
 
   @Property(Type.String({ minLength: 3 }))
@@ -95,6 +103,7 @@ const Users = neogma.model(UserNode);
 Key differences:
 
 - No separate `UserProperties`, `UserRelatedNodes`, or `UserInstance` types needed
+- Primary key uses `@PrimaryKey()` instead of `primaryKeyField` in the config
 - Validation is defined inline with `Type.String()`, `Type.Number()`, etc.
 - Relationships use lazy references (`() => OrderNode`) instead of direct model references
 - The class extends `NodeEntity`
@@ -124,6 +133,7 @@ import type { ModelRelatedNodesI, NeogmaInstance } from 'neogma';
 import {
   Neogma,
   Node,
+  PrimaryKey,
   Property,
   Relationship,
   NodeEntity,
@@ -183,9 +193,10 @@ Read the full neogma v2 migration guide and documentation:
 https://neogma.themetalfleece.dev/llms-full.txt
 
 Key changes:
-- Replace ModelFactory with @Node, @Property, @Relationship decorators
+- Replace ModelFactory with @Node, @PrimaryKey, @Property, @Relationship decorators
 - Replace revalidator schemas (type: 'string') with TypeBox (Type.String())
 - Remove separate *Properties, *RelatedNodes, *Instance type interfaces
+- Primary key uses @PrimaryKey() decorator instead of primaryKeyField in @Node options
 - Classes extend NodeEntity and use neogma.model(MyClass) for registration
 - Relationships use Related<typeof OtherNode> and lazy refs: model: () => OtherNode
 - Import decorators from 'neogma' (TC39) or 'neogma/legacy' (experimentalDecorators)

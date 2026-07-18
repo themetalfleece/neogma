@@ -4,9 +4,9 @@ import { GitHubIcon } from '@/components/icons';
 import styles from './page.module.css';
 
 const heroCode = `/* define the user model and its relationships */
-@Node({ label: 'User', primaryKeyField: 'id' })
+@Node({ label: 'User' })
 class UserNode extends NodeEntity {
-  @Property(Type.String()) id!: string;
+  @PrimaryKey(Type.String()) id!: string;
   @Property(Type.String()) name!: string;
 
   @Relationship({ name: 'PLACED', direction: 'out', model: () => OrderNode })

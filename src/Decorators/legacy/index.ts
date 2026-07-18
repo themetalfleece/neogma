@@ -3,17 +3,21 @@
 
 // Legacy decorators
 export { Node } from './Node';
+export { PrimaryKey } from './PrimaryKey';
 export { Property } from './Property';
 export { Relationship } from './Relationship';
 
 // Shared — same base class, conversion, and inference for both decorator styles
 export type {
   AsNeo4jProperties,
+  CreateRelProps,
   InferMethods,
   InferProperties,
   InferRelatedNodes,
   InferStatics,
   Related,
+  RelPropsDef,
+  RelPropsFrom,
 } from '../inference';
 export { NodeEntity } from '../NodeEntity';
 export { clearModelRegistry, toModel } from '../toModel';
