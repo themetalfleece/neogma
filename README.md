@@ -1,9 +1,9 @@
 ![neogma logo](https://themetalfleece.github.io/neogma/assets/logo-text-horizontal.svg)
 
-<h3 align="center">A powerful Neo4j OGM for Node.js & TypeScript</h3>
+<h3 align="center">The Neo4j OGM that feels like writing plain TypeScript</h3>
 
 <p align="center">
-  Build graph applications with ease using type-safe models, flexible query builders, and automatic relationship management
+  Define models with decorators, run fully type-safe queries against them, eager load relationships in a single trip, and let TypeScript catch your mistakes before Neo4j does
 </p>
 
 <p align="center">
@@ -18,31 +18,42 @@
 
 ## What's new in v2
 
-Neogma v2 introduces a **decorator-based model definition** with simple, readable class decorators:
+v2 replaces verbose factory configs with **decorators you can read at a glance**:
 
-- **`@Node`, `@PrimaryKey`, `@Property`, `@Relationship` decorators** - define models with plain classes
-- **TypeBox validation** - powerful, type-safe schema validation built in
-- **Zero-boilerplate types** - no separate `*Properties`, `*Instance`, or `*RelatedNodes` interfaces needed
-- **Both decorator styles** - supports TC39 standard decorators and legacy experimental decorators
+- **`@Node`, `@PrimaryKey`, `@Property`, `@Relationship`** -- define models as plain classes
+- **TypeBox validation** built in -- powerful schemas, no extra dependencies
+- **Zero boilerplate** -- no more separate `*Properties`, `*Instance`, or `*RelatedNodes` interfaces
+- **Both decorator styles** -- TC39 standard (recommended) and legacy experimental
 
-v2 is **fully backwards compatible** with v1. We suggest upgrading to v2 for the improved developer experience, new features, and extended support. See the [migration guide](https://neogma.themetalfleece.dev/docs/migration) for step-by-step upgrade instructions.
+v2 is **fully backwards compatible**. Existing v1 code keeps working, but we recommend migrating for the improved DX. See the [migration guide](https://neogma.themetalfleece.dev/docs/migration) for step-by-step instructions.
 
-> Looking for v1? The v1 source is on the [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1), and the v1 documentation is at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
+> Looking for v1? Source is on the [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1), docs at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
 
 ---
 
 ## Why Neogma?
 
-- 🔷 **Fully type-safe** - built-in TypeScript support with complete type inference
-- 🎯 **Decorator-based models** - define nodes, properties, and relationships with simple decorators
-- ⚡ **Flexible** - use models, query builders, or raw Cypher queries
-- 🔗 **Automatic relationships** - create and manage complex graph structures effortlessly
-- 🌿 **Eager loading** - load nested relationships in a single query to avoid N+1 problems
-- ✅ **[TypeBox](https://github.com/sinclairzx81/typebox) validation** - powerful schema validation (included, no extra install)
-- 🛡️ **Parameterized queries** - all user input is passed as query parameters, never interpolated into Cypher strings
-- 🔄 **Session and transaction management** - built-in helpers for sessions, transactions, and automatic rollback
-- 🐈 **NestJS integration** - first-class support via `@neogma/nest`
-- 🚀 **Production ready** - battle-tested with comprehensive test coverage
+Most Neo4j libraries make you choose between convenience and control. Neogma gives you both:
+
+- 🔷 **Type-safe end to end** - define a model once, get compile-time checks on creates, queries, and relationships
+- 🎯 **Decorator-based models** - plain classes with `@Node`, `@Property`, `@Relationship` -- no boilerplate interfaces
+- ⚡ **Flexible by design** - use the OGM for CRUD, the query builder for complex traversals, or drop to raw Cypher when you need to
+- 🔗 **Automatic relationships** - create deeply nested graph structures in a single call
+- 🌿 **Eager loading** - fetch related nodes in one query, no N+1 surprises
+- ✅ **Built-in [TypeBox](https://github.com/sinclairzx81/typebox) validation** - schema validation included, nothing extra to install
+- 🛡️ **Injection-safe** - every user value is a query parameter, never interpolated into Cypher
+- 🔄 **Session and transaction helpers** - automatic cleanup, rollback on error, minimal ceremony
+- 🐈 **NestJS ready** - first-class integration via `@neogma/nest`
+- 🚀 **Battle-tested** - comprehensive test suite, used in production
+
+## Documentation
+
+Full documentation, guides, and API reference at **[neogma.themetalfleece.dev](https://neogma.themetalfleece.dev)**
+
+For AI/LLM agents, the docs are also available in machine-readable formats:
+
+- [neogma.themetalfleece.dev/llms.txt](https://neogma.themetalfleece.dev/llms.txt) - page index
+- [neogma.themetalfleece.dev/llms-full.txt](https://neogma.themetalfleece.dev/llms-full.txt) - full documentation as markdown
 
 ## Installation
 
@@ -256,15 +267,6 @@ Runnable examples are in the [`/examples`](./examples) directory:
 | [`nestjs-app`](./examples/nestjs-app)                                   | NestJS integration with `@neogma/nest`       |
 
 ---
-
-## Documentation
-
-Full documentation is available at **[neogma.themetalfleece.dev](https://neogma.themetalfleece.dev)**
-
-For AI/LLM agents, the docs are also available in machine-readable formats:
-
-- [neogma.themetalfleece.dev/llms.txt](https://neogma.themetalfleece.dev/llms.txt) - page index
-- [neogma.themetalfleece.dev/llms-full.txt](https://neogma.themetalfleece.dev/llms-full.txt) - full documentation as markdown
 
 ## Contributing
 
