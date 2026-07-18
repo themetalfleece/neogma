@@ -11,3 +11,8 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Override vulnerable transitive dependencies to patched versions.
+overrides:
+  multer: '>=2.2.0'
+  postcss: '>=8.5.10'
