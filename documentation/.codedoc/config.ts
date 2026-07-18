@@ -1,27 +1,27 @@
-import { DefaultConfig, configuration } from '@codedoc/core';
+import { configuration } from '@codedoc/core';
 
 import { theme } from './theme';
 
-export const config = /*#__PURE__*/configuration({
+export const config = /*#__PURE__*/ configuration({
   theme, // --> add the theme. modify `./theme.ts` for chaning the theme.
   page: {
     title: {
-      base: 'Neogma v1 Documentation' // --> the base title of your doc pages
+      base: 'Neogma v1 Documentation', // --> the base title of your doc pages
     },
-    favicon: '/favicon.ico'
+    favicon: '/favicon.ico',
   },
   src: {
-    base: './md'
+    base: './md',
   },
   dest: {
     html: '.',
-    namespace: '/neogma/v1',
+    namespace: '/neogma',
   },
   misc: {
     github: {
       repo: 'neogma',
       user: 'themetalfleece',
       action: 'Star',
-    }
-  }
+    },
+  },
 });

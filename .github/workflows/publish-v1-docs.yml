@@ -38,22 +38,22 @@ jobs:
 
       - name: Move related files to tmp
         run: |
-          mkdir -p /tmp/neogma/v1
-          cp -r ./documentation/docs /tmp/neogma/v1/docs
-          cp documentation/index.html /tmp/neogma/v1/index.html
-          cp documentation/favicon.ico /tmp/neogma/v1/favicon.ico
-
-      - name: Checkout docs branch
+          mkdir /tmp/neogma
+          cp -r ./documentation/docs /tmp/neogma/docs
+          cp documentation/index.html /tmp/neogma/index.html
+          cp documentation/favicon.ico /tmp/neogma/favicon.ico
+      - name: Checkout docs
         uses: actions/checkout@v4
         with:
           ref: docs
-
-      - name: Deploy v1 docs to subdirectory
+      - name: Push built files
         run: |
-          rm -rf v1
-          cp -r /tmp/neogma/v1 v1
+          rm -rf docs
+          rm -f index.html
+          rm -f favicon.ico
+          cp -r /tmp/neogma/* .
           git config --global user.name 'Docs builder'
           git config --global user.email 'themetalfleece@users.noreply.github.com'
-          git add v1
-          git commit -m "Build v1 docs"
-          git push origin docs
+          git add .
+          git commit -m "Build docs"
+          git push --force origin docs
