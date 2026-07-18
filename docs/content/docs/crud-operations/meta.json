@@ -1,0 +1,9 @@
+{
+  "title": "CRUD Operations",
+  "pages": [
+    "creating-nodes",
+    "finding-nodes",
+    "updating-nodes",
+    "deleting-nodes"
+  ]
+}

@@ -9,15 +9,18 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "target": "es2020",
-    "lib": ["es2022"],
+    "lib": ["esnext"],
     "strictNullChecks": true,
     "strictBindCallApply": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "allowJs": true,
     "outDir": "./dist",
     "baseUrl": "./src",
     "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.spec.ts", "src/test/**"]
+  "exclude": ["node_modules"]
 }

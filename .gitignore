@@ -12,5 +12,5 @@ coverage
 # generated docs
 documentation/docs
 documentation/index.html
-# yarn
-.yarn/install-state.gz
+# pnpm
+.pnpm-store

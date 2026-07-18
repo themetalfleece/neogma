@@ -66,6 +66,8 @@ export async function findManyWithRelationships<
     );
   }
 
+  const { getRelationshipByAlias, getRelationshipModel } = ctx;
+
   const { statement, bindParams, relationshipLevels } = buildEagerLoadQuery({
     rootLabel: label,
     rootIdentifier,
@@ -80,8 +82,8 @@ export async function findManyWithRelationships<
       modelName: ctx.modelName,
       getLabel: ctx.getLabel,
       buildFromRecord: ctx.buildFromRecord,
-      getRelationshipByAlias: ctx.getRelationshipByAlias,
-      getRelationshipModel: ctx.getRelationshipModel,
+      getRelationshipByAlias,
+      getRelationshipModel,
     },
   });
 
@@ -107,8 +109,8 @@ export async function findManyWithRelationships<
         modelName: ctx.modelName,
         getLabel: ctx.getLabel,
         buildFromRecord: ctx.buildFromRecord,
-        getRelationshipByAlias: ctx.getRelationshipByAlias!,
-        getRelationshipModel: ctx.getRelationshipModel!,
+        getRelationshipByAlias,
+        getRelationshipModel,
       },
     });
   });

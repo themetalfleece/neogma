@@ -1,0 +1,76 @@
+---
+title: Updating Nodes
+description: Update node properties using instance methods or static operations
+---
+
+# Updating nodes
+
+## Instance `save`
+
+Modify an instance's properties and persist the changes:
+
+```typescript
+const user = await Users.findOne({ where: { id: '1' } });
+
+if (user) {
+  user.name = 'Alicia';
+  user.age = 31;
+  await user.save();
+}
+```
+
+The `save` method only updates properties that have changed. It also validates the instance against its schema before persisting, so any constraint violations will throw before the database is touched.
+
+## Instance `getDataValues`
+
+Get all current property values of an instance as a plain object:
+
+```typescript
+const user = await Users.findOne({ where: { id: '1' } });
+const data = user?.getDataValues();
+// { id: '1', name: 'Alice', age: 30 }
+```
+
+## Instance `validate`
+
+Manually validate an instance against its schema:
+
+```typescript
+const user = await Users.findOne({ where: { id: '1' } });
+user.name = ''; // violates minLength constraint
+
+try {
+  await user.validate();
+} catch (err) {
+  console.log(err.message); // Validation error
+}
+```
+
+Validation also runs automatically during `save()`. Use `validate()` when you want to check without persisting.
+
+## Static `update`
+
+Update multiple nodes matching a condition:
+
+```typescript
+const [updatedInstances, queryResult] = await Users.update(
+  { status: 'inactive' }, // properties to set
+  { where: { age: { [Op.lt]: 18 } } }, // match condition
+);
+
+const propsSet = queryResult.summary.counters.updates().propertiesSet;
+console.log(`Updated ${propsSet} properties`);
+```
+
+The static `update` returns a tuple of `[instances[], QueryResult]`.
+
+### Using sessions and transactions
+
+```typescript
+await neogma.getTransaction(async (tx) => {
+  await Users.update(
+    { status: 'archived' },
+    { where: { lastLogin: { [Op.lt]: '2023-01-01' } }, session: tx },
+  );
+});
+```

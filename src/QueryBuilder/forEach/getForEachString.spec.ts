@@ -14,7 +14,7 @@ describe('getForEachString', () => {
     const literal = '(n IN nodes | SET n.marked = true)';
     const queryBuilder = new QueryBuilder().forEach(literal);
 
-    expectStatementEquals(queryBuilder, `FOR EACH ${literal}`);
+    expectStatementEquals(queryBuilder, `FOREACH ${literal}`);
     expectBindParamEquals(queryBuilder, {});
   });
 
@@ -22,7 +22,7 @@ describe('getForEachString', () => {
     const literal = '(name IN $names | CREATE (:Person {name: name}))';
     const queryBuilder = new QueryBuilder().forEach(literal);
 
-    expectStatementEquals(queryBuilder, `FOR EACH ${literal}`);
+    expectStatementEquals(queryBuilder, `FOREACH ${literal}`);
     expectBindParamEquals(queryBuilder, {});
   });
 
@@ -30,7 +30,7 @@ describe('getForEachString', () => {
     const literal = '(i IN range(1, 10) | CREATE (:Node {index: i}))';
     const queryBuilder = new QueryBuilder().forEach(literal);
 
-    expectStatementEquals(queryBuilder, `FOR EACH ${literal}`);
+    expectStatementEquals(queryBuilder, `FOREACH ${literal}`);
     expectBindParamEquals(queryBuilder, {});
   });
 
@@ -38,7 +38,7 @@ describe('getForEachString', () => {
     it('accepts valid forEach string parameter', () => {
       const qb = new QueryBuilder();
       qb.forEach('(n IN nodes | SET n.processed = true)');
-      expect(qb.getStatement()).toContain('FOR EACH');
+      expect(qb.getStatement()).toContain('FOREACH');
     });
 
     it('rejects invalid forEach parameter type', () => {

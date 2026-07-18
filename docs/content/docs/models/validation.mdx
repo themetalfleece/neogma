@@ -1,0 +1,101 @@
+---
+title: Validation
+description: Validate node properties using TypeBox schemas
+---
+
+# Validation
+
+Neogma validates node properties before they are persisted to Neo4j using [TypeBox](https://github.com/sinclairzx81/typebox) schemas.
+
+## TypeBox validation
+
+TypeBox provides type-safe validation schemas. Import `Type` directly from neogma:
+
+```typescript
+import { Type } from 'neogma';
+```
+
+### Basic types
+
+```typescript
+@Property(Type.String())         // must be a string
+@Property(Type.Number())         // must be a number
+@Property(Type.Boolean())        // must be a boolean
+@Property(Type.Array(Type.String())) // must be an array of strings
+```
+
+### Constraints
+
+```typescript
+// String constraints
+@Property(Type.String({ minLength: 3, maxLength: 100 }))
+name!: string;
+
+// Number constraints
+@Property(Type.Number({ minimum: 0, maximum: 150 }))
+age!: number;
+
+// Pattern matching
+@Property(Type.String({ pattern: '^[a-zA-Z0-9]+$' }))
+username!: string;
+```
+
+### Optional properties
+
+Use `Type.Optional()` for properties that may be undefined:
+
+```typescript
+@Property(Type.Optional(Type.String()))
+nickname?: string;
+
+@Property(Type.Optional(Type.Number({ minimum: 0 })))
+score?: number;
+```
+
+### Enum values
+
+```typescript
+@Property(Type.Union([
+  Type.Literal('active'),
+  Type.Literal('inactive'),
+  Type.Literal('pending'),
+]))
+status!: string;
+```
+
+### Relationship property validation
+
+TypeBox schemas can also validate relationship properties:
+
+```typescript
+@Relationship({
+  name: 'RATED',
+  direction: 'out',
+  model: () => ProductNode,
+  properties: [
+    {
+      property: 'rating',
+      alias: 'Rating',
+      schema: Type.Number({ minimum: 1, maximum: 5 }),
+    },
+  ],
+})
+RatedProducts!: Related<typeof ProductNode, { Rating: number }, { rating: number }>;
+```
+
+## Validation errors
+
+When validation fails, neogma throws a `NeogmaInstanceValidationError`:
+
+```typescript
+import { NeogmaInstanceValidationError } from 'neogma';
+
+try {
+  await Users.createOne({ id: '1', name: '' }); // fails: minLength: 1
+} catch (error) {
+  if (error instanceof NeogmaInstanceValidationError) {
+    console.log(error.message);
+    console.log(error.errors); // detailed validation errors
+  }
+}
+```

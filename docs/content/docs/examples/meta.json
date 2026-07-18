@@ -1,0 +1,4 @@
+{
+  "title": "Example Applications",
+  "pages": ["index", "decorators", "legacy-decorators", "javascript", "nestjs"]
+}

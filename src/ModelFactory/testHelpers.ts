@@ -1,3 +1,14 @@
+import Type from 'typebox';
+
+import {
+  clearModelRegistry,
+  Node,
+  NodeEntity,
+  PrimaryKey,
+  Property,
+  Relationship,
+} from '../Decorators';
+import { toModel } from '../Decorators/toModel';
 import { Neogma } from '../Neogma';
 import {
   ModelFactory,
@@ -169,6 +180,82 @@ export type UsersModel = NeogmaModel<
   UsersStaticsI
 >;
 
+// ============ Decorated Class Definitions ============
+
+@Node({ label: 'Supplier' })
+class SupplierNode extends NodeEntity {
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.Optional(Type.String()))
+  country?: string;
+}
+
+@Node({ label: 'Product' })
+class ProductNode extends NodeEntity {
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.Optional(Type.Number()))
+  price?: number;
+
+  @Relationship({
+    name: 'SUPPLIED_BY',
+    direction: 'out',
+    model: () => SupplierNode,
+  })
+  Supplier!: any;
+}
+
+@Node({ label: 'Order' })
+class OrderNode extends NodeEntity {
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.Optional(Type.String()))
+  status?: string;
+
+  // Products relationship added conditionally via addRelationships()
+}
+
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @Property(Type.Optional(Type.Number({ minimum: 0 })))
+  age?: number;
+
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Relationship({
+    name: 'CREATES',
+    direction: 'out',
+    model: () => OrderNode,
+    properties: {
+      Rating: {
+        property: 'rating',
+        schema: Type.Number({ minimum: 1, maximum: 5 }),
+      },
+    },
+  })
+  Orders!: any;
+
+  static foo() {
+    return 'foo';
+  }
+}
+
 // ============ Model Factory Functions ============
 
 /**
@@ -176,81 +263,28 @@ export type UsersModel = NeogmaModel<
  */
 export function createSuppliersModel(neogmaInstance?: Neogma): SuppliersModel {
   const n = neogmaInstance ?? getNeogma();
-  return ModelFactory<
+  return toModel<
     SupplierAttributesI,
     SuppliersRelatedNodesI,
     SuppliersStaticsI,
     SuppliersMethodsI
-  >(
-    {
-      label: 'Supplier',
-      schema: {
-        name: {
-          type: 'string',
-          minLength: 3,
-          required: true,
-        },
-        id: {
-          type: 'string',
-          required: true,
-        },
-        country: {
-          type: 'string',
-          required: false,
-        },
-      },
-      primaryKeyField: 'id',
-      statics: {},
-      methods: {},
-    },
-    n,
-  );
+  >(SupplierNode, n);
 }
 
 /**
  * Creates a Products model with relationship to Suppliers for testing.
  */
 export function createProductsModel(
-  suppliers: SuppliersModel,
+  _suppliers: SuppliersModel,
   neogmaInstance?: Neogma,
 ): ProductsModel {
   const n = neogmaInstance ?? getNeogma();
-  return ModelFactory<
+  return toModel<
     ProductAttributesI,
     ProductsRelatedNodesI,
     ProductsStaticsI,
     ProductsMethodsI
-  >(
-    {
-      label: 'Product',
-      schema: {
-        name: {
-          type: 'string',
-          minLength: 3,
-          required: true,
-        },
-        id: {
-          type: 'string',
-          required: true,
-        },
-        price: {
-          type: 'number',
-          required: false,
-        },
-      },
-      relationships: {
-        Supplier: {
-          model: suppliers,
-          direction: 'out',
-          name: 'SUPPLIED_BY',
-        },
-      },
-      primaryKeyField: 'id',
-      statics: {},
-      methods: {},
-    },
-    n,
-  );
+  >(ProductNode, n);
 }
 
 /**
@@ -263,116 +297,51 @@ export function createOrdersModel(
   products?: ProductsModel,
 ): OrdersModel {
   const n = neogmaInstance ?? getNeogma();
-  const relationships: OrdersModel['relationships'] = {};
-
-  if (products) {
-    relationships.Products = {
-      model: products,
-      direction: 'out',
-      name: 'HAS_ITEM',
-      properties: {
-        Quantity: {
-          property: 'quantity',
-          schema: {
-            type: 'number',
-            minimum: 1,
-            required: true,
-          },
-        },
-      },
-    };
-  }
-
-  return ModelFactory<
+  const Orders = toModel<
     OrderAttributesI,
     OrdersRelatedNodesI,
     OrdersStaticsI,
     OrdersMethodsI
-  >(
-    {
-      label: 'Order',
-      schema: {
-        name: {
-          type: 'string',
-          minLength: 3,
-          required: true,
-        },
-        id: {
-          type: 'string',
-          required: true,
-        },
-        status: {
-          type: 'string',
-          required: false,
+  >(OrderNode, n);
+
+  if (products) {
+    Orders.addRelationships({
+      Products: {
+        model: products,
+        direction: 'out',
+        name: 'HAS_ITEM',
+        properties: {
+          Quantity: {
+            property: 'quantity',
+            schema: {
+              type: 'number',
+              minimum: 1,
+              required: true,
+            },
+          },
         },
       },
-      relationships,
-      primaryKeyField: 'id',
-      statics: {},
-      methods: {},
-    },
-    n,
-  );
+    });
+  }
+
+  return Orders;
 }
 
 /**
  * Creates a Users model with relationship to Orders for testing.
  */
 export function createUsersModel(
-  orders: OrdersModel,
+  _orders: OrdersModel,
   neogmaInstance?: Neogma,
 ): UsersModel {
   const n = neogmaInstance ?? getNeogma();
-  return ModelFactory<
+  // OrderNode already registered by prior createOrdersModel call
+  return toModel<
     UserAttributesI,
     UsersRelatedNodesI,
     UsersStaticsI,
     UsersMethodsI
-  >(
-    {
-      label: 'User',
-      schema: {
-        name: {
-          type: 'string',
-          minLength: 3,
-          required: true,
-        },
-        age: {
-          type: 'number',
-          minimum: 0,
-          required: false,
-        },
-        id: {
-          type: 'string',
-          required: true,
-        },
-      },
-      relationships: {
-        Orders: {
-          model: orders,
-          direction: 'out',
-          name: 'CREATES',
-          properties: {
-            Rating: {
-              property: 'rating',
-              schema: {
-                type: 'number',
-                minimum: 1,
-                maximum: 5,
-                required: true,
-              },
-            },
-          },
-        },
-      },
-      primaryKeyField: 'id',
-      statics: {
-        foo: () => 'foo',
-      },
-      methods: {},
-    },
-    n,
-  );
+  >(UserNode, n);
 }
 
 // ============ Type Testing Utilities ============
@@ -399,4 +368,10 @@ export function createUsersModel(
 export const typeCheck = (_fn: () => void): void => {};
 
 // Re-export for convenience
-export { ModelFactory, ModelRelatedNodesI, NeogmaInstance, NeogmaModel };
+export {
+  clearModelRegistry,
+  ModelFactory,
+  ModelRelatedNodesI,
+  NeogmaInstance,
+  NeogmaModel,
+};

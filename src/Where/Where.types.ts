@@ -140,8 +140,7 @@ type BaseScalarOperators<T extends Neo4jSingleTypes> =
  * @internal
  */
 type StringScalarOperators =
-  | BaseScalarOperators<string>
-  | { [Op.contains]: string | Literal }; // Contains: property CONTAINS value
+  BaseScalarOperators<string> | { [Op.contains]: string | Literal }; // Contains: property CONTAINS value
 
 /**
  * Type-safe where value for scalar (non-array) Neo4j types.
@@ -166,10 +165,7 @@ type ScalarWhereValue<T extends Neo4jSingleTypes> = T extends string
  * @typeParam T - The full array type (e.g., string[])
  * @typeParam E - The element type of the array (e.g., string)
  */
-type ArrayWhereValue<
-  T extends Neo4jSingleTypes[],
-  E extends Neo4jSingleTypes,
-> =
+type ArrayWhereValue<T extends Neo4jSingleTypes[], E extends Neo4jSingleTypes> =
   | T // Direct value: property = [values]
   | { [Op.eq]: T | Literal | null } // Exact match: property = [values] (null -> IS NULL)
   | { [Op.ne]: T | Literal | null } // Not equal: property <> [values] (null -> IS NOT NULL)

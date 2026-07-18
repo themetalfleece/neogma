@@ -3,32 +3,39 @@ name: Run tests
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   runTests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 24]
+
+    name: Tests (Node ${{ matrix.node-version }})
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
-
-      - name: Enable Corepack
-        run: corepack enable
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
 
       - name: Start Neo4j with Docker Compose
         run: docker compose up -d
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: pnpm install --frozen-lockfile
 
       - name: Wait for Neo4j
         uses: ifaxity/wait-on-action@v1.1.0
@@ -36,14 +43,57 @@ jobs:
           resource: http://localhost:7474
           timeout: 60000
 
-      - name: Run tests
+      - name: Run neogma tests
         env:
           CI: true
           NEO4J_URL: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: password
-        run: yarn test
+        run: pnpm test
+
+      - name: Build neogma (needed by @neogma/nest)
+        run: pnpm build
+
+      - name: Run @neogma/nest tests
+        run: pnpm --filter @neogma/nest test
 
       - name: Stop Neo4j
         if: always()
         run: docker compose down -v
+
+  exampleApps:
+    runs-on: ubuntu-latest
+    name: Example apps (build & typecheck)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build neogma
+        run: pnpm build
+
+      - name: Build @neogma/nest
+        run: pnpm --filter @neogma/nest build
+
+      - name: Build example apps
+        run: |
+          for app in basic-app-decorators basic-app-legacy-decorators nestjs-app; do
+            echo "::group::$app"
+            cd examples/$app
+            pnpm install --no-frozen-lockfile
+            pnpm build
+            cd ../..
+            echo "::endgroup::"
+          done

@@ -1,0 +1,37 @@
+---
+title: JavaScript
+description: Using neogma with plain JavaScript via ModelFactory
+---
+
+# JavaScript
+
+For JavaScript projects that cannot use decorators, neogma provides `ModelFactory`. See the [ModelFactory documentation](/docs/models/model-factory) for details.
+
+```javascript
+const { Neogma, ModelFactory, Type } = require('neogma');
+
+const neogma = new Neogma({
+  url: 'bolt://localhost:7687',
+  username: 'neo4j',
+  password: 'password',
+});
+
+const Users = ModelFactory(
+  {
+    label: 'User',
+    schema: {
+      id: Type.String(),
+      name: Type.String(),
+      age: Type.Optional(Type.Number()),
+    },
+    primaryKeyField: 'id',
+  },
+  neogma,
+);
+
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  age: 30,
+});
+```

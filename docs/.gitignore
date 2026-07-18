@@ -1,0 +1,6 @@
+.next/
+.source/
+node_modules/
+out/
+source.generated.ts
+next-env.d.ts

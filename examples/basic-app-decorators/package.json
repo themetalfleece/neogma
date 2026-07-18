@@ -1,0 +1,20 @@
+{
+  "name": "@neogma-examples/basic-app-decorators",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runnable example app demonstrating every neogma feature against a local Neo4j instance.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --enable-source-maps dist/index.js",
+    "dev": "tsc && node --enable-source-maps dist/index.js"
+  },
+  "dependencies": {
+    "neogma": "link:../../",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,95 @@
+---
+title: Creating Nodes
+description: Create single or multiple nodes with optional relationships
+---
+
+# Creating nodes
+
+## `createOne`
+
+Create a single node:
+
+```typescript
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  age: 30,
+});
+
+console.log(user.id); // '1'
+console.log(user.name); // 'Alice'
+```
+
+The returned value is a model instance with all properties and instance methods.
+
+### With relationships
+
+Create a node along with related nodes in a single operation:
+
+```typescript
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  Orders: {
+    attributes: [
+      { id: 'order-1', status: 'confirmed' },
+      { id: 'order-2', status: 'pending' },
+    ],
+  },
+});
+
+console.log(user.id); // '1'
+```
+
+### With relationship properties
+
+Attach properties to the relationship itself by providing a `properties` array, where each entry corresponds to the node at the same index in `attributes`:
+
+```typescript
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  Orders: {
+    attributes: [{ id: 'order-1', status: 'confirmed' }],
+    properties: [{ Rating: 5, Quantity: 2 }],
+  },
+});
+
+console.log(user.name); // 'Alice'
+```
+
+### Using sessions and transactions
+
+Pass a session or transaction to any create operation:
+
+```typescript
+await neogma.getSession(async (session) => {
+  const user = await Users.createOne({ id: '1', name: 'Alice' }, { session });
+});
+```
+
+## `createMany`
+
+Create multiple nodes at once:
+
+```typescript
+const users = await Users.createMany([
+  { id: '1', name: 'Alice', age: 30 },
+  { id: '2', name: 'Bob', age: 25 },
+  { id: '3', name: 'Charlie', age: 35 },
+]);
+
+console.log(users.length); // 3
+```
+
+Each item can include nested relationships just like `createOne`.
+
+## Merge (create or update)
+
+To create a node only if it does not already exist (matching by primary key), use the `merge` option:
+
+```typescript
+const user = await Users.createOne({ id: '1', name: 'Alice' }, { merge: true });
+```
+
+This generates a `MERGE` statement instead of `CREATE`.

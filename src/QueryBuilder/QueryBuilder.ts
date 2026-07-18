@@ -327,6 +327,26 @@ export class QueryBuilder {
   public match(match: MatchI['match']): QueryBuilder {
     return this.addParams({ match });
   }
+
+  /**
+   * OPTIONAL MATCH statement.
+   * Sugar for `.match({ optional: true, ...params })`.
+   *
+   * @example
+   * new QueryBuilder()
+   *   .match({ identifier: 'n', label: 'Person' })
+   *   .optionalMatch({ identifier: 'm', label: 'Pet', related: [{ identifier: 'n', direction: 'in' }] })
+   *   .return('n, m');
+   */
+  public optionalMatch(match: MatchI['match']): QueryBuilder {
+    if (typeof match === 'string') {
+      return this.addParams({ match: { literal: match, optional: true } });
+    }
+    return this.addParams({
+      match: { ...match, optional: true },
+    });
+  }
+
   /**
    * CREATE statement
    * Creates nodes and relationships in the graph database.

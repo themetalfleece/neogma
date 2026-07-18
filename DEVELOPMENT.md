@@ -4,10 +4,11 @@ This guide covers setting up Neogma for local development and contributing to th
 
 ## Prerequisites
 
-- [nvm](https://github.com/nvm-sh/nvm), which will install node.js
+- [nvm](https://github.com/nvm-sh/nvm), which will install Node.js
 - [Docker](https://www.docker.com/) and Docker Compose
+- [Corepack](https://nodejs.org/api/corepack.html) (bundled with Node.js)
 
-## Setting up Node.js and Yarn
+## Setting up Node.js and pnpm
 
 **Activate the project's Node.js version:**
 
@@ -17,10 +18,33 @@ nvm use
 
 This will automatically use the Node.js version specified in `.nvmrc`.
 
-**Enable Yarn via Corepack:**
+**Enable pnpm via Corepack:**
+
+Corepack reads the `packageManager` field in `package.json` and installs the exact
+pnpm version on first use. You only need to enable it once per machine:
 
 ```bash
-corepack enable yarn
+corepack enable
+```
+
+## Workspace layout
+
+The repository is a [pnpm workspace](https://pnpm.io/pnpm-workspace_yaml):
+
+- The root package is the published `neogma` library (`src/`, builds to `dist/`).
+- `examples/*` holds runnable example apps that consume the built library.
+
+Install everything (root + examples) with a single command from the repo root:
+
+```bash
+pnpm install
+```
+
+To run a script in a specific workspace:
+
+```bash
+pnpm --filter neogma test
+pnpm --filter @neogma-examples/basic-app start
 ```
 
 ## Setting up Neo4j
@@ -79,7 +103,7 @@ If you prefer not to use Docker:
 
 1. **Install dependencies:**
    ```bash
-   yarn
+   pnpm install
    ```
 
 2. **Ensure Neo4j is running** (see above)
@@ -89,7 +113,7 @@ If you prefer not to use Docker:
 
 4. **Run the tests:**
    ```bash
-   yarn test
+   pnpm test
    ```
 
    The tests will automatically create temporary databases for each test suite to avoid conflicts.
@@ -98,20 +122,26 @@ If you prefer not to use Docker:
 
 **Build TypeScript:**
 ```bash
-yarn build
+pnpm build
 ```
 
 **Lint code:**
 ```bash
-yarn lint
+pnpm lint
 ```
 
 **Format code:**
 ```bash
-yarn format
+pnpm format
 ```
 
 **Run tests in watch mode:**
 ```bash
-yarn test --watch
+pnpm test --watch
+```
+
+**Run the example app:**
+```bash
+pnpm build                                  # build the library first
+pnpm --filter @neogma-examples/basic-app start
 ```

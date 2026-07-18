@@ -6,8 +6,7 @@ import type {
 } from '../QueryBuilder.types';
 
 export type GetRelationshipStringRelationship =
-  | RelationshipForMatchI
-  | RelationshipForCreateI;
+  RelationshipForMatchI | RelationshipForCreateI;
 
 export interface GetRelationshipStringDeps {
   bindParam: BindParam;
