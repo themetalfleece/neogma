@@ -709,10 +709,7 @@ describe('Legacy decorator-based model creation', () => {
         'id',
         PrimaryKey(Type.String()),
       );
-      const InferredDecorated = applyClassDecorator(
-        LegacyInferredNode,
-        Node(),
-      );
+      const InferredDecorated = applyClassDecorator(LegacyInferredNode, Node());
 
       const Model = toModel(InferredDecorated, getNeogma());
       expect(Model.getModelName()).toBe('LegacyInferredNode');
@@ -747,16 +744,8 @@ describe('Legacy decorator-based model creation', () => {
         name!: string;
         Items!: any;
       }
-      applyPropertyDecorator(
-        ShorthandRelNode,
-        'id',
-        PrimaryKey(Type.String()),
-      );
-      applyPropertyDecorator(
-        ShorthandRelNode,
-        'name',
-        Property(Type.String()),
-      );
+      applyPropertyDecorator(ShorthandRelNode, 'id', PrimaryKey(Type.String()));
+      applyPropertyDecorator(ShorthandRelNode, 'name', Property(Type.String()));
       applyPropertyDecorator(
         ShorthandRelNode,
         'Items',

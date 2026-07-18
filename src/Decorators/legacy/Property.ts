@@ -1,11 +1,7 @@
 import type { TSchema } from 'typebox/type';
 
-import { NeogmaModelSchemaError } from '../../Errors';
-import {
-  getClassMetadataStore,
-  NEOGMA_PROPERTIES_KEY,
-  type PropertyMetadata,
-} from '../metadata';
+import { registerProperty, weakMapStore } from '../core';
+import { getClassMetadataStore } from '../metadata';
 
 /**
  * Legacy property decorator that marks a class field as a node property.
@@ -22,20 +18,10 @@ import {
  */
 export function Property(schema?: TSchema) {
   return function (target: object, propertyKey: string): void {
-    const store = getClassMetadataStore(target.constructor);
-    if (!store[NEOGMA_PROPERTIES_KEY]) {
-      store[NEOGMA_PROPERTIES_KEY] = [];
-    }
-    const properties = store[NEOGMA_PROPERTIES_KEY]!;
-    if (
-      properties.some((p: PropertyMetadata) => p.propertyKey === propertyKey)
-    ) {
-      throw new NeogmaModelSchemaError(
-        `@Property decorator applied more than once to field "${propertyKey}". ` +
-          `Each field may only carry a single @Property decoration.`,
-        { propertyKey },
-      );
-    }
-    properties.push({ propertyKey, schema });
+    registerProperty(
+      weakMapStore(getClassMetadataStore(target.constructor)),
+      propertyKey,
+      schema,
+    );
   };
 }

@@ -23,6 +23,7 @@ import {
   NEOGMA_PROPERTIES_KEY,
   NEOGMA_RELATIONSHIPS_KEY,
   type NodeMetadata,
+  normalizeRelationshipProperties,
   type PropertyMetadata,
   readClassMetadataStore,
   type RelationshipMetadata,
@@ -61,6 +62,72 @@ const pendingRelationshipResolutions: Map<
   NodeEntityClass,
   Array<{ ownerModel: UntypedNeogmaModel; alias: string }>
 > = new Map();
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Reads a metadata field from the WeakMap store (preferred) or falls
+ * back to Symbol.metadata. Centralizes the repeated ternary pattern.
+ * @internal
+ */
+function readField<T>(
+  wmStore: ReturnType<typeof readClassMetadataStore>,
+  classMetadata: object,
+  wmKey: symbol,
+  fallbackDefault?: T,
+): T | undefined {
+  if (wmStore) {
+    return (
+      ((wmStore as Record<symbol, unknown>)[wmKey] as T) ?? fallbackDefault
+    );
+  }
+  return (
+    getMetadata<T>(classMetadata as DecoratorMetadataObject, wmKey) ??
+    fallbackDefault
+  );
+}
+
+/**
+ * Extracts own static methods from a class constructor.
+ * Filters out built-in keys (`prototype`, `length`, `name`) and
+ * non-function members.
+ * @internal
+ */
+function extractStaticMethods(
+  target: NodeEntityClass,
+): Record<string, unknown> {
+  const record = target as unknown as Record<string, unknown>;
+  const statics: Record<string, unknown> = {};
+  for (const key of Object.getOwnPropertyNames(target)) {
+    if (
+      key !== 'prototype' &&
+      key !== 'length' &&
+      key !== 'name' &&
+      typeof record[key] === 'function'
+    ) {
+      statics[key] = record[key];
+    }
+  }
+  return statics;
+}
+
+/**
+ * Extracts own instance methods from a class prototype.
+ * Filters out `constructor` and non-function members.
+ * @internal
+ */
+function extractInstanceMethods(
+  target: NodeEntityClass,
+): Record<string, unknown> {
+  const proto = target.prototype as Record<string, unknown>;
+  const methods: Record<string, unknown> = {};
+  for (const key of Object.getOwnPropertyNames(target.prototype)) {
+    if (key !== 'constructor' && typeof proto[key] === 'function') {
+      methods[key] = proto[key];
+    }
+  }
+  return methods;
+}
 
 /**
  * Clears the decorator → NeogmaModel registry maintained by `toModel()`.
@@ -176,12 +243,11 @@ export function toModel<
     );
   }
 
-  const nodeMetadata = wmStore
-    ? (wmStore[NEOGMA_NODE_KEY] as NodeMetadata | undefined)
-    : getMetadata<NodeMetadata>(
-        classMetadata as DecoratorMetadataObject,
-        NEOGMA_NODE_KEY,
-      );
+  const nodeMetadata = readField<NodeMetadata>(
+    wmStore,
+    classMetadata,
+    NEOGMA_NODE_KEY,
+  );
   if (!nodeMetadata) {
     throw new NeogmaModelSchemaError(
       `Class "${decoratedClass.name}" is missing @Node decorator.`,
@@ -189,27 +255,26 @@ export function toModel<
     );
   }
 
-  const propertyMetadataList = wmStore
-    ? (wmStore[NEOGMA_PROPERTIES_KEY] ?? [])
-    : (getMetadata<PropertyMetadata[]>(
-        classMetadata as DecoratorMetadataObject,
-        NEOGMA_PROPERTIES_KEY,
-      ) ?? []);
+  const propertyMetadataList = readField<PropertyMetadata[]>(
+    wmStore,
+    classMetadata,
+    NEOGMA_PROPERTIES_KEY,
+    [],
+  )!;
 
-  const relationshipMetadataList = wmStore
-    ? (wmStore[NEOGMA_RELATIONSHIPS_KEY] ?? [])
-    : (getMetadata<RelationshipMetadata[]>(
-        classMetadata as DecoratorMetadataObject,
-        NEOGMA_RELATIONSHIPS_KEY,
-      ) ?? []);
+  const relationshipMetadataList = readField<RelationshipMetadata[]>(
+    wmStore,
+    classMetadata,
+    NEOGMA_RELATIONSHIPS_KEY,
+    [],
+  )!;
 
   // 2. Resolve primaryKeyField from @PrimaryKey decorator.
-  const resolvedPrimaryKeyField = wmStore
-    ? wmStore[NEOGMA_PRIMARY_KEY_FIELD]
-    : (getMetadata<string>(
-        classMetadata as DecoratorMetadataObject,
-        NEOGMA_PRIMARY_KEY_FIELD,
-      ) ?? undefined);
+  const resolvedPrimaryKeyField = readField<string>(
+    wmStore,
+    classMetadata,
+    NEOGMA_PRIMARY_KEY_FIELD,
+  );
 
   if (resolvedPrimaryKeyField !== undefined) {
     // @PrimaryKey auto-registers as @Property in both TC39 and legacy paths,
@@ -249,6 +314,20 @@ export function toModel<
   // get a placeholder `model` reference that's patched in step 8 once the
   // target's own `toModel()` call lands. This is what makes circular
   // `A -> B -> A` model pairs work regardless of declaration order.
+
+  // 4a. Resolve any deferred relationship properties — these are functions
+  // stored by @Relationship when `properties: () => config` was used.
+  // By now, static field initializers have run, so the functions can be
+  // safely called.
+  for (const relMeta of relationshipMetadataList as RelationshipMetadata[]) {
+    if (relMeta.deferredProperties && !relMeta.properties) {
+      relMeta.properties = normalizeRelationshipProperties(
+        relMeta.deferredProperties(),
+      );
+      relMeta.deferredProperties = undefined;
+    }
+  }
+
   const relationships: Record<string, RelationshipConfig> = {};
   const deferredTargets: Array<{
     targetClass: NodeEntityClass;
@@ -321,31 +400,10 @@ export function toModel<
   }
 
   // 5. Extract statics from the class
-  const classAsRecord = decoratedClass as unknown as Record<string, unknown>;
-  const extractedStatics: Record<string, unknown> = {};
-  const staticOwnKeys = Object.getOwnPropertyNames(decoratedClass).filter(
-    (key) =>
-      key !== 'prototype' &&
-      key !== 'length' &&
-      key !== 'name' &&
-      typeof classAsRecord[key] === 'function',
-  );
-  for (const key of staticOwnKeys) {
-    extractedStatics[key] = classAsRecord[key];
-  }
+  const extractedStatics = extractStaticMethods(decoratedClass);
 
   // 6. Extract instance methods from prototype
-  const prototypeAsRecord = decoratedClass.prototype as Record<string, unknown>;
-  const extractedMethods: Record<string, unknown> = {};
-  const prototypeOwnKeys = Object.getOwnPropertyNames(
-    decoratedClass.prototype,
-  ).filter(
-    (key) =>
-      key !== 'constructor' && typeof prototypeAsRecord[key] === 'function',
-  );
-  for (const key of prototypeOwnKeys) {
-    extractedMethods[key] = prototypeAsRecord[key];
-  }
+  const extractedMethods = extractInstanceMethods(decoratedClass);
 
   // 7. Call ModelFactory with the assembled schema, relationships, statics,
   // and methods extracted from the decorated class.

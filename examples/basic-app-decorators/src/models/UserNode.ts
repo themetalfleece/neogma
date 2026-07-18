@@ -1,5 +1,6 @@
 import type { Related } from 'neogma';
 import {
+  defineRelationshipProperties,
   Node,
   NodeEntity,
   PrimaryKey,
@@ -25,18 +26,23 @@ export class UserNode extends NodeEntity {
   @Property(Type.Optional(Type.Number({ minimum: 0, maximum: 130 })))
   age?: number;
 
+  // Relationship properties defined as a static class member, co-located
+  // with the relationship they belong to. The function form in `properties`
+  // defers evaluation until neogma.model() runs (after static initializers).
+  static readonly orderRelProps = defineRelationshipProperties({
+    Rating: {
+      property: 'rating',
+      schema: Type.Number({ minimum: 1, maximum: 5 }),
+    },
+  });
+
   @Relationship({
     name: 'CREATES',
     direction: 'out',
     model: () => OrderNode,
-    properties: {
-      Rating: {
-        property: 'rating',
-        schema: Type.Number({ minimum: 1, maximum: 5 }),
-      },
-    },
+    properties: () => UserNode.orderRelProps,
   })
-  Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
+  Orders!: Related<typeof OrderNode, typeof UserNode.orderRelProps>;
 
   @Relationship({
     name: 'TAGGED_AS',

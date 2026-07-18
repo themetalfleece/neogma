@@ -111,6 +111,10 @@ describe('public API surface (built dist/)', () => {
     it('exports clearModelRegistry (test-only helper)', () => {
       expect(typeof api.clearModelRegistry).toBe('function');
     });
+
+    it('exports defineRelationshipProperties helper', () => {
+      expect(typeof api.defineRelationshipProperties).toBe('function');
+    });
   });
 
   describe('TypeBox re-exports', () => {

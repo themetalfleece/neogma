@@ -1,12 +1,7 @@
 import type { TSchema } from 'typebox/type';
 
-import { NeogmaModelSchemaError } from '../../Errors';
-import {
-  getClassMetadataStore,
-  NEOGMA_PRIMARY_KEY_FIELD,
-  NEOGMA_PROPERTIES_KEY,
-  type PropertyMetadata,
-} from '../metadata';
+import { registerPrimaryKey, weakMapStore } from '../core';
+import { getClassMetadataStore } from '../metadata';
 
 /**
  * Legacy field decorator that marks a property as the primary key for the node model.
@@ -32,29 +27,10 @@ import {
  */
 export function PrimaryKey(schema?: TSchema) {
   return function (target: object, propertyKey: string): void {
-    const store = getClassMetadataStore(target.constructor);
-
-    // ── Primary-key uniqueness guard ──
-    const existing = store[NEOGMA_PRIMARY_KEY_FIELD];
-    if (existing !== undefined) {
-      throw new NeogmaModelSchemaError(
-        `@PrimaryKey applied to field "${propertyKey}" but field "${existing}" ` +
-          `is already marked as primary key. Only one field per class may be ` +
-          `decorated with @PrimaryKey.`,
-        { propertyKey },
-      );
-    }
-    store[NEOGMA_PRIMARY_KEY_FIELD] = propertyKey;
-
-    // ── Auto-register as @Property (unless already decorated) ──
-    if (!store[NEOGMA_PROPERTIES_KEY]) {
-      store[NEOGMA_PROPERTIES_KEY] = [];
-    }
-    const properties = store[NEOGMA_PROPERTIES_KEY]!;
-    if (
-      !properties.some((p: PropertyMetadata) => p.propertyKey === propertyKey)
-    ) {
-      properties.push({ propertyKey, schema });
-    }
+    registerPrimaryKey(
+      weakMapStore(getClassMetadataStore(target.constructor)),
+      propertyKey,
+      schema,
+    );
   };
 }

@@ -1,3 +1,5 @@
+import type { Static, TSchema } from 'typebox/type';
+
 import type { Literal as Neo4jLiteral } from '../Literal';
 import type {
   ModelRelatedNodesI,
@@ -5,6 +7,7 @@ import type {
   NeogmaModel,
 } from '../ModelFactory';
 import type { Neo4jSupportedTypes } from '../QueryRunner';
+import type { RelationshipPropertyObject } from './metadata';
 import type { NodeEntity } from './NodeEntity';
 
 /**
@@ -87,42 +90,120 @@ export type RelPropsFrom<T extends RelPropsDef> = {
 };
 
 /**
+ * Identity helper that captures literal types from a relationship-properties
+ * config object without requiring `as const`. Uses TypeScript 5.0+ const type
+ * parameters to infer literal string types for `property` fields automatically.
+ *
+ * @example
+ * ```typescript
+ * const orderRelProps = defineRelationshipProperties({
+ *   Rating: { property: 'rating', schema: Type.Number() },
+ * });
+ *
+ * // Use with @Relationship and Related<>:
+ * @Relationship({ properties: orderRelProps })
+ * Orders!: Related<typeof OrderNode, typeof orderRelProps>;
+ * ```
+ */
+export function defineRelationshipProperties<
+  const T extends RelationshipPropertyObject,
+>(config: T): T {
+  return config;
+}
+
+// ── Config-to-type inference helpers ─────────────────────────
+// These let users define relationship properties ONCE in the
+// @Relationship config and pass `typeof config` to Related<>,
+// eliminating the need to manually spell out both create-data
+// and relationship property types.
+
+/**
+ * Detects whether `T` has entries shaped like a `@Relationship`
+ * properties config (values are `{ schema: TSchema }` or bare `TSchema`)
+ * rather than plain scalar create-data props (values are `string`, `number`, etc.).
+ */
+type _HasConfigEntries<T extends object> = true extends {
+  [K in keyof T]: T[K] extends TSchema
+    ? true
+    : T[K] extends { schema: TSchema }
+      ? true
+      : false;
+}[keyof T]
+  ? true
+  : false;
+
+/**
+ * Derives alias-keyed create-data types from a `@Relationship` properties config.
+ *
+ * `{ Rating: { property: 'rating', schema: Type.Number() } }` → `{ Rating: number }`
+ * `{ rating: Type.Number() }` → `{ rating: number }`   (shorthand)
+ */
+type _CreatePropsFromConfig<Config extends object> = {
+  -readonly [K in keyof Config]: Config[K] extends TSchema
+    ? Static<Config[K]>
+    : Config[K] extends { schema: infer S extends TSchema }
+      ? Static<S>
+      : never;
+};
+
+/**
+ * Derives property-keyed relationship types from a `@Relationship` properties config.
+ * Uses the `property` field for key remapping; falls back to the alias key for shorthand entries.
+ *
+ * `{ Rating: { property: 'rating', schema: Type.Number() } }` → `{ rating: number }`
+ * `{ rating: Type.Number() }` → `{ rating: number }`   (shorthand: alias === property)
+ */
+type _RelPropsFromConfig<Config extends object> = {
+  -readonly [
+    K in keyof Config as Config[K] extends {
+      property: infer P extends string;
+    }
+      ? P
+      : K & string
+  ]: Config[K] extends TSchema
+    ? Static<Config[K]>
+    : Config[K] extends { schema: infer S extends TSchema }
+      ? Static<S>
+      : never;
+};
+
+/**
  * Branded handle for a related-node field on a decorated class.
  *
  * Use as the field's type so that `toModel(MyNode, neogma)` can infer the
  * full `RelatedNodesI` shape directly from the class — no separate
  * `*Related` interface required.
  *
- * @example
+ * There are three ways to specify relationship property types:
+ *
+ * **1. Config form (recommended)** — define properties once with
+ * {@link defineRelationshipProperties}, share with `@Relationship`:
  * ```typescript
- * @Node({ label: 'User' })
- * class UserNode extends NodeEntity {
- *   @PrimaryKey(Type.String())
- *   id!: string;
+ * const orderRelProps = defineRelationshipProperties({
+ *   Rating:   { property: 'rating',   schema: Type.Number() },
+ *   Quantity: { property: 'quantity',  schema: Type.Number({ minimum: 1 }) },
+ * });
  *
- *   // With RelProps helpers (define once, derive both types):
- *   type OrderRelDef = { Rating: { property: 'rating'; type: number } };
+ * @Relationship({ name: 'PLACED', direction: 'out', model: () => OrderNode, properties: orderRelProps })
+ * Orders!: Related<typeof OrderNode, typeof orderRelProps>;
+ * // CreateRelProps = { Rating: number; Quantity: number }
+ * // RelProps       = { rating: number; quantity: number }  (auto-derived)
+ * ```
  *
- *   @Relationship({
- *     name: 'CREATES',
- *     direction: 'out',
- *     model: () => OrderNode,
- *     properties: { Rating: { property: 'rating', schema: Type.Number() } },
- *   })
- *   Orders!: Related<typeof OrderNode, CreateRelProps<OrderRelDef>, RelPropsFrom<OrderRelDef>>;
+ * **2. Explicit two-type form** — manually provide both types:
+ * ```typescript
+ * Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
+ * ```
  *
- *   // Or explicit two-type form:
- *   // Orders!: Related<typeof OrderNode, { Rating: number }, { rating: number }>;
- *
- *   // No relationship properties:
- *   @Relationship({ name: 'TAGGED_AS', direction: 'out', model: () => TagNode })
- *   Tags!: Related<typeof TagNode>;
- * }
+ * **3. No relationship properties:**
+ * ```typescript
+ * @Relationship({ name: 'TAGGED_AS', direction: 'out', model: () => TagNode })
+ * Tags!: Related<typeof TagNode>;
  * ```
  */
 export type Related<
   TClass extends abstract new (...args: never[]) => NodeEntity,
-  CreateRelationshipProperties extends object = object,
+  CreateRelationshipPropertiesOrConfig extends object = object,
   RelationshipProperties extends object = object,
 > = ModelRelatedNodesI<
   NeogmaModel<
@@ -135,8 +216,12 @@ export type Related<
     AsNeo4jProperties<InferProperties<InstanceType<TClass>>>,
     object
   >,
-  CreateRelationshipProperties,
-  RelationshipProperties
+  _HasConfigEntries<CreateRelationshipPropertiesOrConfig> extends true
+    ? _CreatePropsFromConfig<CreateRelationshipPropertiesOrConfig>
+    : CreateRelationshipPropertiesOrConfig,
+  _HasConfigEntries<CreateRelationshipPropertiesOrConfig> extends true
+    ? _RelPropsFromConfig<CreateRelationshipPropertiesOrConfig>
+    : RelationshipProperties
 >;
 
 /**

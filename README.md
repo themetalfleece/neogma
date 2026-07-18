@@ -25,7 +25,7 @@ Neogma v2 introduces a **decorator-based model definition** with simple, readabl
 - **Zero-boilerplate types** - no separate `*Properties`, `*Instance`, or `*RelatedNodes` interfaces needed
 - **Both decorator styles** - supports TC39 standard decorators and legacy experimental decorators
 
-v2 is **fully backwards compatible** with v1. We suggest upgrading to v2 for extended support and new features.
+v2 is **fully backwards compatible** with v1. We suggest upgrading to v2 for the improved developer experience, new features, and extended support. See the [migration guide](https://neogma.themetalfleece.dev/docs/migration) for step-by-step upgrade instructions.
 
 > Looking for v1? The v1 source is on the [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1), and the v1 documentation is at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
 
@@ -57,7 +57,15 @@ yarn add neogma
 ## Quick Start
 
 ```typescript
-import { Neogma, Node, PrimaryKey, Property, Relationship, NodeEntity, Type } from 'neogma';
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
 import type { Related } from 'neogma';
 
 // Connect to Neo4j
@@ -142,7 +150,13 @@ Enable in `tsconfig.json`:
 Import from `neogma/legacy`:
 
 ```typescript
-import { Node, Primarykey, Property, Relationship, NodeEntity } from 'neogma/legacy';
+import {
+  Node,
+  Primarykey,
+  Property,
+  Relationship,
+  NodeEntity,
+} from 'neogma/legacy';
 ```
 
 ---

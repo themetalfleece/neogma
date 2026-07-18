@@ -13,5 +13,5 @@ export * as neo4jDriver from 'neo4j-driver';
 // Re-export TypeBox so decorator consumers can author schemas without
 // installing typebox separately
 export { default as Type } from 'typebox';
-export type { TSchema } from 'typebox/type';
+export type { Static, TSchema } from 'typebox/type';
 export { Value } from 'typebox/value';

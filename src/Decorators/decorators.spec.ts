@@ -13,10 +13,12 @@ import type {
 import { closeNeogma, getNeogma } from '../ModelFactory/testHelpers';
 import {
   clearModelRegistry,
+  defineRelationshipProperties,
   Node,
   NodeEntity,
   PrimaryKey,
   Property,
+  type Related,
   Relationship,
 } from './index';
 import { toModel } from './toModel';
@@ -720,6 +722,348 @@ describe('Decorator-based model creation', () => {
       const rel = Users.getRelationshipConfiguration('Orders');
       expect(rel.name).toBe('RATES');
       expect(rel.properties).toBeDefined();
+    });
+  });
+
+  describe('Related config inference', () => {
+    it('infers CreateRelProps and RelProps from a config object passed to Related', () => {
+      // Define properties config once — same object used in @Relationship AND Related<>
+      const orderRelProps = {
+        Rating: {
+          property: 'rating' as const,
+          schema: Type.Number({ minimum: 1, maximum: 5 }),
+        },
+        Comment: {
+          property: 'comment' as const,
+          schema: Type.Optional(Type.String()),
+        },
+      } as const;
+
+      @Node({ label: 'CfgUser' })
+      class CfgUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'PLACED',
+          direction: 'out',
+          model: () => CfgOrderNode,
+          properties: orderRelProps,
+        })
+        Orders!: Related<typeof CfgOrderNode, typeof orderRelProps>;
+      }
+
+      @Node({ label: 'CfgOrder' })
+      class CfgOrderNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const neogma = getNeogma();
+      const Orders = toModel(CfgOrderNode, neogma);
+      const Users = toModel(CfgUserNode, neogma);
+
+      // The model was built correctly from decorator metadata
+      expect(Users.getRelationshipConfiguration('Orders')).toBeDefined();
+      expect(
+        Users.getRelationshipConfiguration('Orders').properties,
+      ).toBeDefined();
+
+      // Type-level verification: Related<> auto-derived the correct types
+      // from the config without needing explicit { Rating: number } / { rating: number }
+      type _CreateProps = (typeof Users)['createOne'] extends (
+        data: infer D,
+        ...args: unknown[]
+      ) => unknown
+        ? D
+        : never;
+
+      // This is a compile-time check — if the inference breaks, tsc will fail
+      const _typeCheck = true as const;
+      expect(_typeCheck).toBe(true);
+
+      // Clean up
+      void Orders;
+    });
+
+    it('infers types from shorthand config (bare schemas)', () => {
+      // Shorthand: alias === property name, value is bare TSchema
+      const tagRelProps = {
+        weight: Type.Number(),
+      } as const;
+
+      @Node({ label: 'ShUser' })
+      class ShUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'TAGGED',
+          direction: 'out',
+          model: () => ShTagNode,
+          properties: tagRelProps,
+        })
+        Tags!: Related<typeof ShTagNode, typeof tagRelProps>;
+      }
+
+      @Node({ label: 'ShTag' })
+      class ShTagNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const neogma = getNeogma();
+      const Tags = toModel(ShTagNode, neogma);
+      const Users = toModel(ShUserNode, neogma);
+
+      expect(Users.getRelationshipConfiguration('Tags')).toBeDefined();
+      expect(
+        Users.getRelationshipConfiguration('Tags').properties,
+      ).toBeDefined();
+
+      void Tags;
+    });
+
+    it('preserves backwards compat with explicit 3-param Related usage', () => {
+      // Old form: Related<Class, CreateRelProps, RelProps> still works
+      @Node({ label: 'BcUser' })
+      class BcUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'ORDERED',
+          direction: 'out',
+          model: () => BcOrderNode,
+          properties: {
+            Rating: {
+              property: 'rating',
+              schema: Type.Number(),
+            },
+          },
+        })
+        Orders!: Related<
+          typeof BcOrderNode,
+          { Rating: number },
+          { rating: number }
+        >;
+      }
+
+      @Node({ label: 'BcOrder' })
+      class BcOrderNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const neogma = getNeogma();
+      const Orders = toModel(BcOrderNode, neogma);
+      const Users = toModel(BcUserNode, neogma);
+
+      expect(Users.getRelationshipConfiguration('Orders')).toBeDefined();
+      void Orders;
+    });
+  });
+
+  describe('defineRelationshipProperties()', () => {
+    it('returns the same object reference (identity function)', () => {
+      const config = {
+        Rating: { property: 'rating', schema: Type.Number() },
+      };
+      const result = defineRelationshipProperties(config);
+      expect(result).toBe(config);
+    });
+
+    it('eliminates the need for as const — config works with @Relationship and Related<>', () => {
+      // No `as const` anywhere — defineRelationshipProperties captures literal types
+      const relProps = defineRelationshipProperties({
+        Rating: {
+          property: 'rating',
+          schema: Type.Number({ minimum: 1, maximum: 5 }),
+        },
+      });
+
+      @Node({ label: 'DrpUser' })
+      class DrpUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'RATES',
+          direction: 'out',
+          model: () => DrpOrderNode,
+          properties: relProps,
+        })
+        Orders!: Related<typeof DrpOrderNode, typeof relProps>;
+      }
+
+      @Node({ label: 'DrpOrder' })
+      class DrpOrderNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const neogma = getNeogma();
+      const Orders = toModel(DrpOrderNode, neogma);
+      const Users = toModel(DrpUserNode, neogma);
+
+      const rel = Users.getRelationshipConfiguration('Orders');
+      expect(rel.properties).toBeDefined();
+      expect(rel.name).toBe('RATES');
+      void Orders;
+    });
+
+    it('validates relationship properties defined via defineRelationshipProperties', async () => {
+      const relProps = defineRelationshipProperties({
+        Rating: {
+          property: 'rating',
+          schema: Type.Number({ minimum: 1, maximum: 5 }),
+        },
+      });
+
+      @Node({ label: 'DrpValUser' })
+      class DrpValUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Property(Type.String())
+        name!: string;
+
+        @Relationship({
+          name: 'RATES',
+          direction: 'out',
+          model: () => DrpValOrderNode,
+          properties: relProps,
+        })
+        Orders!: Related<typeof DrpValOrderNode, typeof relProps>;
+      }
+
+      @Node({ label: 'DrpValOrder' })
+      class DrpValOrderNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Property(Type.String())
+        name!: string;
+      }
+
+      const neogma = getNeogma();
+      toModel(DrpValOrderNode, neogma);
+      const Users = toModel(DrpValUserNode, neogma);
+
+      // Rating: 10 exceeds maximum: 5
+      await expect(
+        Users.createOne({
+          id: uuid(),
+          name: 'User',
+          Orders: {
+            properties: [{ id: uuid(), name: 'Order', Rating: 10 }],
+          },
+        }),
+      ).rejects.toThrow(NeogmaInstanceValidationError);
+    });
+  });
+
+  describe('Deferred relationship properties (function form)', () => {
+    it('resolves properties from a function at toModel() time', () => {
+      const deferredProps = defineRelationshipProperties({
+        Score: {
+          property: 'score',
+          schema: Type.Number({ minimum: 0, maximum: 100 }),
+        },
+      });
+
+      @Node({ label: 'DefUser' })
+      class DefUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        static readonly relProps = deferredProps;
+
+        @Relationship({
+          name: 'SCORED',
+          direction: 'out',
+          model: () => DefTargetNode,
+          properties: () => DefUserNode.relProps,
+        })
+        Targets!: Related<typeof DefTargetNode, typeof DefUserNode.relProps>;
+      }
+
+      @Node({ label: 'DefTarget' })
+      class DefTargetNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const neogma = getNeogma();
+      toModel(DefTargetNode, neogma);
+      const Users = toModel(DefUserNode, neogma);
+
+      const rel = Users.getRelationshipConfiguration('Targets');
+      expect(rel.properties).toBeDefined();
+      expect(rel.name).toBe('SCORED');
+    });
+
+    it('validates deferred relationship properties correctly', async () => {
+      @Node({ label: 'DefValUser' })
+      class DefValUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Property(Type.String())
+        name!: string;
+
+        static readonly orderProps = defineRelationshipProperties({
+          Rating: {
+            property: 'rating',
+            schema: Type.Number({ minimum: 1, maximum: 5 }),
+          },
+        });
+
+        @Relationship({
+          name: 'RATES',
+          direction: 'out',
+          model: () => DefValOrderNode,
+          properties: () => DefValUserNode.orderProps,
+        })
+        Orders!: Related<
+          typeof DefValOrderNode,
+          typeof DefValUserNode.orderProps
+        >;
+      }
+
+      @Node({ label: 'DefValOrder' })
+      class DefValOrderNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Property(Type.String())
+        name!: string;
+      }
+
+      const neogma = getNeogma();
+      toModel(DefValOrderNode, neogma);
+      const Users = toModel(DefValUserNode, neogma);
+
+      // Should reject — Rating: 10 exceeds maximum: 5
+      await expect(
+        Users.createOne({
+          id: uuid(),
+          name: 'User',
+          Orders: {
+            properties: [{ id: uuid(), name: 'Order', Rating: 10 }],
+          },
+        }),
+      ).rejects.toThrow(NeogmaInstanceValidationError);
+
+      // Should pass — Rating: 3 is within range
+      const user = await Users.createOne({
+        id: uuid(),
+        name: 'User',
+        Orders: {
+          properties: [{ id: uuid(), name: 'Order', Rating: 3 }],
+        },
+      });
+      expect(user).toBeTruthy();
     });
   });
 

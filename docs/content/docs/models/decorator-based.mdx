@@ -5,16 +5,16 @@ description: Define Neo4j models using TypeScript decorators with full type infe
 
 # Decorator-based models
 
-Define models using decorators for full type inference without separate interface declarations.
+Define models using decorators instead of separate type declarations and configuration objects.
 
 ## Overview
 
 A model is defined as a class with four decorators:
 
-- `@Node` - marks the class as a Neo4j node and sets the label
-- `@PrimaryKey` - marks a field as the primary key (also registers it as a property)
-- `@Property` - marks a field as a stored property, with optional TypeBox validation
-- `@Relationship` - declares a relationship to another model
+- `@Node` -- marks the class as a Neo4j node and sets the label
+- `@PrimaryKey` -- marks a field as the primary key (also registers it as a property)
+- `@Property` -- marks a field as a stored property, with optional TypeBox validation
+- `@Relationship` -- declares a relationship to another model
 
 ```typescript
 import {
@@ -65,7 +65,7 @@ const Users = neogma.model(UserNode);
 // Multiple labels
 @Node({ label: ['User', 'Person'] })
 
-// Label inferred from class name (becomes 'UserNode')
+// Label defaults to the class name ('UserNode')
 @Node()
 ```
 
@@ -164,38 +164,76 @@ Orders!: Related<typeof OrderNode>;
 | `name`       | `string`                          | The Neo4j relationship type (e.g., `'PLACED'`)                               |
 | `direction`  | `'in' \| 'out' \| 'none'`         | The relationship direction                                                   |
 | `model`      | `() => NodeEntityClass \| 'self'` | Lazy reference to the target model class, or `'self'` for self-relationships |
-| `properties` | `object \| array`                 | Optional relationship property definitions (object syntax recommended)       |
+| `properties` | `object \| array`                 | Optional relationship property definitions (see below)                       |
 
 ### Relationship properties
 
-Relationships can have their own properties. Use the object syntax (recommended), where keys are aliases:
+Relationships can have their own properties. Use `defineRelationshipProperties()` to define the property config once and share it between `@Relationship` and `Related<>`:
 
 ```typescript
+import { defineRelationshipProperties, Type } from 'neogma';
+
+const ratedProductRelProps = defineRelationshipProperties({
+  Rating: { property: 'rating', schema: Type.Number({ minimum: 1, maximum: 5 }) },
+  Review: { property: 'review', schema: Type.Optional(Type.String()) },
+});
+
 @Relationship({
   name: 'RATED',
   direction: 'out',
   model: () => ProductNode,
-  properties: {
-    Rating: { property: 'rating', schema: Type.Number({ minimum: 1, maximum: 5 }) },
-    Review: { property: 'review', schema: Type.Optional(Type.String()) },
-  },
+  properties: ratedProductRelProps,
 })
-RatedProducts!: Related<
-  typeof ProductNode,
-  { Rating: number; Review?: string },  // create relationship properties
-  { rating: number; review?: string }   // relationship properties
->;
+RatedProducts!: Related<typeof ProductNode, typeof ratedProductRelProps>;
 ```
+
+Each entry maps an **alias** (the key you use when creating relationships, e.g. `Rating`) to a **property** (the name stored in Neo4j, e.g. `rating`) with a TypeBox **schema** for validation.
+
+#### Co-locating properties as static class members
+
+You can define relationship properties as a static member of the class itself using the function form for `properties`:
+
+```typescript
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @PrimaryKey(Type.String()) id!: string;
+
+  static readonly orderRelProps = defineRelationshipProperties({
+    Rating: {
+      property: 'rating',
+      schema: Type.Number({ minimum: 1, maximum: 5 }),
+    },
+  });
+
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+    properties: () => UserNode.orderRelProps,
+  })
+  Orders!: Related<typeof OrderNode, typeof UserNode.orderRelProps>;
+}
+```
+
+The `() => UserNode.orderRelProps` function form defers evaluation until `neogma.model()` runs, when static fields are guaranteed to be initialized.
+
+#### Shorthand syntax
 
 When the alias and Neo4j property name are the same, pass just the schema:
 
 ```typescript
-properties: {
+const relProps = defineRelationshipProperties({
   rating: Type.Number({ minimum: 1, maximum: 5 }),
-}
+});
 ```
 
-The array syntax is also supported for backwards compatibility. See [Defining Relationships](/docs/relationships/defining-relationships#relationship-properties) for the full reference.
+#### Explicit type form
+
+You can also specify both types manually:
+
+```typescript
+RatedProducts!: Related<typeof ProductNode, { Rating: number }, { rating: number }>;
+```
 
 ### Self-relationships
 
@@ -218,7 +256,7 @@ class PersonNode extends NodeEntity {
 
 ### Circular references
 
-Relationships use lazy references (`() => TargetClass`) to handle circular dependencies. Neogma resolves them automatically when models are registered:
+Relationships use lazy references (`() => TargetClass`) to handle circular dependencies. Neogma resolves them when models are registered:
 
 ```typescript
 @Node({ label: 'User' })
@@ -233,7 +271,7 @@ class OrderNode extends NodeEntity {
   User!: Related<typeof UserNode>;
 }
 
-// Register in dependency order
+// Register in any order
 const Orders = neogma.model(OrderNode);
 const Users = neogma.model(UserNode);
 ```
@@ -244,11 +282,18 @@ The `Related` type is used for relationship fields. It carries type information 
 
 ```typescript
 import type { Related } from 'neogma';
+import { defineRelationshipProperties, Type } from 'neogma';
 
-// Basic relationship (no relationship properties)
+// No relationship properties
 Orders!: Related<typeof OrderNode>;
 
-// With create-time relationship properties and stored relationship properties
+// With relationship properties (recommended):
+const relProps = defineRelationshipProperties({
+  Rating: { property: 'rating', schema: Type.Number() },
+});
+RatedProducts!: Related<typeof ProductNode, typeof relProps>;
+
+// With explicit types:
 RatedProducts!: Related<
   typeof ProductNode,
   { Rating: number },           // properties used when creating the relationship
@@ -263,17 +308,15 @@ After defining your model classes, register them with your neogma instance using
 ```typescript
 const neogma = new Neogma({/* connection */});
 
-// Register models in dependency order
-// (referenced models should be registered first)
 const Orders = neogma.model(OrderNode);
 const Users = neogma.model(UserNode);
 ```
 
-The returned value is a fully typed `NeogmaModel` with all CRUD methods, relationship operations, and type inference.
+The returned value is a fully typed `NeogmaModel` with all CRUD methods and relationship operations.
 
 ## Adding custom static and instance methods
 
-You can define static and instance methods directly on your class:
+Define static and instance methods directly on your class:
 
 ```typescript
 @Node({ label: 'User' })

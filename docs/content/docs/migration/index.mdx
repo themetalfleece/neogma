@@ -206,6 +206,94 @@ Please analyze my code and convert each ModelFactory call to the decorator-based
 Keep QueryBuilder, session, and CRUD usage unchanged - only model definitions need updating.
 ```
 
+### 6. Use object syntax for relationship properties
+
+The v1 **array syntax** with `alias` is deprecated and will be removed in a future release. Use the object syntax instead.
+
+**Before (v1 -- deprecated):**
+
+```typescript
+// v1 array syntax -- DEPRECATED, will be removed
+relationships: {
+  Orders: {
+    model: Orders,
+    direction: 'out',
+    name: 'PLACED',
+    properties: [
+      {
+        alias: 'Rating',
+        property: 'rating',
+        schema: { type: 'number', minimum: 1, maximum: 5 },
+      },
+    ],
+  },
+}
+```
+
+**After (v2):**
+
+Use `defineRelationshipProperties()` with object syntax to define the config once and share it with both `@Relationship` and `Related<>`:
+
+```typescript
+import { defineRelationshipProperties, Type } from 'neogma';
+
+const orderRelProps = defineRelationshipProperties({
+  Rating: {
+    property: 'rating',
+    schema: Type.Number({ minimum: 1, maximum: 5 }),
+  },
+});
+
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+    properties: orderRelProps,
+  })
+  Orders!: Related<typeof OrderNode, typeof orderRelProps>;
+}
+```
+
+### 7. Use TypeBox schemas instead of revalidator
+
+Revalidator JSON Schema validation is deprecated. Use TypeBox schemas for all property and relationship validation going forward.
+
+**Deprecated:**
+
+```typescript
+schema: { type: 'string', required: true, minLength: 3 }
+```
+
+**Use instead:**
+
+```typescript
+import { Type } from 'neogma';
+
+@Property(Type.String({ minLength: 3 }))
+name!: string;
+```
+
+### 8. Use `neogma.model()` instead of `ModelFactory`
+
+`ModelFactory` is deprecated and will be removed in a future release. Use the decorator-based API with `neogma.model()` for all new models.
+
+**Deprecated:**
+
+```typescript
+const Users = ModelFactory<UserProperties, UserRelatedNodes>(
+  {/* ... */},
+  neogma,
+);
+```
+
+**Use instead:**
+
+```typescript
+const Users = neogma.model(UserNode);
+```
+
 ## v1 resources
 
 - **v1 documentation**: [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/)

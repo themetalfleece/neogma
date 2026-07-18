@@ -1,12 +1,6 @@
 import type { TSchema } from 'typebox/type';
 
-import { NeogmaModelSchemaError } from '../../Errors';
-import {
-  getOrCreateMetadata,
-  NEOGMA_PRIMARY_KEY_FIELD,
-  NEOGMA_PROPERTIES_KEY,
-  type PropertyMetadata,
-} from '../metadata';
+import { registerPrimaryKey, tc39Store } from '../core';
 
 /**
  * Field decorator that marks a property as the primary key for the node model.
@@ -39,29 +33,10 @@ export function PrimaryKey(schema?: TSchema) {
     _value: undefined,
     context: ClassFieldDecoratorContext,
   ): void {
-    const propertyKey = String(context.name);
-
-    // ── Primary-key uniqueness guard ──
-    const existing = context.metadata[NEOGMA_PRIMARY_KEY_FIELD] as
-      string | undefined;
-    if (existing !== undefined) {
-      throw new NeogmaModelSchemaError(
-        `@PrimaryKey applied to field "${propertyKey}" but field "${existing}" ` +
-          `is already marked as primary key. Only one field per class may be ` +
-          `decorated with @PrimaryKey.`,
-        { propertyKey },
-      );
-    }
-    context.metadata[NEOGMA_PRIMARY_KEY_FIELD] = propertyKey;
-
-    // ── Auto-register as @Property (unless already decorated) ──
-    const properties = getOrCreateMetadata<PropertyMetadata[]>(
-      context.metadata,
-      NEOGMA_PROPERTIES_KEY,
-      [],
+    registerPrimaryKey(
+      tc39Store(context.metadata),
+      String(context.name),
+      schema,
     );
-    if (!properties.some((p) => p.propertyKey === propertyKey)) {
-      properties.push({ propertyKey, schema });
-    }
   };
 }

@@ -27,6 +27,7 @@ export type {
   RelPropsDef,
   RelPropsFrom,
 } from './inference';
+export { defineRelationshipProperties } from './inference';
 
 // Types
 export type { NodeEntityClass, UntypedNeogmaModel } from './types';

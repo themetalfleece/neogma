@@ -20,7 +20,7 @@ export const NEOGMA_PRIMARY_KEY_FIELD = Symbol('neogma:primaryKeyField');
 // Both TC39 and legacy decorators write here. toModel() reads from here.
 // Using a WeakMap avoids polluting classes and allows GC of unused classes.
 
-interface ClassMetadataStore {
+export interface ClassMetadataStore {
   [NEOGMA_NODE_KEY]?: NodeMetadata;
   [NEOGMA_PROPERTIES_KEY]?: PropertyMetadata[];
   [NEOGMA_RELATIONSHIPS_KEY]?: RelationshipMetadata[];
@@ -107,8 +107,13 @@ export type RelationshipPropertyObject = Record<
 
 /**
  * Accepted input forms for relationship properties in decorator options.
- * The array form is the legacy syntax; the object form is the preferred
- * ergonomic syntax.
+ *
+ * The **object form** ({@link RelationshipPropertyObject}) is the recommended syntax.
+ *
+ * The **array form** ({@link RelationshipPropertyEntry}[]) is deprecated and
+ * will be removed in a future release. Migrate to the object form.
+ *
+ * @deprecated The array form is deprecated. Use the object form instead.
  */
 export type RelationshipPropertyInput =
   RelationshipPropertyEntry[] | RelationshipPropertyObject;
@@ -126,8 +131,15 @@ export interface RelationshipMetadata {
   name: string;
   /** Lazy reference to the target model class, or 'self' */
   model: (() => NodeEntityClass) | 'self';
-  /** Relationship property configurations */
+  /** Relationship property configurations (already normalized) */
   properties?: RelationshipPropertyEntry[];
+  /**
+   * Deferred properties resolver. When `@Relationship` receives a function
+   * for `properties`, the function is stored here and resolved lazily in
+   * `toModel()` (after static field initializers have run).
+   * @internal
+   */
+  deferredProperties?: () => RelationshipPropertyInput;
 }
 
 /**
@@ -172,8 +184,9 @@ export function normalizeRelationshipProperties(
 ): RelationshipPropertyEntry[] | undefined {
   if (!input) return undefined;
 
-  // Array form — legacy syntax, pass through.
+  // Array form — deprecated legacy syntax, pass through.
   if (Array.isArray(input)) {
+    warnArrayRelationshipProperties();
     return input;
   }
 
@@ -190,6 +203,19 @@ export function normalizeRelationshipProperties(
     }
   }
   return entries.length > 0 ? entries : undefined;
+}
+
+/** One-time warning for deprecated array relationship properties syntax. */
+let _warnedArrayRelProps = false;
+function warnArrayRelationshipProperties(): void {
+  if (_warnedArrayRelProps) return;
+  _warnedArrayRelProps = true;
+  console.warn(
+    '[neogma] The array syntax for relationship properties ([ { alias, property, schema } ]) ' +
+      'is deprecated and will be removed in a future release. ' +
+      'Use the object syntax instead: { Alias: { property, schema } }. ' +
+      'See the migration guide: https://neogma.themetalfleece.dev/docs/migration',
+  );
 }
 
 /**

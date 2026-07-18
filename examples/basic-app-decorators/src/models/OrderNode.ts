@@ -1,5 +1,6 @@
 import type { Related } from 'neogma';
 import {
+  defineRelationshipProperties,
   Node,
   NodeEntity,
   PrimaryKey,
@@ -24,17 +25,21 @@ export class OrderNode extends NodeEntity {
   @Property(Type.Optional(Type.Number({ minimum: 0 })))
   total?: number;
 
+  // Relationship properties defined as a static class member, co-located
+  // with the relationship they belong to. The function form in `properties`
+  // defers evaluation until neogma.model() runs (after static initializers).
+  static readonly itemRelProps = defineRelationshipProperties({
+    Quantity: {
+      property: 'quantity',
+      schema: Type.Number({ minimum: 1 }),
+    },
+  });
+
   @Relationship({
     name: 'CONTAINS',
     direction: 'out',
     model: () => OrderItemNode,
-    properties: {
-      Quantity: { property: 'quantity', schema: Type.Number({ minimum: 1 }) },
-    },
+    properties: () => OrderNode.itemRelProps,
   })
-  Items!: Related<
-    typeof OrderItemNode,
-    { Quantity: number },
-    { quantity: number }
-  >;
+  Items!: Related<typeof OrderItemNode, typeof OrderNode.itemRelProps>;
 }
