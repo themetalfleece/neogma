@@ -78,13 +78,16 @@ jobs:
       - name: Build neogma
         run: pnpm build
 
-      - name: Install & typecheck example apps
+      - name: Build @neogma/nest
+        run: pnpm --filter @neogma/nest build
+
+      - name: Build example apps
         run: |
           for app in basic-app-decorators basic-app-legacy-decorators nestjs-app; do
             echo "::group::$app"
             cd examples/$app
             pnpm install --no-frozen-lockfile
-            pnpm exec tsc --noEmit
+            pnpm build
             cd ../..
             echo "::endgroup::"
           done
