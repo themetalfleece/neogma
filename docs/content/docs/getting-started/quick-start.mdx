@@ -1,0 +1,136 @@
+---
+title: Quick Start
+description: Build your first graph application with neogma in minutes
+---
+
+# Quick start
+
+This guide walks you through creating a simple application with neogma. You will define two models, create nodes with a relationship, and query them.
+
+## 1. Set up the connection
+
+```typescript
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+  Op,
+} from 'neogma';
+import type { Related } from 'neogma';
+
+const neogma = new Neogma({
+  url: 'bolt://localhost:7687',
+  username: 'neo4j',
+  password: 'password',
+});
+```
+
+## 2. Define your models
+
+```typescript
+@Node({ label: 'Order' })
+class OrderNode extends NodeEntity {
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.String())
+  status!: string;
+}
+
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.String({ minLength: 1 }))
+  name!: string;
+
+  @Property(Type.Optional(Type.Number({ minimum: 0 })))
+  age?: number;
+
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+  })
+  Orders!: Related<typeof OrderNode>;
+}
+```
+
+## 3. Register models
+
+Models must be registered with the neogma instance. Register them in dependency order (referenced models first):
+
+```typescript
+const Orders = neogma.model(OrderNode);
+const Users = neogma.model(UserNode);
+```
+
+## 4. Create nodes
+
+```typescript
+// Create a user with a related order in a single operation
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  age: 30,
+  Orders: {
+    attributes: [{ id: 'order-1', status: 'confirmed' }],
+  },
+});
+
+console.log(user.name); // 'Alice'
+```
+
+## 5. Query nodes
+
+```typescript
+// Find a single user
+const found = await Users.findOne({
+  where: { name: 'Alice' },
+});
+console.log(found?.age); // 30
+
+// Find multiple users with filtering
+const adults = await Users.findMany({
+  where: { age: { [Op.gte]: 18 } },
+  order: [['name', 'ASC']],
+  limit: 10,
+});
+```
+
+## 6. Load relationships
+
+```typescript
+const usersWithOrders = await Users.findMany({
+  where: { name: 'Alice' },
+  relationships: {
+    Orders: {
+      where: { target: { status: 'confirmed' } },
+    },
+  },
+});
+
+for (const u of usersWithOrders) {
+  for (const order of u.Orders) {
+    console.log(order.node.status); // 'confirmed'
+  }
+}
+```
+
+## 7. Clean up
+
+```typescript
+await neogma.driver.close();
+```
+
+## Next steps
+
+- [Defining models with decorators](/docs/models/decorator-based) - full decorator API reference
+- [Relationships](/docs/relationships) - relationship definitions and operations
+- [Query Builder](/docs/query-builder) - build complex Cypher queries programmatically
+- [Example applications](https://github.com/themetalfleece/neogma/tree/main/examples) - runnable examples

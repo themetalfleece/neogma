@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "pretty": true,
     "resolveJsonModule": true,
     "declaration": true,
@@ -9,15 +9,19 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "target": "es2020",
-    "lib": ["es2022"],
+    "lib": ["esnext"],
     "strictNullChecks": true,
     "strictBindCallApply": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "allowJs": true,
     "outDir": "./dist",
-    "baseUrl": "./src",
-    "typeRoots": ["./node_modules/@types"]
+    "rootDir": "./src",
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.spec.ts", "src/test/**"]
+  "exclude": ["node_modules"]
 }

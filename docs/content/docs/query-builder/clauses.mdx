@@ -1,0 +1,319 @@
+---
+title: Clauses
+description: All available QueryBuilder clauses and their options
+---
+
+# QueryBuilder clauses
+
+All examples assume `Users` and `Orders` are registered models with labels `User` and `Order`.
+
+## `match`
+
+Match nodes and patterns. Returns `QueryBuilder` for chaining.
+
+```typescript
+// Match a node by model
+qb.match({ identifier: 'u', model: Users });
+// Generated: MATCH (u:`User`)
+
+// Match with a where clause
+qb.match({
+  identifier: 'u',
+  model: Users,
+  where: { name: 'Alice' },
+});
+// Generated: MATCH (u:`User` { name: $name })
+// Params: { name: 'Alice' }
+
+// Match a relationship pattern
+qb.match({
+  related: [
+    { identifier: 'u' },
+    { direction: 'out', name: 'PLACED' },
+    { identifier: 'o', model: Orders },
+  ],
+});
+// Generated: MATCH (u)-[:PLACED]->(o:`Order`)
+```
+
+## `optionalMatch`
+
+Like `match`, but returns `null` for missing patterns instead of filtering out the row. Returns `QueryBuilder`.
+
+```typescript
+qb.optionalMatch({
+  identifier: 'u',
+  model: Users,
+});
+// Generated: OPTIONAL MATCH (u:`User`)
+
+// Equivalent to:
+qb.match({
+  optional: true,
+  identifier: 'u',
+  model: Users,
+});
+```
+
+## `where`
+
+Add WHERE conditions. Returns `QueryBuilder`.
+
+```typescript
+// String form (use $paramName for parameters)
+qb.where('u.age >= $minAge');
+// Generated: WHERE u.age >= $minAge
+
+// Object form
+qb.where({ identifier: 'u', property: 'status', value: 'active' });
+// Generated: WHERE u.status = $status
+// Params: { status: 'active' }
+```
+
+## `return`
+
+Specify what to return from the query. Returns `QueryBuilder`.
+
+```typescript
+// String form
+qb.return('u.name AS name, count(o) AS total');
+// Generated: RETURN u.name AS name, count(o) AS total
+
+// Array form
+qb.return(['u', 'o']);
+// Generated: RETURN u, o
+
+// Object form with aliases
+qb.return([{ identifier: 'u', property: 'name', alias: 'userName' }]);
+// Generated: RETURN u.name AS userName
+```
+
+## `create`
+
+Create nodes and relationships. Returns `QueryBuilder`.
+
+```typescript
+qb.create({
+  identifier: 'u',
+  label: 'User',
+  properties: { name: 'Alice', id: '1' },
+});
+// Generated: CREATE (u:`User` { name: $name, id: $id })
+// Params: { name: 'Alice', id: '1' }
+```
+
+## `merge`
+
+Match an existing node or create it if it does not exist. Returns `QueryBuilder`.
+
+```typescript
+qb.merge('(u:User { id: $uid })');
+// Generated: MERGE (u:User { id: $uid })
+```
+
+## `set`
+
+Set properties on nodes or relationships. Returns `QueryBuilder`.
+
+```typescript
+qb.set('u.name = $newName');
+// Generated: SET u.name = $newName
+```
+
+## `delete`
+
+Delete nodes or relationships. `detachDelete` also removes all relationships. Returns `QueryBuilder`.
+
+```typescript
+qb.delete('u');
+// Generated: DELETE u
+
+qb.detachDelete('u');
+// Generated: DETACH DELETE u
+```
+
+## `remove`
+
+Remove properties or labels from a node. Returns `QueryBuilder`.
+
+```typescript
+qb.remove('u.tempField');
+// Generated: REMOVE u.tempField
+```
+
+## `orderBy`
+
+Order results by a property. Returns `QueryBuilder`.
+
+```typescript
+qb.orderBy('u.name ASC');
+// Generated: ORDER BY u.name ASC
+
+qb.orderBy('u.createdAt DESC');
+// Generated: ORDER BY u.createdAt DESC
+```
+
+## `limit`
+
+Limit the number of returned results. Returns `QueryBuilder`.
+
+```typescript
+qb.limit(10);
+// Generated: LIMIT 10
+```
+
+## `skip`
+
+Skip a number of results, typically used with `limit` for pagination. Returns `QueryBuilder`.
+
+```typescript
+qb.skip(20);
+// Generated: SKIP 20
+```
+
+## `with`
+
+Project intermediate results into new variables. Useful for aggregation or filtering between match clauses. Returns `QueryBuilder`.
+
+```typescript
+qb.with('u, count(o) AS orderCount');
+// Generated: WITH u, count(o) AS orderCount
+```
+
+## `unwind`
+
+Expand a list into individual rows. Returns `QueryBuilder`.
+
+```typescript
+qb.unwind('[1, 2, 3] AS num');
+// Generated: UNWIND [1, 2, 3] AS num
+```
+
+## `forEach`
+
+Iterate over a list and execute mutating operations for each element. Returns `QueryBuilder`.
+
+```typescript
+qb.forEach('(name IN $names | CREATE (:User { name: name }))');
+// Generated: FOREACH (name IN $names | CREATE (:User { name: name }))
+```
+
+## `call`
+
+Execute a subquery. The subquery must use the same `BindParam` instance as the parent. Returns `QueryBuilder`.
+
+```typescript
+const subquery = new QueryBuilder(bp)
+  .match({ identifier: 'o', model: Orders })
+  .return('o');
+
+qb.call(subquery);
+// Generated: CALL { MATCH (o:`Order`) RETURN o }
+```
+
+<Callout type="info">
+  Subqueries passed to `.call()` must use the same `BindParam` instance as the
+  parent query to avoid parameter name collisions.
+</Callout>
+
+## `raw`
+
+Inject raw Cypher. Use sparingly and only with trusted values. Returns `QueryBuilder`.
+
+```typescript
+qb.raw('CALL db.labels() YIELD label RETURN label');
+// Generated: CALL db.labels() YIELD label RETURN label
+```
+
+## Combining clauses
+
+Build complex queries by chaining multiple clauses. Here is a complete example with the generated Cypher:
+
+```typescript
+const bp = new BindParam({ minAge: 18, minOrders: 3 });
+
+const qb = new QueryBuilder(bp)
+  .match({ identifier: 'u', model: Users })
+  .where('u.age >= $minAge')
+  .match({
+    related: [
+      { identifier: 'u' },
+      { direction: 'out', name: 'PLACED' },
+      { identifier: 'o', model: Orders },
+    ],
+  })
+  .with('u, count(o) AS orderCount')
+  .where('orderCount > $minOrders')
+  .return('u.name AS name, orderCount')
+  .orderBy('orderCount DESC')
+  .limit(10);
+
+console.log(qb.getStatement());
+// MATCH (u:`User`)
+// WHERE u.age >= $minAge
+// MATCH (u)-[:PLACED]->(o:`Order`)
+// WITH u, count(o) AS orderCount
+// WHERE orderCount > $minOrders
+// RETURN u.name AS name, orderCount
+// ORDER BY orderCount DESC
+// LIMIT 10
+
+const { records } = await qb.run(neogma.queryRunner);
+// Params: { minAge: 18, minOrders: 3 }
+```
+
+## `getStatement`
+
+Returns the generated Cypher string as a `string`. Useful for debugging, logging, or inspecting what the QueryBuilder will execute.
+
+```typescript
+const qb = new QueryBuilder()
+  .match({ identifier: 'u', model: Users })
+  .return('u');
+
+const statement = qb.getStatement();
+console.log(statement);
+// MATCH (u:`User`) RETURN u
+```
+
+## Using `getRelationshipByAlias`
+
+Returns the relationship configuration (name, direction) for a model's relationship alias. This avoids hardcoding relationship names and directions in QueryBuilder patterns.
+
+```typescript
+const qb = new QueryBuilder()
+  .match({
+    related: [
+      { identifier: 'u', model: Users },
+      { ...Users.getRelationshipByAlias('Orders'), identifier: 'r' },
+      { identifier: 'o', model: Orders },
+    ],
+  })
+  .return('u, r, o');
+// Generated: MATCH (u:`User`)-[r:PLACED]->(o:`Order`) RETURN u, r, o
+```
+
+## `Literal` class
+
+Use `Literal` for raw Cypher expressions that should not be parameterized (e.g., Neo4j built-in functions like `datetime()`, `timestamp()`, `randomUUID()`).
+
+```typescript
+import { Literal, QueryBuilder, BindParam } from 'neogma';
+
+const bp = new BindParam({
+  updatedAt: new Literal('datetime()'),
+});
+
+const qb = new QueryBuilder(bp)
+  .match({ identifier: 'u', model: Users })
+  .set('u.updatedAt = $updatedAt')
+  .return('u');
+// Generated: MATCH (u:`User`) SET u.updatedAt = datetime() RETURN u
+// Note: datetime() is injected directly, not as a parameter
+```
+
+<Callout type="warn">
+  `Literal` values are injected directly into the Cypher query without
+  parameterization. Only use `Literal` for trusted values like Neo4j built-in
+  functions. Never use it with user input.
+</Callout>

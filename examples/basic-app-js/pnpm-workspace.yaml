@@ -1,0 +1,3 @@
+# Standalone workspace boundary — prevents this example from inheriting
+# the root pnpm-workspace.yaml and polluting the root lockfile.
+packages: []

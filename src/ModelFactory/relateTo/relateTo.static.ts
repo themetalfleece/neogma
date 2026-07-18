@@ -1,7 +1,6 @@
 import { NeogmaConstraintError } from '../../Errors/NeogmaConstraintError';
 import { NeogmaNotFoundError } from '../../Errors/NeogmaNotFoundError';
-import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import { QueryRunner } from '../../QueryRunner';
+import { type Neo4jSupportedProperties, QueryRunner } from '../../QueryRunner';
 import type { WhereParamsByIdentifierI } from '../../Where';
 import type { AnyObject } from '../shared.types';
 import type {

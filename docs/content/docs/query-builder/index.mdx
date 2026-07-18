@@ -1,0 +1,108 @@
+---
+title: Query Builder
+description: Build Cypher queries programmatically with a fluent API
+---
+
+# Query Builder
+
+The `QueryBuilder` provides a fluent API for constructing Cypher queries programmatically. It handles parameter binding, prevents Cypher injection, and generates optimized queries.
+
+## Basic usage
+
+```typescript
+import { QueryBuilder } from 'neogma';
+
+const qb = new QueryBuilder()
+  .match({ identifier: 'u', model: Users })
+  .where('u.age >= 18')
+  .return('u');
+// Generated Cypher: MATCH (u:`User`) WHERE u.age >= 18 RETURN u
+
+const { records } = await qb.run(neogma.queryRunner);
+// records is a neo4j-driver Record[] - each record has .get('u') etc.
+```
+
+## Chaining clauses
+
+QueryBuilder methods return `this`, so you can chain them:
+
+```typescript
+const qb = new QueryBuilder()
+  .match({ identifier: 'u', model: Users })
+  .match({
+    related: [
+      { identifier: 'u' },
+      { direction: 'out', name: 'PLACED' },
+      { identifier: 'o', model: Orders },
+    ],
+  })
+  .where('o.status = $status')
+  .return('u.name AS name, count(o) AS orderCount')
+  .orderBy('orderCount DESC')
+  .limit(10);
+```
+
+## Running queries
+
+### With the query runner
+
+```typescript
+const bindParam = new BindParam({ status: 'confirmed' });
+const { records } = await qb.run(neogma.queryRunner, bindParam);
+
+for (const record of records) {
+  console.log(record.get('name'));
+  console.log(record.get('orderCount').toNumber());
+}
+```
+
+### Getting the Cypher string
+
+Use `getStatement()` to inspect the generated Cypher before executing. This is useful for debugging, logging, or building queries that you run through the Neo4j driver directly.
+
+```typescript
+const cypher = qb.getStatement();
+// Returns: string - the generated Cypher query
+
+console.log(cypher);
+// MATCH (u:`User`) WHERE u.age >= 18 RETURN u
+```
+
+## BindParam
+
+`BindParam` manages query parameters to prevent Cypher injection:
+
+```typescript
+import { BindParam } from 'neogma';
+
+// Create with initial values
+const bp = new BindParam({ minAge: 18, status: 'active' });
+
+// Generate unique parameter names
+const paramName = bp.getUniqueName('score');
+bp.add({ [paramName]: 100 });
+
+// Get all parameters
+console.log(bp.get()); // { minAge: 18, status: 'active', score: 100 }
+```
+
+### Shared BindParam
+
+When using subqueries (e.g., `CALL`), the subquery must share the parent's `BindParam` to avoid parameter name collisions:
+
+```typescript
+const bp = new BindParam({ minAge: 18 });
+
+const subquery = new QueryBuilder(bp)
+  .match({ identifier: 'o', model: Orders })
+  .return('o');
+
+const qb = new QueryBuilder(bp)
+  .match({ identifier: 'u', model: Users })
+  .call(subquery)
+  .return('u, o');
+```
+
+## Available clauses
+
+See [Clauses](/docs/query-builder/clauses) for a full list of available QueryBuilder methods.

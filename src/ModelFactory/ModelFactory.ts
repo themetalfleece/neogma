@@ -1,9 +1,8 @@
-import clone from 'clone';
+import { Value } from 'typebox/value';
 
 import type { Neogma } from '../Neogma';
 import { QueryBuilder } from '../QueryBuilder';
 import type { Neo4jSupportedProperties } from '../QueryRunner';
-// Import operations from new directories
 import type { BuildContext } from './build';
 import {
   build as buildFn,
@@ -60,7 +59,7 @@ import { save as saveFn } from './save';
 import type {
   AnyObject,
   GenericConfiguration,
-  IValidationSchema,
+  PropertySchema,
 } from './shared.types';
 import type { UpdateContext, UpdateParams, UpdateResult } from './update';
 import { update as updateFn } from './update';
@@ -128,10 +127,13 @@ export const ModelFactory = <
   MethodsI extends AnyObject = object,
 >(
   parameters: {
+    /**
+     * Per-property schemas. Provide TypeBox `TSchema` entries (recommended)
+     * or legacy revalidator-shaped entries — each entry is routed to its
+     * native validator at runtime.
+     */
     schema: {
-      [index in keyof Properties]:
-        | IValidationSchema<Properties>
-        | Revalidator.JSONSchema<Properties>;
+      [index in keyof Properties]: PropertySchema<Properties>;
     };
     label: string | string[];
     statics?: Partial<StaticsI>;
@@ -174,8 +176,14 @@ export const ModelFactory = <
     MethodsI
   >;
 
+  // Value.Clone (from typebox) is a structuredClone-style deep clone that
+  // *preserves* non-enumerable property descriptors on TypeBox schemas.
+  // A naive deep clone strips non-enumerable properties and silently
+  // breaks TypeBox schema detection at validation time.
   const _relationships: Partial<RelationshipsI<RelatedNodesToAssociateI>> =
-    clone(parameters.relationships) || {};
+    parameters.relationships
+      ? Value.Clone(parameters.relationships)
+      : ({} as Partial<RelationshipsI<RelatedNodesToAssociateI>>);
 
   // Validate relationship aliases at model definition time to prevent Cypher injection.
   // Aliases are used directly in query construction (e.g., as identifiers and return fields).
@@ -191,10 +199,10 @@ export const ModelFactory = <
 
   // Define the Model class
   const Model = class ModelClass implements InstanceMethodsI {
-    public __existsInDatabase: InstanceMethodsI['__existsInDatabase'];
-    public dataValues: InstanceMethodsI['dataValues'];
-    public changed: InstanceMethodsI['changed'];
-    public __relationshipData: InstanceMethodsI['__relationshipData'];
+    public __existsInDatabase!: InstanceMethodsI['__existsInDatabase'];
+    public dataValues!: InstanceMethodsI['dataValues'];
+    public changed!: InstanceMethodsI['changed'];
+    public __relationshipData!: InstanceMethodsI['__relationshipData'];
     public labels: string[] = [];
 
     public static relationships = _relationships;
@@ -866,22 +874,9 @@ export const ModelFactory = <
     }
   };
 
-  // Add statics
-  for (const staticKey in statics) {
-    if (!Object.hasOwn(statics, staticKey)) {
-      continue;
-    }
-    Model[staticKey as keyof typeof Model] = statics[staticKey];
-  }
-
-  // Add methods
-  for (const methodKey in methods) {
-    if (!Object.hasOwn(methods, methodKey)) {
-      continue;
-    }
-    Model.prototype[methodKey as keyof typeof Model.prototype] =
-      methods[methodKey];
-  }
+  // Add user-defined statics and instance methods to the Model class.
+  Object.assign(Model, statics);
+  Object.assign(Model.prototype, methods);
 
   // Add to modelsByName
   neogma.modelsByName[modelName] = Model;

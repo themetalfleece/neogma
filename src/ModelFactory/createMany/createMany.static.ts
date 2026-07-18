@@ -123,12 +123,12 @@ export async function createMany<
         mergeProperties
       ) {
         const createOrMergeProperties:
-          | QueryBuilderParameters['CreateI']
-          | QueryBuilderParameters['MergeI'] = {
-          identifier,
-          label,
-          properties: instance.getDataValues(),
-        };
+          QueryBuilderParameters['CreateI'] | QueryBuilderParameters['MergeI'] =
+          {
+            identifier,
+            label,
+            properties: instance.getDataValues(),
+          };
         if (mergeProperties) {
           queryBuilderParams.push({ merge: createOrMergeProperties });
         } else {
@@ -274,8 +274,7 @@ export async function createMany<
       );
 
       const relatedQueryBuilderParameters:
-        | QueryBuilderParameters['CreateI']
-        | QueryBuilderParameters['MergeI'] = {
+        QueryBuilderParameters['CreateI'] | QueryBuilderParameters['MergeI'] = {
         related: [
           { identifier },
           {

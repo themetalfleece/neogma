@@ -1,0 +1,77 @@
+---
+title: Properties and Schema
+description: Understanding node properties, schemas, and type mappings
+---
+
+# Properties and schema
+
+## Property types
+
+Neo4j supports a specific set of property types. Neogma maps TypeScript types to their Neo4j equivalents:
+
+| TypeScript  | Neo4j           | TypeBox                      |
+| ----------- | --------------- | ---------------------------- |
+| `string`    | String          | `Type.String()`              |
+| `number`    | Integer / Float | `Type.Number()`              |
+| `boolean`   | Boolean         | `Type.Boolean()`             |
+| `string[]`  | List of String  | `Type.Array(Type.String())`  |
+| `number[]`  | List of Number  | `Type.Array(Type.Number())`  |
+| `boolean[]` | List of Boolean | `Type.Array(Type.Boolean())` |
+
+## Primary key
+
+Every model must define a primary key field using the `@PrimaryKey` decorator. This field is used for lookups and relationship matching. `@PrimaryKey` also registers the field as a property, so you do not need to add `@Property` separately:
+
+```typescript
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  // ... other properties
+}
+```
+
+You can pass a TypeBox schema for validation, or omit it for an unvalidated primary key:
+
+```typescript
+// With validation
+@PrimaryKey(Type.String({ format: 'uuid' }))
+id!: string;
+
+// Without validation
+@PrimaryKey()
+id!: string;
+```
+
+## Required vs. optional properties
+
+Use TypeScript's optional field syntax alongside `Type.Optional()`:
+
+```typescript
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  // Required: must be provided on create, always present on read
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.String({ minLength: 1 }))
+  name!: string;
+
+  // Optional: can be undefined
+  @Property(Type.Optional(Type.String()))
+  bio?: string;
+
+  @Property(Type.Optional(Type.Number()))
+  age?: number;
+}
+```
+
+## Properties without validation
+
+You can use `@Property()` without a schema argument. The property is tracked (included in creates and updates) but not validated:
+
+```typescript
+@Property()
+externalId!: string; // tracked, but no validation
+```

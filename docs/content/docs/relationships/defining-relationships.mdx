@@ -1,0 +1,182 @@
+---
+title: Defining Relationships
+description: Define relationships between Neo4j node models
+---
+
+# Defining relationships
+
+Relationships in Neo4j connect nodes. In neogma, you define them on your model classes using the `@Relationship` decorator.
+
+```typescript
+import {
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
+import type { Related } from 'neogma';
+
+@Node({ label: 'Order' })
+class OrderNode extends NodeEntity {
+  @PrimaryKey(Type.String()) id!: string;
+  @Property(Type.String()) status!: string;
+}
+
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @PrimaryKey(Type.String()) id!: string;
+  @Property(Type.String()) name!: string;
+
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+  })
+  Orders!: Related<typeof OrderNode>;
+}
+```
+
+## Direction
+
+The `direction` option specifies the relationship direction from the perspective of the current node:
+
+- `'out'` - the relationship goes **from** this node **to** the target: `(User)-[:PLACED]->(Order)`
+- `'in'` - the relationship goes **from** the target **to** this node: `(User)<-[:PLACED]-(Order)`
+- `'none'` - no direction: `(User)-[:PLACED]-(Order)`
+
+## Relationship properties
+
+Relationships can carry their own properties. Define them using the object syntax (recommended) or the array syntax.
+
+### Object syntax (recommended)
+
+Keys are aliases. Each value is either `{ property, schema? }` when the alias differs from the Neo4j property name, or a bare TypeBox schema as shorthand when they match:
+
+```typescript
+@Relationship({
+  name: 'PLACED',
+  direction: 'out',
+  model: () => OrderNode,
+  properties: {
+    // Full form: alias "PlacedAt" maps to Neo4j property "placedAt"
+    PlacedAt: { property: 'placedAt', schema: Type.String() },
+    // Full form: alias "Quantity" maps to Neo4j property "quantity"
+    Quantity: { property: 'quantity', schema: Type.Number({ minimum: 1 }) },
+  },
+})
+Orders!: Related<
+  typeof OrderNode,
+  { PlacedAt: string; Quantity: number },  // CreateRelationshipProperties
+  { placedAt: string; quantity: number }   // RelationshipProperties
+>;
+```
+
+When the alias and the Neo4j property name are the same, you can use the shorthand form with just the schema:
+
+```typescript
+@Relationship({
+  name: 'PLACED',
+  direction: 'out',
+  model: () => OrderNode,
+  properties: {
+    // Shorthand: alias and property name are both "quantity"
+    quantity: Type.Number({ minimum: 1 }),
+  },
+})
+Orders!: Related<typeof OrderNode, { quantity: number }, { quantity: number }>;
+```
+
+### Array syntax (deprecated)
+
+The array syntax is still supported but deprecated. It will emit a one-time console warning at model registration time. Prefer the object syntax above.
+
+
+```typescript
+@Relationship({
+  name: 'PLACED',
+  direction: 'out',
+  model: () => OrderNode,
+  properties: [
+    {
+      property: 'placedAt',    // Neo4j property name
+      alias: 'PlacedAt',       // alias used in create/update operations
+      schema: Type.String(),   // optional TypeBox validation
+    },
+    {
+      property: 'quantity',
+      alias: 'Quantity',
+      schema: Type.Number({ minimum: 1 }),
+    },
+  ],
+})
+Orders!: Related<
+  typeof OrderNode,
+  { PlacedAt: string; Quantity: number },  // CreateRelationshipProperties
+  { placedAt: string; quantity: number }   // RelationshipProperties
+>;
+```
+
+The `Related` type accepts three type parameters:
+
+| Parameter                           | Purpose                                                          | Example                |
+| ----------------------------------- | ---------------------------------------------------------------- | ---------------------- |
+| 1st: Target model                   | The decorated class of the target node                           | `typeof OrderNode`     |
+| 2nd: `CreateRelationshipProperties` | Shape used when creating relationships (uses **aliases**)        | `{ PlacedAt: string }` |
+| 3rd: `RelationshipProperties`       | Shape of properties as stored in Neo4j (uses **property names**) | `{ placedAt: string }` |
+
+The second parameter (aliases) is what you pass to `relateTo()` or nested `createOne()`. The third parameter (property names) is what you get back when reading relationships from the database.
+
+If your relationship has no properties, use `Related<typeof OrderNode>` with no extra parameters.
+
+## Bidirectional relationships
+
+Define the relationship on both sides to enable navigation in either direction:
+
+```typescript
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @Relationship({ name: 'PLACED', direction: 'out', model: () => OrderNode })
+  Orders!: Related<typeof OrderNode>;
+}
+
+@Node({ label: 'Order' })
+class OrderNode extends NodeEntity {
+  @Relationship({ name: 'PLACED', direction: 'in', model: () => UserNode })
+  PlacedBy!: Related<typeof UserNode>;
+}
+```
+
+## Self-referencing relationships
+
+Use `'self'` as the model reference:
+
+```typescript
+@Node({ label: 'Category' })
+class CategoryNode extends NodeEntity {
+  @PrimaryKey(Type.String()) id!: string;
+  @Property(Type.String()) name!: string;
+
+  @Relationship({
+    name: 'PARENT_OF',
+    direction: 'out',
+    model: 'self',
+  })
+  Children!: Related<typeof CategoryNode>;
+}
+```
+
+## Registration order
+
+Models can be registered in any order. Neogma handles circular dependencies automatically through deferred relationship resolution:
+
+```typescript
+// These can be registered in any order
+const Users = neogma.model(UserNode);
+const Orders = neogma.model(OrderNode);
+```
+
+When a model references another model that has not been registered yet, neogma queues the relationship and patches it when the target model is registered. This means circular references (User -> Order -> User) work without any special handling.
+
+The `model: () => OtherNode` arrow function syntax enables this lazy resolution - the reference is only evaluated during `neogma.model()`, not when the class is defined.

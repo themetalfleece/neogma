@@ -87,6 +87,26 @@ export type WhereTypes = {
   };
 };
 
+/**
+ * Union of all operator object types. Used internally to safely extract
+ * operator values via dynamic symbol access without casting to
+ * `Record<symbol, unknown>`. Each key is optional because a where value
+ * object may carry any subset of operators.
+ */
+export type WhereOperatorObject = Partial<
+  WhereTypes['Eq'] &
+    WhereTypes['Ne'] &
+    WhereTypes['In'] &
+    WhereTypes['_In'] &
+    WhereTypes['Contains'] &
+    WhereTypes['Gt'] &
+    WhereTypes['Gte'] &
+    WhereTypes['Lt'] &
+    WhereTypes['Lte'] &
+    WhereTypes['Is'] &
+    WhereTypes['IsNot']
+>;
+
 // ============ Where Value Types ============
 
 /**
@@ -140,8 +160,7 @@ type BaseScalarOperators<T extends Neo4jSingleTypes> =
  * @internal
  */
 type StringScalarOperators =
-  | BaseScalarOperators<string>
-  | { [Op.contains]: string | Literal }; // Contains: property CONTAINS value
+  BaseScalarOperators<string> | { [Op.contains]: string | Literal }; // Contains: property CONTAINS value
 
 /**
  * Type-safe where value for scalar (non-array) Neo4j types.
@@ -166,10 +185,7 @@ type ScalarWhereValue<T extends Neo4jSingleTypes> = T extends string
  * @typeParam T - The full array type (e.g., string[])
  * @typeParam E - The element type of the array (e.g., string)
  */
-type ArrayWhereValue<
-  T extends Neo4jSingleTypes[],
-  E extends Neo4jSingleTypes,
-> =
+type ArrayWhereValue<T extends Neo4jSingleTypes[], E extends Neo4jSingleTypes> =
   | T // Direct value: property = [values]
   | { [Op.eq]: T | Literal | null } // Exact match: property = [values] (null -> IS NULL)
   | { [Op.ne]: T | Literal | null } // Not equal: property <> [values] (null -> IS NOT NULL)
@@ -371,12 +387,12 @@ export const isOperator = {
     typeof value === 'object' &&
     value !== null &&
     Op.is in value &&
-    (value as Record<symbol, unknown>)[Op.is] === null,
+    (value as WhereOperatorObject)[Op.is] === null,
   isNot: (value: WhereValuesI): value is WhereTypes['IsNot'] =>
     typeof value === 'object' &&
     value !== null &&
     Op.isNot in value &&
-    (value as Record<symbol, unknown>)[Op.isNot] === null,
+    (value as WhereOperatorObject)[Op.isNot] === null,
 } as const;
 
 /**

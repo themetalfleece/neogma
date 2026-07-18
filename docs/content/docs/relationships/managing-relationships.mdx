@@ -1,0 +1,117 @@
+---
+title: Managing Relationships
+description: Find, update, and delete relationships between nodes
+---
+
+# Managing relationships
+
+## `findRelationships` (static)
+
+Returns an array of `{ source, target, relationship }` objects matching the given criteria. Each entry contains the source node instance, target node instance, and the relationship properties object.
+
+```typescript
+const relationships = await Users.findRelationships({
+  alias: 'Orders',
+  where: {
+    source: { id: '1' },
+    target: { status: 'confirmed' },
+  },
+});
+// Returns: Array<{ source: UserInstance, target: OrderInstance, relationship: RelProps }>
+
+for (const rel of relationships) {
+  console.log(rel.source.id);      // source node properties
+  console.log(rel.target.status);  // target node properties
+  console.log(rel.relationship);   // relationship properties (e.g. { quantity: 5 })
+}
+```
+
+Returns an empty array if no matching relationships are found.
+
+### Filtering by relationship properties
+
+```typescript
+import { Op } from 'neogma';
+
+const relationships = await Users.findRelationships({
+  alias: 'Orders',
+  where: {
+    source: { id: '1' },
+    relationship: { quantity: { [Op.gte]: 5 } },
+  },
+});
+```
+
+## Deleting relationships
+
+### `deleteRelationships` (static)
+
+Deletes relationships matching the given criteria. Returns the number of deleted relationships as a `number`.
+
+```typescript
+const deletedCount = await Users.deleteRelationships({
+  alias: 'Orders',
+  where: {
+    source: { id: '1' },
+    target: { id: 'order-5' },
+  },
+});
+// Returns: number - count of deleted relationships
+
+console.log(`Deleted ${deletedCount} relationships`);
+```
+
+### Delete all relationships of a type
+
+Omit the `target` filter to delete all relationships of that type from the source node. This removes every relationship matching the alias from the specified source, regardless of target.
+
+```typescript
+const deletedCount = await Users.deleteRelationships({
+  alias: 'Orders',
+  where: {
+    source: { id: '1' },
+  },
+});
+// Deletes ALL 'PLACED' relationships from user '1'
+```
+
+## Updating relationship properties
+
+### `updateRelationship` (static)
+
+Updates properties on existing relationships that match the given criteria and returns a tuple of `[relationships[], QueryResult]`. Matches by source and target node, then sets the specified properties on the relationship.
+
+```typescript
+const [relationships, queryResult] = await Users.updateRelationship({
+  alias: 'Orders',
+  where: {
+    source: { id: '1' },
+    target: { id: 'order-1' },
+  },
+  properties: {
+    quantity: 10,
+  },
+});
+
+console.log(queryResult.summary.counters.updates().propertiesSet); // 1
+```
+
+By default the `relationships` array is empty. Pass `return: true` to populate it with the updated relationship properties:
+
+```typescript
+const [relationships] = await Users.updateRelationship({
+  alias: 'Orders',
+  where: {
+    source: { id: '1' },
+    target: { id: 'order-1' },
+  },
+  properties: {
+    quantity: 10,
+  },
+  return: true,
+});
+
+console.log(relationships[0].quantity); // 10
+```
+
+If no relationship matches the `where` criteria, no update is performed and no error is thrown.

@@ -1,0 +1,67 @@
+.hero {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.description {
+  margin-bottom: 2rem;
+  max-width: 36rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.codeBlock {
+  margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: 42rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-fd-border);
+  background-color: var(--color-fd-card, #fafafa);
+  text-align: left;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.primaryButton {
+  border-radius: 0.5rem;
+  background-color: var(--color-fd-primary);
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  color: var(--color-fd-primary-foreground);
+  text-decoration: none;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-fd-border);
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: inherit;
+}

@@ -1,7 +1,6 @@
 import type { QueryResult } from 'neo4j-driver';
 
-import type { Neo4jSupportedProperties } from '../../QueryRunner';
-import type { QueryRunner } from '../../QueryRunner';
+import type { Neo4jSupportedProperties, QueryRunner } from '../../QueryRunner';
 import type { WhereParamsI } from '../../Where';
 import type { NeogmaInstance } from '../model.types';
 import type { AnyObject, GenericConfiguration } from '../shared.types';

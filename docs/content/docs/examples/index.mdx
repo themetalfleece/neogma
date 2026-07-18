@@ -1,0 +1,33 @@
+---
+title: Overview
+description: Runnable example applications demonstrating neogma features
+---
+
+# Example Applications
+
+Neogma includes several example applications in the [`/examples`](https://github.com/themetalfleece/neogma/tree/main/examples) directory. Each app demonstrates the same core features using a different model definition style.
+
+## Running an example
+
+All examples require a local Neo4j instance. Start one with Docker:
+
+```bash
+docker compose up -d
+```
+
+Then run any example:
+
+```bash
+cd examples/basic-app-decorators
+pnpm install
+pnpm start
+```
+
+## Available examples
+
+| Example                                               | Style                                                | Language   |
+| ----------------------------------------------------- | ---------------------------------------------------- | ---------- |
+| [TC39 Decorators](/docs/examples/decorators)          | `@Node`, `@PrimaryKey`, `@Property`, `@Relationship` | TypeScript |
+| [Legacy Decorators](/docs/examples/legacy-decorators) | `experimentalDecorators`                             | TypeScript |
+| [JavaScript](/docs/examples/javascript)               | `ModelFactory`                                       | JavaScript |
+| [NestJS](/docs/examples/nestjs)                       | `@neogma/nest` module                                | TypeScript |

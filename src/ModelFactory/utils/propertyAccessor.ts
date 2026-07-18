@@ -1,5 +1,6 @@
 import type { Neo4jSupportedProperties } from '../../QueryRunner';
 import type { NeogmaInstance } from '../model.types';
+import type { AnyObject } from '../shared.types';
 
 /**
  * Safely accesses a property on a NeogmaInstance.
@@ -12,8 +13,8 @@ import type { NeogmaInstance } from '../model.types';
  */
 export function getInstanceProperty<
   Properties extends Neo4jSupportedProperties,
-  RelatedNodesToAssociateI extends Record<string, any>,
-  MethodsI extends Record<string, any>,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
 >(
   instance: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
   key: string,
@@ -32,8 +33,8 @@ export function getInstanceProperty<
  */
 export function setInstanceProperty<
   Properties extends Neo4jSupportedProperties,
-  RelatedNodesToAssociateI extends Record<string, any>,
-  MethodsI extends Record<string, any>,
+  RelatedNodesToAssociateI extends AnyObject,
+  MethodsI extends AnyObject,
 >(
   instance: NeogmaInstance<Properties, RelatedNodesToAssociateI, MethodsI>,
   key: string,

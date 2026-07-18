@@ -1,0 +1,63 @@
+---
+title: Parameters
+description: Safe parameter binding to prevent Cypher injection
+---
+
+# Query parameters
+
+## Why use parameters?
+
+All user input should go through parameterized queries to prevent Cypher injection attacks. Neogma's `BindParam` class handles this automatically.
+
+## Using BindParam
+
+```typescript
+import { BindParam, QueryBuilder } from 'neogma';
+
+// Create with initial parameters
+const bp = new BindParam({ minAge: 18, status: 'active' });
+
+const qb = new QueryBuilder()
+  .match({ identifier: 'u', model: Users })
+  .where('u.age >= $minAge AND u.status = $status')
+  .return('u');
+
+const { records } = await qb.run(neogma.queryRunner, bp);
+```
+
+## Generating unique names
+
+When building dynamic queries, use `getUniqueName` to avoid parameter name collisions:
+
+```typescript
+const bp = new BindParam();
+
+const nameParam = bp.getUniqueName('name');
+bp.add({ [nameParam]: 'Alice' });
+
+const ageParam = bp.getUniqueName('age');
+bp.add({ [ageParam]: 30 });
+
+const qb = new QueryBuilder()
+  .match({ identifier: 'u', model: Users })
+  .where(`u.name = $${nameParam} AND u.age = $${ageParam}`)
+  .return('u');
+```
+
+## Getting the parameter map
+
+```typescript
+const bp = new BindParam({ x: 1, y: 2 });
+console.log(bp.get()); // { x: 1, y: 2 }
+```
+
+## Raw queries with parameters
+
+You can also use parameters with the query runner directly:
+
+```typescript
+const result = await neogma.queryRunner.run(
+  'MATCH (u:User) WHERE u.age >= $minAge RETURN u.name AS name',
+  { minAge: 18 },
+);
+```

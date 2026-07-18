@@ -66,10 +66,7 @@ export type UpdateTypes = {
 
 /** the type for the accepted values for an attribute */
 export type UpdateValuesI =
-  | Neo4jSupportedTypes
-  | UpdateTypes['Remove']
-  | Literal
-  | undefined;
+  Neo4jSupportedTypes | UpdateTypes['Remove'] | Literal | undefined;
 
 export type UpdateSupportedProperties = Partial<Record<string, UpdateValuesI>>;
 

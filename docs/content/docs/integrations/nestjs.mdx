@@ -1,0 +1,208 @@
+---
+title: NestJS
+description: Use neogma with NestJS via the @neogma/nest module
+---
+
+# NestJS
+
+The `@neogma/nest` package provides a first-class NestJS module for neogma. It handles connection lifecycle, dependency injection, and model registration.
+
+## Installation
+
+```bash
+npm install @neogma/nest neogma
+# or
+pnpm add @neogma/nest neogma
+```
+
+`@neogma/nest` requires `@nestjs/common` and `@nestjs/core` version 10 or later as peer dependencies.
+
+## Setup
+
+### Basic configuration
+
+Import `NeogmaModule` in your root module and call `forRoot`:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { NeogmaModule } from '@neogma/nest';
+
+@Module({
+  imports: [
+    NeogmaModule.forRoot({
+      connection: {
+        url: 'bolt://localhost:7687',
+        username: 'neo4j',
+        password: 'password',
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Async configuration
+
+Use `forRootAsync` for dynamic configuration (e.g., loading from a config service):
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { NeogmaModule } from '@neogma/nest';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    NeogmaModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          url: config.get('NEO4J_URL', 'bolt://localhost:7687'),
+          username: config.get('NEO4J_USERNAME', 'neo4j'),
+          password: config.get('NEO4J_PASSWORD', 'password'),
+        },
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Configuration options
+
+```typescript
+interface NeogmaModuleOptions {
+  connection: {
+    url: string;
+    username: string;
+    password: string;
+    database?: string; // optional Neo4j database name
+  };
+  options?: {
+    logger?: (message: string) => void;
+    [key: string]: unknown;
+  };
+}
+```
+
+## Registering models
+
+Define your models with decorators, then register them with `forFeature`. Since NestJS projects typically have `experimentalDecorators: true` in tsconfig, import from `neogma/legacy`:
+
+```typescript
+// models/user.model.ts
+import { Node, PrimaryKey, Property, NodeEntity, Type } from 'neogma/legacy';
+import { getModelToken } from '@neogma/nest';
+import type { ModelOf } from '@neogma/nest';
+
+@Node({ label: 'User' })
+export class UserNode extends NodeEntity {
+  @PrimaryKey(Type.String()) id!: string;
+  @Property(Type.String()) name!: string;
+}
+
+export type UsersModel = ModelOf<typeof UserNode>;
+export const USERS_TOKEN = getModelToken(UserNode);
+```
+
+```typescript
+// models/order.model.ts
+import { Node, PrimaryKey, Property, NodeEntity, Type } from 'neogma/legacy';
+import { getModelToken } from '@neogma/nest';
+import type { ModelOf } from '@neogma/nest';
+
+@Node({ label: 'Order' })
+export class OrderNode extends NodeEntity {
+  @PrimaryKey(Type.String()) id!: string;
+  @Property(Type.String()) status!: string;
+}
+
+export type OrdersModel = ModelOf<typeof OrderNode>;
+export const ORDERS_TOKEN = getModelToken(OrderNode);
+```
+
+Register models in a feature module:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { NeogmaModule } from '@neogma/nest';
+import { UserNode } from './models/user.model';
+import { OrderNode } from './models/order.model';
+import { UserService } from './user.service';
+
+@Module({
+  imports: [NeogmaModule.forFeature([UserNode, OrderNode])],
+  providers: [UserService],
+  exports: [UserService],
+})
+export class UserModule {}
+```
+
+<Callout type="info">
+  If your NestJS project does not use `experimentalDecorators`, you can import
+  from `neogma` instead of `neogma/legacy`. The decorator API is identical
+  either way.
+</Callout>
+
+## Injecting models
+
+Use the exported token and type from your model file with `@Inject`:
+
+```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { UsersModel, USERS_TOKEN } from './models/user.model';
+
+@Injectable()
+export class UserService {
+  constructor(
+    @Inject(USERS_TOKEN)
+    private readonly Users: UsersModel,
+  ) {}
+
+  async findAll() {
+    return this.Users.findMany({});
+  }
+
+  async findById(id: string) {
+    return this.Users.findOne({ where: { id } });
+  }
+
+  async create(data: { id: string; name: string }) {
+    return this.Users.createOne(data);
+  }
+}
+```
+
+Since each model file already exports a `UsersModel` type and a `USERS_TOKEN` constant, you do not need to import `getModelToken` or `ModelOf` from `@neogma/nest` in your services.
+
+## Injecting NeogmaService
+
+For direct access to the neogma instance (e.g., for raw queries), inject `NeogmaService`:
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { NeogmaService } from '@neogma/nest';
+
+@Injectable()
+export class DatabaseService {
+  constructor(private readonly neogmaService: NeogmaService) {}
+
+  async runCustomQuery(cypher: string, params: Record<string, unknown>) {
+    return this.neogmaService.neogma.queryRunner.run(cypher, params);
+  }
+}
+```
+
+## Lifecycle
+
+`NeogmaModule` handles the full connection lifecycle:
+
+- **`onModuleInit`** - creates the Neo4j driver and verifies connectivity
+- **`onApplicationShutdown`** - closes the driver cleanly
+
+You do not need to manage the connection manually.
+
+## Example Application
+
+See the [`nestjs-app` example](https://github.com/themetalfleece/neogma/tree/main/examples/nestjs-app) in the repository for a complete working NestJS application with neogma.

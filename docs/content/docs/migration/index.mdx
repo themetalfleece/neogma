@@ -1,0 +1,348 @@
+---
+title: Migrating from v1
+description: Upgrade from neogma v1 to v2 with the decorator-based API
+---
+
+# Migrating from v1
+
+This guide walks you through upgrading from neogma v1 to v2.
+
+## What changed in v2
+
+- **Decorator-based models** - define models with `@Node`, `@PrimaryKey`, `@Property`, `@Relationship` instead of `ModelFactory`
+- **TypeBox validation** - use TypeBox schemas instead of revalidator JSON Schema
+- **Type inference** - no more separate interface declarations; types are inferred from the class
+- **`neogma.model()`** - register decorated classes instead of calling `ModelFactory` directly
+- **TypeBox re-exported** - `Type`, `Value`, and `TSchema` are available directly from `neogma`
+
+## Step-by-step migration
+
+### 1. Update the package
+
+```bash
+npm install neogma@latest
+```
+
+### 2. Convert model definitions
+
+**Before (v1):**
+
+```typescript
+import { Neogma, ModelFactory } from 'neogma';
+import type { ModelRelatedNodesI, NeogmaInstance } from 'neogma';
+
+type UserProperties = {
+  id: string;
+  name: string;
+  age?: number;
+};
+
+interface UserRelatedNodes {
+  Orders: ModelRelatedNodesI<typeof Orders, OrderInstance>;
+}
+
+type UserInstance = NeogmaInstance<UserProperties, UserRelatedNodes>;
+
+const Users = ModelFactory<UserProperties, UserRelatedNodes>(
+  {
+    label: 'User',
+    schema: {
+      id: { type: 'string', required: true },
+      name: { type: 'string', required: true, minLength: 3 },
+      age: { type: 'number', required: false, minimum: 0 },
+    },
+    primaryKeyField: 'id',
+    relationships: {
+      Orders: {
+        model: Orders,
+        direction: 'out',
+        name: 'PLACED',
+      },
+    },
+  },
+  neogma,
+);
+```
+
+**After (v2):**
+
+```typescript
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+} from 'neogma';
+import type { Related } from 'neogma';
+
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @PrimaryKey(Type.String())
+  id!: string;
+
+  @Property(Type.String({ minLength: 3 }))
+  name!: string;
+
+  @Property(Type.Optional(Type.Number({ minimum: 0 })))
+  age?: number;
+
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+  })
+  Orders!: Related<typeof OrderNode>;
+}
+
+const Users = neogma.model(UserNode);
+```
+
+Key differences:
+
+- No separate `UserProperties`, `UserRelatedNodes`, or `UserInstance` types needed
+- Primary key uses `@PrimaryKey()` instead of `primaryKeyField` in the config
+- Validation is defined inline with `Type.String()`, `Type.Number()`, etc.
+- Relationships use lazy references (`() => OrderNode`) instead of direct model references
+- The class extends `NodeEntity`
+- Registration uses `neogma.model(UserNode)` instead of `ModelFactory(..., neogma)`
+
+### 3. Convert validation schemas
+
+| Revalidator (v1)                          | TypeBox (v2)                                         |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `{ type: 'string', required: true }`      | `Type.String()`                                      |
+| `{ type: 'string', required: false }`     | `Type.Optional(Type.String())`                       |
+| `{ type: 'string', minLength: 3 }`        | `Type.String({ minLength: 3 })`                      |
+| `{ type: 'number', minimum: 0 }`          | `Type.Number({ minimum: 0 })`                        |
+| `{ type: 'number', maximum: 100 }`        | `Type.Number({ maximum: 100 })`                      |
+| `{ type: 'boolean' }`                     | `Type.Boolean()`                                     |
+| `{ type: 'string', enum: ['a', 'b'] }`    | `Type.Union([Type.Literal('a'), Type.Literal('b')])` |
+| `{ type: 'string', pattern: '^[a-z]+$' }` | `Type.String({ pattern: '^[a-z]+$' })`               |
+
+### 4. Update imports
+
+```typescript
+// v1
+import { Neogma, ModelFactory, QueryBuilder, BindParam } from 'neogma';
+import type { ModelRelatedNodesI, NeogmaInstance } from 'neogma';
+
+// v2
+import {
+  Neogma,
+  Node,
+  PrimaryKey,
+  Property,
+  Relationship,
+  NodeEntity,
+  Type,
+  QueryBuilder,
+  BindParam,
+} from 'neogma';
+import type { Related } from 'neogma';
+```
+
+### 5. Register models with `neogma.model()`
+
+```typescript
+// v1
+const Orders = ModelFactory<OrderProperties>({/* ... */}, neogma);
+const Users = ModelFactory<UserProperties, UserRelatedNodes>(
+  {/* ... */},
+  neogma,
+);
+
+// v2
+const Orders = neogma.model(OrderNode);
+const Users = neogma.model(UserNode);
+```
+
+Models can be registered in any order - neogma handles circular dependencies automatically.
+
+## Gradual migration
+
+You can migrate incrementally. Both `ModelFactory` and decorator-based models work in the same application. This lets you convert one model at a time:
+
+```typescript
+// Already migrated
+const Orders = neogma.model(OrderNode);
+
+// Not yet migrated - still works
+const Users = ModelFactory<UserProperties>({/* ... */}, neogma);
+```
+
+`ModelFactory` continues to work without any deprecation warnings. It remains the recommended approach for JavaScript projects.
+
+## Migrate with AI assistance
+
+Copy the prompt below and paste it into your AI assistant (Claude, ChatGPT, etc.) to get help migrating your codebase from neogma v1 to v2:
+
+```text
+I need to migrate a codebase from neogma v1 to neogma v2.
+
+Read the full neogma v2 migration guide and documentation:
+https://neogma.themetalfleece.dev/llms-full.txt
+
+Key changes:
+- Convert ModelFactory definitions to @Node, @PrimaryKey, @Property, @Relationship decorators (ModelFactory still works but decorators offer less boilerplate in TypeScript)
+- Replace revalidator schemas (type: 'string') with TypeBox (Type.String())
+- Remove separate *Properties, *RelatedNodes, *Instance type interfaces
+- Primary key uses @PrimaryKey() decorator instead of primaryKeyField in @Node options
+- Classes extend NodeEntity and use neogma.model(MyClass) for registration
+- Relationships use Related<typeof OtherNode> and lazy refs: model: () => OtherNode
+- Import decorators from 'neogma' (TC39) or 'neogma/legacy' (experimentalDecorators)
+- Type, Value, TSchema are re-exported from neogma (no need to install typebox)
+
+Please analyze my code and convert each ModelFactory call to the decorator-based API.
+Keep QueryBuilder, session, and CRUD usage unchanged - only model definitions need updating.
+```
+
+### 6. Use object syntax for relationship properties
+
+The v1 **array syntax** with `alias` is deprecated and will be removed in a future release. Use the object syntax instead.
+
+**Before (v1 -- deprecated):**
+
+```typescript
+// v1 array syntax -- DEPRECATED, will be removed
+relationships: {
+  Orders: {
+    model: Orders,
+    direction: 'out',
+    name: 'PLACED',
+    properties: [
+      {
+        alias: 'Rating',
+        property: 'rating',
+        schema: { type: 'number', minimum: 1, maximum: 5 },
+      },
+    ],
+  },
+}
+```
+
+**After (v2):**
+
+Use `defineRelationshipProperties()` with object syntax to define the config once and share it with both `@Relationship` and `Related<>`:
+
+```typescript
+import { defineRelationshipProperties, Type } from 'neogma';
+
+const orderRelProps = defineRelationshipProperties({
+  Rating: {
+    property: 'rating',
+    schema: Type.Number({ minimum: 1, maximum: 5 }),
+  },
+});
+
+@Node({ label: 'User' })
+class UserNode extends NodeEntity {
+  @Relationship({
+    name: 'PLACED',
+    direction: 'out',
+    model: () => OrderNode,
+    properties: orderRelProps,
+  })
+  Orders!: Related<typeof OrderNode, typeof orderRelProps>;
+}
+```
+
+### 7. Use TypeBox schemas instead of revalidator
+
+Revalidator JSON Schema validation is deprecated. Use TypeBox schemas for all property and relationship validation going forward.
+
+**Deprecated:**
+
+```typescript
+schema: { type: 'string', required: true, minLength: 3 }
+```
+
+**Use instead:**
+
+```typescript
+import { Type } from 'neogma';
+
+@Property(Type.String({ minLength: 3 }))
+name!: string;
+```
+
+### 8. Prefer `neogma.model()` for TypeScript projects
+
+For TypeScript projects, the decorator-based API with `neogma.model()` provides a better developer experience with less boilerplate. `ModelFactory` remains fully supported and is the recommended approach for JavaScript projects.
+
+**ModelFactory (JavaScript and TypeScript):**
+
+```typescript
+const Users = ModelFactory<UserProperties, UserRelatedNodes>(
+  {/* ... */},
+  neogma,
+);
+```
+
+**Decorator API (TypeScript only):**
+
+```typescript
+const Users = neogma.model(UserNode);
+```
+
+## Breaking changes
+
+### Sessions export removal
+
+The `Sessions` module (`getSession`, `getTransaction`, `getRunnable`) is no longer exported as standalone functions from `neogma`. Use the instance methods on your `Neogma` instance instead.
+
+**Before (v1):**
+
+```typescript
+import { getSession, getTransaction, getRunnable } from 'neogma';
+
+await getSession(neogma, async (session) => {
+  // ...
+});
+```
+
+**After (v2):**
+
+```typescript
+await neogma.getSession(async (session) => {
+  // ...
+});
+
+await neogma.getTransaction(async (tx) => {
+  // ...
+});
+
+const runnable = neogma.getRunnable(sessionOrTransaction);
+```
+
+### Utils API changes
+
+Several utility functions are no longer exported publicly:
+
+- `assertValidCypherIdentifier` -- removed
+- `escapeCypherIdentifier` -- removed
+- `isAlreadyEscaped` -- removed
+- `sanitizeParamName` -- removed
+- `isEmptyObject` -- removed
+- `isPlainObject` -- removed
+
+New exports that replace some of the above:
+
+- `escapeIfNeeded` -- escapes a Cypher identifier only when necessary
+- `escapeLabelIfNeeded` -- escapes a label string only when necessary
+- `isValidCypherIdentifier` -- checks whether a string is a valid Cypher identifier
+
+If your code imported any of the removed functions, update it to use the new equivalents or inline the logic.
+
+### FOREACH keyword fix
+
+The QueryBuilder's `forEach` method now generates the correct Cypher keyword `FOREACH` instead of the previously incorrect `FOR EACH` (two words). `FOR EACH` is not valid Cypher and would cause query failures in most Neo4j versions.
+
+If you had workarounds for the previous incorrect output (for example, string replacements or manual query patching), you should remove them. The generated output is now correct.
+
+## v1 resources
+
+- **v1 documentation**: [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/)
+- **v1 source code**: [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1)

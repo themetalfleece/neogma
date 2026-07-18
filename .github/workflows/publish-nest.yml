@@ -1,0 +1,86 @@
+name: Publish @neogma/nest
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build neogma (peer dependency)
+        run: pnpm build
+
+      - name: Build @neogma/nest
+        run: pnpm --filter @neogma/nest build
+
+      - name: Run @neogma/nest tests
+        run: pnpm --filter @neogma/nest test
+
+  publishPackage:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build neogma (peer dependency)
+        run: pnpm build
+
+      - name: Build @neogma/nest
+        run: pnpm --filter @neogma/nest build
+
+      - name: Bump version
+        working-directory: packages/nest
+        run: npm version ${{ inputs.version }} --no-git-tag-version
+
+      - name: Publish to npm
+        working-directory: packages/nest
+        run: npm publish --access public
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/nest/package.json
+          git commit -m "chore(@neogma/nest): bump version to $(node -p "require('./packages/nest/package.json').version")"
+          git push

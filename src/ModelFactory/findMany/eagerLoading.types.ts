@@ -1,5 +1,4 @@
-import type { QueryRunner } from '../../QueryRunner';
-import type { Neo4jSupportedProperties } from '../../QueryRunner';
+import type { Neo4jSupportedProperties, QueryRunner } from '../../QueryRunner';
 import type { ExtractPropertiesFromInstance, WhereParamsI } from '../../Where';
 import type { NeogmaInstance, NeogmaModel } from '../model.types';
 import type { AnyObject } from '../shared.types';

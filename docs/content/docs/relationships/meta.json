@@ -1,0 +1,9 @@
+{
+  "title": "Relationships",
+  "pages": [
+    "defining-relationships",
+    "creating-relationships",
+    "managing-relationships",
+    "eager-loading"
+  ]
+}

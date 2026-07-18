@@ -1,0 +1,85 @@
+---
+title: Connecting to Neo4j
+description: Create a Neogma instance and connect to your Neo4j database
+---
+
+# Connecting to Neo4j
+
+## Creating a Neogma instance
+
+The `Neogma` class manages your connection to Neo4j. Create an instance with your database credentials:
+
+```typescript
+import { Neogma } from 'neogma';
+
+const neogma = new Neogma({
+  url: 'bolt://localhost:7687',
+  username: 'neo4j',
+  password: 'password',
+});
+```
+
+### Connection options
+
+The constructor accepts the same options as the official Neo4j JavaScript driver:
+
+```typescript
+const neogma = new Neogma(
+  {
+    url: 'bolt://localhost:7687',
+    username: 'neo4j',
+    password: 'password',
+    database: 'my-database', // optional, defaults to 'neo4j'
+  },
+  {
+    // optional: log all Cypher queries
+    logger: console.log,
+  },
+);
+```
+
+### Environment variables
+
+A common pattern is to read connection details from environment variables:
+
+```typescript
+import { Neogma } from 'neogma';
+
+const neogma = new Neogma({
+  url: process.env.NEO4J_URL || 'bolt://localhost:7687',
+  username: process.env.NEO4J_USERNAME || 'neo4j',
+  password: process.env.NEO4J_PASSWORD || 'password',
+});
+```
+
+## Verifying the connection
+
+You can verify the connection using the Neo4j driver's `verifyConnectivity` method:
+
+```typescript
+await neogma.driver.verifyConnectivity();
+console.log('Connected to Neo4j');
+```
+
+## Closing the connection
+
+Always close the connection when your application shuts down:
+
+```typescript
+await neogma.driver.close();
+```
+
+## Query runner
+
+Every `Neogma` instance exposes a `queryRunner` that you can use to execute raw Cypher:
+
+```typescript
+const result = await neogma.queryRunner.run(
+  'MATCH (u:User) WHERE u.name = $name RETURN u',
+  { name: 'Alice' },
+);
+
+for (const record of result.records) {
+  console.log(record.get('u').properties);
+}
+```

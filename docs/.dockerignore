@@ -1,0 +1,7 @@
+.next
+.source
+node_modules
+out
+.open-next
+source.generated.ts
+next-env.d.ts

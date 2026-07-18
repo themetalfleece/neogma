@@ -1,0 +1,60 @@
+---
+title: ModelFactory (JavaScript)
+description: Define models using the ModelFactory function for JavaScript projects
+---
+
+# ModelFactory
+
+`ModelFactory` is the API for defining models in JavaScript projects where decorators are not available.
+
+## Defining a model
+
+```javascript
+const { Neogma, ModelFactory, Type } = require('neogma');
+
+const neogma = new Neogma({
+  url: 'bolt://localhost:7687',
+  username: 'neo4j',
+  password: 'password',
+});
+
+const Users = ModelFactory(
+  {
+    label: 'User',
+    schema: {
+      id: Type.String(),
+      name: Type.String(),
+      age: Type.Optional(Type.Number()),
+    },
+    primaryKeyField: 'id',
+    relationships: {
+      Orders: {
+        model: () => Orders,
+        direction: 'out',
+        name: 'HAS_ORDER',
+      },
+    },
+  },
+  neogma,
+);
+
+// Create a user
+const user = await Users.createOne({
+  id: '1',
+  name: 'Alice',
+  age: 30,
+});
+```
+
+## Configuration options
+
+| Option            | Type                 | Description                               |
+| ----------------- | -------------------- | ----------------------------------------- |
+| `label`           | `string \| string[]` | Neo4j label(s) for this node              |
+| `schema`          | `object`             | Property definitions with TypeBox schemas |
+| `primaryKeyField` | `string`             | The property used as the primary key      |
+| `relationships`   | `object`             | Relationship definitions                  |
+| `statics`         | `object`             | Static methods added to the model         |
+| `methods`         | `object`             | Instance methods added to model instances |
+
+For TypeScript projects, use the [decorator-based API](/docs/models/decorator-based) instead.

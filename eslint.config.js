@@ -13,6 +13,10 @@ module.exports = [
       'dist/**',
       '.vscode/**',
       'coverage/**',
+      // Examples and sub-packages have their own tsconfig/lint setup;
+      // don't pull them into the library's lint run.
+      'examples/**',
+      'packages/**',
     ],
   },
   {
@@ -20,7 +24,7 @@ module.exports = [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: './tsconfig.spec.json',
+        project: './tsconfig.json',
         ecmaVersion: 2021,
         sourceType: 'module',
       },
