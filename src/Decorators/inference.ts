@@ -121,13 +121,20 @@ export function defineRelationshipProperties<
  * Detects whether `T` has entries shaped like a `@Relationship`
  * properties config (values are `{ schema: TSchema }` or bare `TSchema`)
  * rather than plain scalar create-data props (values are `string`, `number`, etc.).
+ *
+ * TypeBox v1's `TSchema` is broad enough that primitives (`number`, `string`, etc.)
+ * satisfy `extends TSchema`. We guard against this by excluding primitives first:
+ * config entries are always objects (TSchema instances or `{ schema: TSchema }`).
  */
 type _HasConfigEntries<T extends object> = true extends {
-  [K in keyof T]: T[K] extends TSchema
-    ? true
-    : T[K] extends { schema: TSchema }
+  [K in keyof T]: T[K] extends
+    string | number | boolean | bigint | null | undefined
+    ? false
+    : T[K] extends TSchema
       ? true
-      : false;
+      : T[K] extends { schema: TSchema }
+        ? true
+        : false;
 }[keyof T]
   ? true
   : false;

@@ -862,6 +862,91 @@ describe('Decorator-based model creation', () => {
       expect(Users.getRelationshipConfiguration('Orders')).toBeDefined();
       void Orders;
     });
+
+    it('explicit 3-arg Related does not misdetect scalar create-data as config', () => {
+      // Regression: TypeBox v1's TSchema is broad enough that primitives like
+      // `number` satisfy `extends TSchema`. _HasConfigEntries must exclude
+      // primitives so that `Related<T, { Rating: number }, { rating: number }>`
+      // uses the explicit third type arg, not a config-derived one.
+
+      @Node({ label: 'ScUser' })
+      class ScUserNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+
+        @Relationship({
+          name: 'PURCHASED',
+          direction: 'out',
+          model: () => ScOrderNode,
+          properties: {
+            Rating: {
+              property: 'rating',
+              schema: Type.Number(),
+            },
+          },
+        })
+        Orders!: Related<
+          typeof ScOrderNode,
+          { Rating: number },
+          { rating: number }
+        >;
+      }
+
+      @Node({ label: 'ScOrder' })
+      class ScOrderNode extends NodeEntity {
+        @PrimaryKey(Type.String())
+        id!: string;
+      }
+
+      const neogma = getNeogma();
+      const ScOrders = toModel(ScOrderNode, neogma);
+      const ScUsers = toModel(ScUserNode, neogma);
+
+      expect(ScUsers.getRelationshipConfiguration('Orders')).toBeDefined();
+
+      // Type-level assertion: verify the inferred RelProps type resolves to
+      // the explicit third arg { rating: number } — NOT a config-derived
+      // { Rating: number } (which was the bug when _HasConfigEntries
+      // misdetected scalars as TSchema config entries).
+      //
+      // We do this by extracting the `createOne` data type and checking that
+      // the Orders relationship property keys use the alias form (Rating),
+      // while a separate compile-time check ensures the RelProps use
+      // the property form (rating).
+      type OrdersField = InstanceType<typeof ScUserNode>['Orders'];
+      type _VerifyCreateProps =
+        OrdersField extends ModelRelatedNodesI<
+          infer _M,
+          infer _I,
+          infer C,
+          infer _R
+        >
+          ? C extends { Rating: number }
+            ? true
+            : false
+          : false;
+      type _VerifyRelProps =
+        OrdersField extends ModelRelatedNodesI<
+          infer _M,
+          infer _I,
+          infer _C,
+          infer R
+        >
+          ? R extends { rating: number }
+            ? true
+            : false
+          : false;
+
+      // If _HasConfigEntries wrongly returns true for { Rating: number },
+      // _VerifyRelProps would be false (it would resolve to { Rating: number }
+      // from the config instead of { rating: number } from the explicit arg).
+      const createPropsOk: _VerifyCreateProps = true;
+      const relPropsOk: _VerifyRelProps = true;
+      expect(createPropsOk).toBe(true);
+      expect(relPropsOk).toBe(true);
+
+      void ScOrders;
+    });
   });
 
   describe('defineRelationshipProperties()', () => {
