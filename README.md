@@ -27,7 +27,7 @@ v2 replaces verbose factory configs with **decorators you can read at a glance**
 
 v2 is **fully backwards compatible**. Existing v1 code keeps working, but we recommend migrating for the improved DX. See the [migration guide](https://neogma.themetalfleece.dev/docs/migration) for step-by-step instructions.
 
-> Looking for v1? Source is on the [`v1` branch](https://github.com/themetalfleece/neogma/tree/v1), docs at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
+> Looking for v1? Source is on the [`release/v1` branch](https://github.com/themetalfleece/neogma/tree/release/v1), docs at [themetalfleece.github.io/neogma](https://themetalfleece.github.io/neogma/).
 
 ---
 
