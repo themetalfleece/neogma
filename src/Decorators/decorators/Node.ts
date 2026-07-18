@@ -38,7 +38,7 @@ export function Node(options?: NodeOptions) {
     context: ClassDecoratorContext<T>,
   ): T {
     const metadata: NodeMetadata = {
-      label: options?.label ?? context.name ?? target.name,
+      label: options?.label ?? target.name,
     };
     // TC39 standard metadata path
     context.metadata[NEOGMA_NODE_KEY] = metadata;

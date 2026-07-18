@@ -45,9 +45,7 @@ The static `delete` returns the count of deleted nodes.
 ### Using sessions and transactions
 
 ```typescript
-import { getTransaction } from 'neogma';
-
-await getTransaction(neogma, async (tx) => {
+await neogma.getTransaction(async (tx) => {
   await Users.delete({
     where: { status: 'archived' },
     detach: true,

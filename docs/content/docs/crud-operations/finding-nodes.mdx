@@ -103,9 +103,7 @@ console.log(users.length); // users aged 18-65
 Pass a session or transaction to run the query within a managed session:
 
 ```typescript
-import { getSession } from 'neogma';
-
-await getSession(neogma, async (session) => {
+await neogma.getSession(async (session) => {
   const users = await Users.findMany({
     where: { status: 'active' },
     session,

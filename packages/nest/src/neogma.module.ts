@@ -101,10 +101,10 @@ export class NeogmaModule {
    * Clears the model registry before registration to allow hot-reload
    * scenarios.
    *
-   * **Important**: Model classes must be compiled WITHOUT
-   * `experimentalDecorators` (they use TC39 Stage 3 decorators). Use
-   * TypeScript project references to compile model files separately from
-   * NestJS code. See the nestjs-app example for the setup.
+   * **Important**: Models can use either TC39 decorators (default import
+   * from `'neogma'`) or legacy decorators (import from `'neogma/legacy'`).
+   * The `experimentalDecorators` compiler option is only needed for the
+   * legacy decorator path. See the nestjs-app example for the setup.
    *
    * @example
    * ```typescript

@@ -63,9 +63,7 @@ console.log(user.name); // 'Alice'
 Pass a session or transaction to any create operation:
 
 ```typescript
-import { getSession } from 'neogma';
-
-await getSession(neogma, async (session) => {
+await neogma.getSession(async (session) => {
   const user = await Users.createOne({ id: '1', name: 'Alice' }, { session });
 });
 ```

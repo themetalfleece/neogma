@@ -13,7 +13,8 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 
-const BASE = 'http://localhost:3050';
+const PORT = process.env.PORT ?? 3000;
+const BASE = `http://localhost:${PORT}`;
 
 // ── helpers ─────────────────────────────────────────────────────
 
@@ -41,8 +42,8 @@ async function request(
 
 async function main() {
   const app = await NestFactory.create(AppModule, { logger: ['error'] });
-  await app.listen(3050);
-  console.log('\nServer started on port 3050\n');
+  await app.listen(PORT);
+  console.log(`\nServer started on port ${PORT}\n`);
 
   try {
     // ── Clean up leftovers from previous runs ─────────────────

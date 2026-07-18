@@ -88,9 +88,10 @@ When the alias and the Neo4j property name are the same, you can use the shortha
 Orders!: Related<typeof OrderNode, { quantity: number }, { quantity: number }>;
 ```
 
-### Array syntax
+### Array syntax (deprecated)
 
-The array syntax is also supported:
+The array syntax is still supported but deprecated. It will emit a one-time console warning at model registration time. Prefer the object syntax above.
+
 
 ```typescript
 @Relationship({

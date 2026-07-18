@@ -53,13 +53,9 @@ class TestUserNode extends NodeEntity {
     name: 'PLACED',
     direction: 'out',
     model: () => TestOrderNode,
-    properties: [
-      {
-        alias: 'Rating',
-        property: 'rating',
-        schema: Type.Number({ minimum: 1, maximum: 5 }),
-      },
-    ],
+    properties: {
+      Rating: { property: 'rating', schema: Type.Number({ minimum: 1, maximum: 5 }) },
+    },
   })
   Orders!: Related<
     typeof TestOrderNode,

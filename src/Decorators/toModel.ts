@@ -459,6 +459,12 @@ export function toModel<
   const waiters = pendingRelationshipResolutions.get(decoratedClass);
   if (waiters) {
     for (const waiter of waiters) {
+      if (!waiter.ownerModel.relationships) {
+        console.warn(
+          `[neogma] Skipping deferred relationship resolution for alias "${waiter.alias}" — owner model has no relationships.`,
+        );
+        continue;
+      }
       const ownerRelationships = waiter.ownerModel.relationships as Record<
         string,
         RelationshipConfig

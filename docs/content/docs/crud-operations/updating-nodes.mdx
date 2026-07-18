@@ -67,9 +67,7 @@ The static `update` returns a tuple of `[instances[], QueryResult]`.
 ### Using sessions and transactions
 
 ```typescript
-import { getTransaction } from 'neogma';
-
-await getTransaction(neogma, async (tx) => {
+await neogma.getTransaction(async (tx) => {
   await Users.update(
     { status: 'archived' },
     { where: { lastLogin: { [Op.lt]: '2023-01-01' } }, session: tx },

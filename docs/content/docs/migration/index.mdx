@@ -173,14 +173,7 @@ const Orders = neogma.model(OrderNode);
 const Users = ModelFactory<UserProperties>({/* ... */}, neogma);
 ```
 
-`ModelFactory` will show a one-time deprecation warning. To suppress it during migration:
-
-```typescript
-const neogma = new Neogma(
-  { url: '...', username: '...', password: '...' },
-  { suppressLegacyModelFactoryDeprecation: true },
-);
-```
+`ModelFactory` continues to work without any deprecation warnings. It remains the recommended approach for JavaScript projects.
 
 ## Migrate with AI assistance
 
@@ -193,7 +186,7 @@ Read the full neogma v2 migration guide and documentation:
 https://neogma.themetalfleece.dev/llms-full.txt
 
 Key changes:
-- Replace ModelFactory with @Node, @PrimaryKey, @Property, @Relationship decorators
+- Convert ModelFactory definitions to @Node, @PrimaryKey, @Property, @Relationship decorators (ModelFactory still works but decorators offer less boilerplate in TypeScript)
 - Replace revalidator schemas (type: 'string') with TypeBox (Type.String())
 - Remove separate *Properties, *RelatedNodes, *Instance type interfaces
 - Primary key uses @PrimaryKey() decorator instead of primaryKeyField in @Node options
@@ -275,11 +268,11 @@ import { Type } from 'neogma';
 name!: string;
 ```
 
-### 8. Use `neogma.model()` instead of `ModelFactory`
+### 8. Prefer `neogma.model()` for TypeScript projects
 
-`ModelFactory` is deprecated and will be removed in a future release. Use the decorator-based API with `neogma.model()` for all new models.
+For TypeScript projects, the decorator-based API with `neogma.model()` provides a better developer experience with less boilerplate. `ModelFactory` remains fully supported and is the recommended approach for JavaScript projects.
 
-**Deprecated:**
+**ModelFactory (JavaScript and TypeScript):**
 
 ```typescript
 const Users = ModelFactory<UserProperties, UserRelatedNodes>(
@@ -288,11 +281,66 @@ const Users = ModelFactory<UserProperties, UserRelatedNodes>(
 );
 ```
 
-**Use instead:**
+**Decorator API (TypeScript only):**
 
 ```typescript
 const Users = neogma.model(UserNode);
 ```
+
+## Breaking changes
+
+### Sessions export removal
+
+The `Sessions` module (`getSession`, `getTransaction`, `getRunnable`) is no longer exported as standalone functions from `neogma`. Use the instance methods on your `Neogma` instance instead.
+
+**Before (v1):**
+
+```typescript
+import { getSession, getTransaction, getRunnable } from 'neogma';
+
+await getSession(neogma, async (session) => {
+  // ...
+});
+```
+
+**After (v2):**
+
+```typescript
+await neogma.getSession(async (session) => {
+  // ...
+});
+
+await neogma.getTransaction(async (tx) => {
+  // ...
+});
+
+const runnable = neogma.getRunnable(sessionOrTransaction);
+```
+
+### Utils API changes
+
+Several utility functions are no longer exported publicly:
+
+- `assertValidCypherIdentifier` -- removed
+- `escapeCypherIdentifier` -- removed
+- `isAlreadyEscaped` -- removed
+- `sanitizeParamName` -- removed
+- `isEmptyObject` -- removed
+- `isPlainObject` -- removed
+
+New exports that replace some of the above:
+
+- `escapeIfNeeded` -- escapes a Cypher identifier only when necessary
+- `escapeLabelIfNeeded` -- escapes a label string only when necessary
+- `isValidCypherIdentifier` -- checks whether a string is a valid Cypher identifier
+
+If your code imported any of the removed functions, update it to use the new equivalents or inline the logic.
+
+### FOREACH keyword fix
+
+The QueryBuilder's `forEach` method now generates the correct Cypher keyword `FOREACH` instead of the previously incorrect `FOR EACH` (two words). `FOR EACH` is not valid Cypher and would cause query failures in most Neo4j versions.
+
+If you had workarounds for the previous incorrect output (for example, string replacements or manual query patching), you should remove them. The generated output is now correct.
 
 ## v1 resources
 

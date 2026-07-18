@@ -163,7 +163,7 @@ Import from `neogma/legacy`:
 ```typescript
 import {
   Node,
-  Primarykey,
+  PrimaryKey,
   Property,
   Relationship,
   NodeEntity,
