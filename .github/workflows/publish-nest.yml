@@ -59,7 +59,6 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,17 +71,16 @@ jobs:
 
       - name: Bump version
         working-directory: packages/nest
-        run: |
-          git config --global user.name 'Neogma publisher'
-          git config --global user.email 'themetalfleece@users.noreply.github.com'
-          npm version ${{ inputs.version }}
+        run: npm version ${{ inputs.version }} --no-git-tag-version
 
       - name: Publish to npm
         working-directory: packages/nest
         run: npm publish --access public
 
-      - name: Push
-        run: git push
-
-      - name: Push tags
-        run: git push --tags
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/nest/package.json
+          git commit -m "chore(@neogma/nest): bump version to $(node -p "require('./packages/nest/package.json').version")"
+          git push
