@@ -59,7 +59,7 @@ export default async function HomePage() {
       <div className={styles.codeBlock}>{highlighted}</div>
 
       <div className={styles.actions}>
-        <Link href="/docs/latest" className={styles.primaryButton}>
+        <Link href="/docs" className={styles.primaryButton}>
           Get Started
         </Link>
         <a
