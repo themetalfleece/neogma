@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:24.20.0-alpine AS base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 FROM base AS builder
