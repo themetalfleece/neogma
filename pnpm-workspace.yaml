@@ -12,6 +12,26 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
+# Wait three days after a version is published before installing it, so a
+# freshly compromised release is not picked up on the day it lands. The value
+# is in minutes. pnpm 11 already applies a one-day floor of its own, so this
+# raises it to three to match Renovate. Renovate's floor only covers versions
+# Renovate picks itself, and its weekly lockfile refresh hands resolution to
+# pnpm, so this is the half that guards the regenerated lockfile. Use
+# minimumReleaseAgeExclude if a package ever needs to bypass it.
+minimumReleaseAge: 4320
+
+# Strict mode off narrows what the floor does, it does not weaken it. The floor
+# is applied on every resolution either way: pnpm picks the newest version that
+# clears it. Strict only governs the corner where nothing in range clears it at
+# all, and there it aborts the install. That corner is the security path, where
+# Renovate takes a patch published hours ago, so aborting would block the fix.
+# With strict off pnpm uses the immature version and records it in a
+# minimumReleaseAgeExclude list it adds to this file, so the fallback shows up
+# in the diff instead of passing unnoticed. Configuring minimumReleaseAge at all
+# turns strict on by default, so this line has to be explicit.
+minimumReleaseAgeStrict: false
+
 # Override vulnerable transitive dependencies to patched versions.
 overrides:
   multer: '>=2.2.0'
