@@ -12,8 +12,29 @@
   // Nothing merges on its own. Every PR waits for a human.
   automerge: false,
 
-  // Patch gets its own PR instead of being folded into the minor bump.
-  separateMinorPatch: true,
+  // separateMinorPatch is left at its default of false, so patch folds into the
+  // minor bump rather than opening a second PR. getBucket puts both in one
+  // 'non-major' bucket. The cost is that a patch cannot be taken without the
+  // minors sitting beside it.
+  //
+  // Majors still separate on their own, without a setting here.
+  // separateMajorMinor defaults to true and generateBranchName prefixes their
+  // slug with 'major-'. Together with the grouping below that gives two routine
+  // npm branches: 'renovate/dependencies' and 'renovate/major-dependencies'.
+
+  // The manifest is the source of truth and the lockfile is the derived
+  // artifact, so a bump rewrites the range in package.json and lets the
+  // lockfile follow. Without this Renovate leaves manifests alone whenever the
+  // new version already satisfies the existing range: the npm manager's
+  // getRangeStrategy falls through to 'update-lockfile' for any simple range
+  // under the default 'auto', which produces lockfile-only PRs.
+  //
+  // Three rules at the end of packageRules carve out the four places this must
+  // not reach: published peer ranges, the engines floor, the security floors in
+  // pnpm-workspace.yaml, and the workflow's node-version channel. Check any new
+  // '>=' range, or any value that names a channel rather than a version,
+  // against that list before assuming bump is safe for it.
+  rangeStrategy: 'bump',
 
   // Never pull a release that is less than three days old, so we are not the
   // first to install a freshly published (or freshly compromised) version.
@@ -56,38 +77,52 @@
   },
 
   packageRules: [
+    // Labels only. Grouping is decided by the rules below.
+    { matchUpdateTypes: ['patch'], addLabels: ['dependencies', 'patch'] },
+    { matchUpdateTypes: ['minor'], addLabels: ['dependencies', 'minor'] },
+    { matchUpdateTypes: ['major'], addLabels: ['dependencies', 'major'] },
+
+    // One group for every npm dependency in the workspace, split only by
+    // major versus everything else. Two rolling PRs: 'renovate/dependencies'
+    // and 'renovate/major-dependencies'.
+    //
+    // This replaced grouping by workspace member, which split by path. That
+    // read well but multiplied the work: measured against a real round, 50
+    // upgrade entries covered only 23 distinct packages, because anything used
+    // in more than one member appeared once per member. typescript landed in
+    // four PRs, @types/node in four, eslint and prettier in three each, and
+    // every one of those PRs edited the same root pnpm-lock.yaml and rebased
+    // against its siblings. Grouping by manager collapses each package to one
+    // entry.
+    //
+    // The cost, so it is not rediscovered as a surprise: a PR now spans the
+    // whole workspace, so CI runs everything and one failing package blocks the
+    // batch. That is the trade for the duplication going away.
+    //
+    // Majors compound it, and differently. Every npm major shares
+    // 'renovate/major-dependencies', so a typescript major, an eslint major and
+    // a react major arrive together and none can be merged without the rest.
+    // That one bites on a green PR rather than a red one: a single breaking
+    // change you are not ready for holds the others until you are, on a rolling
+    // branch that keeps being rewritten. The escape is to give that package its
+    // own groupName in a temporary rule appended to the end of this array, then
+    // delete the rule once it has landed. The end matters: placed above the npm
+    // rule it would be overwritten and silently do nothing.
+    //
+    // Renovate does the major separation itself: generateBranchName prefixes the
+    // slug with 'major-' whenever separateMajorMinor is set, which it is by
+    // default, so nothing here has to ask for it. No {{updateType}} template in
+    // the name, because generateBranchConfig takes upgrades[0] as the branch
+    // config after sorting by fileReplacePosition then depName, so a templated
+    // name would report whichever dependency sorted first rather than anything
+    // about the branch. Renovate appends ' (major)' to the major branch itself.
+    //
+    // No groupSlug pin is needed now: 'dependencies' slugifies to itself. The
+    // member names needed pins because slugify strips '/' from 'packages/nest'.
     {
-      matchUpdateTypes: ['patch'],
-      groupName: 'patch dependencies',
-      addLabels: ['dependencies', 'patch'],
-    },
-    {
-      matchUpdateTypes: ['minor'],
-      groupName: 'minor dependencies',
-      addLabels: ['dependencies', 'minor'],
-    },
-    {
-      // Majors stay ungrouped so a breaking change is never bundled with one.
-      // The coupled families at the end of this list are the exception: those
-      // have to move together or the PR is broken by construction.
-      matchUpdateTypes: ['major'],
-      addLabels: ['dependencies', 'major'],
-    },
-    {
-      // The security floors in pnpm-workspace.yaml. Kept out of the routine
-      // groups so a change to a pin is always reviewed on its own.
-      //
-      // rangeStrategy is stated explicitly rather than inherited. The default
-      // 'auto' already resolves to 'update-lockfile' for a simple range like
-      // '>=2.2.0', so today this changes nothing. It earns its place if anyone
-      // later sets a top-level rangeStrategy of 'bump' or 'replace': either
-      // would rewrite the floor into an exact pin and silently change it from
-      // "at least this" to "exactly this". This line is what keeps that blast
-      // radius off the floors.
-      matchDepTypes: ['pnpm-workspace.overrides', 'overrides', 'resolutions'],
-      groupName: 'dependency overrides',
-      addLabels: ['dependencies', 'override'],
-      rangeStrategy: 'update-lockfile',
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['patch', 'minor', 'major'],
+      groupName: 'dependencies',
     },
     {
       // Label every workflow bump, including the majors the next rule skips.
@@ -95,54 +130,93 @@
       addLabels: ['ci'],
     },
     {
-      // Only minor and patch group. Majors fall through to the major rule
-      // above, so an actions/checkout v7 to v8 jump gets its own PR instead of
-      // riding along with a pnpm/action-setup patch.
+      // Only minor and patch group, so an actions/checkout v7 to v8 jump gets
+      // its own PR instead of riding along with a pnpm/action-setup patch.
       matchManagers: ['github-actions'],
       matchUpdateTypes: ['minor', 'patch'],
       groupName: 'github actions',
     },
-    // Packages that have to move in lockstep. These come last so they win the
-    // group name back from the update-type rules above, which would otherwise
-    // split a family across two PRs whenever one member ships a patch and
-    // another a minor in the same window. config:recommended already groups
-    // these, but a local rule beats a preset rule, so they have to be restated.
-    // Add an entry here when a new peer-coupled family shows up.
     {
-      matchPackageNames: ['@nestjs/**'],
-      groupName: 'nestjs',
+      // Support declarations we publish, not versions we track. Both are '>='
+      // floors that say "works with at least this", and the top-level 'bump'
+      // would rewrite them on every release into "requires at least whatever
+      // shipped last", quietly dropping support for versions that still work.
+      //
+      //   peerDependencies  packages/nest, '@nestjs/common: >=10.0.0' and friends
+      //   engines           the root manifest, 'node: >=22.13.0'
+      //
+      // engines.node is a live dependency, not inert text: the npm manager
+      // gives it the node-version datasource, so bump really would raise it,
+      // and CI still runs the test matrix at Node 22. Neither is spared by
+      // default: getRangeStrategy returns an explicit strategy on its first
+      // branch, ahead of every check that would otherwise have caught them.
+      // 'widen' hands the range back untouched while the new version still
+      // satisfies it, which is what holds both floors still.
+      matchDepTypes: ['peerDependencies', 'engines'],
+      rangeStrategy: 'widen',
     },
     {
-      matchPackageNames: ['@typescript-eslint/**'],
-      groupName: 'typescript-eslint',
+      // The Node channel the exampleApps job runs on. 'node-version: 24' in
+      // run-tests.yml names a channel rather than a version: the runner
+      // resolves it to the newest 24 at run time, which is the point of
+      // writing it that way.
+      //
+      // This is the one place the top-level 'bump' reaches outside the npm
+      // manager. github-actions exports no getRangeStrategy, so the manager
+      // hands back whatever is configured instead of resolving the default
+      // 'auto' to 'replace', and setup-node's node-version is given node
+      // versioning, which delegates getNewValue to npm. Its first bump branch
+      // returns the bare version for an operator-less range, so '24' becomes
+      // '24.21.0': the job stops tracking the channel and every Node 24 patch
+      // opens a PR. Under 'replace' the same call returns '24', which equals
+      // currentValue, so lookup drops the update and no PR is opened. A major
+      // still lands, because 'replace' would return '26'.
+      matchManagers: ['github-actions'],
+      matchPackageNames: ['actions/node-versions'],
+      rangeStrategy: 'replace',
     },
     {
-      // Released independently but peer-coupled, so the mixed patch/minor case
-      // is the common one rather than the rare one.
-      matchPackageNames: ['fumadocs-core', 'fumadocs-ui', 'fumadocs-mdx'],
-      groupName: 'fumadocs',
-    },
-    {
-      matchPackageNames: [
-        'react',
-        'react-dom',
-        '@types/react',
-        '@types/react-dom',
-      ],
-      groupName: 'react',
-    },
-    {
-      matchPackageNames: ['tailwindcss', '@tailwindcss/postcss'],
-      groupName: 'tailwindcss',
+      // The security floors in pnpm-workspace.yaml. Kept out of the routine
+      // groups so a change to a pin is always reviewed on its own, and last in
+      // the list so it wins the group name back.
+      //
+      // rangeStrategy is the load-bearing part now that the top level is
+      // 'bump'. Bumping '>=2.2.0' would rewrite the floor on every release and
+      // change it from "at least this" to "at least whatever shipped last",
+      // which is not what a floor means. This keeps the manifest entry still
+      // and lets the lockfile move.
+      matchDepTypes: ['pnpm-workspace.overrides', 'overrides', 'resolutions'],
+      groupName: 'dependency overrides',
+      addLabels: ['dependencies', 'override'],
+      rangeStrategy: 'update-lockfile',
     },
   ],
 
   // Security fixes do not wait for the Saturday window or the release-age
   // delay. Sitting on a known-exploitable advisory is worse than the tail risk
   // of a fresh publish the advisory itself told us to install.
+  //
+  // rangeStrategy is raised from Renovate's default of 'update-lockfile', which
+  // would pin the patched version in the lockfile and leave an overrides entry
+  // like '>=2.2.0' still claiming a vulnerable version is acceptable. A floor
+  // that no longer matches the advisory is the one thing those entries exist to
+  // get right, so an advisory moves the floor and routine updates do not.
+  //
+  // Renovate applies this whole block as `force`, which beats every
+  // packageRule, so during a security fix the peerDependencies carve-out moves
+  // too. That is the intended trade rather than an oversight: a published peer
+  // range pointing at a vulnerable version should not stay put, and there is no
+  // way to carve out within `force`.
+  //
+  // The engines carve-out is not reachable this way, so it is absolute. Node
+  // versions come from the node-version datasource, which appears in neither
+  // Renovate's OSV ecosystem map nor its Dependabot one, so engines.node never
+  // gets a vulnerability rule for `force` to override. That floor moves only by
+  // hand.
   vulnerabilityAlerts: {
     schedule: ['at any time'],
     minimumReleaseAge: null,
+    rangeStrategy: 'bump',
     addLabels: ['security'],
   },
 }
