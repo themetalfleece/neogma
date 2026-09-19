@@ -14,14 +14,13 @@
 
   // separateMinorPatch is left at its default of false, so patch folds into the
   // minor bump rather than opening a second PR. getBucket puts both in one
-  // 'non-major' bucket, which halves the routine PRs: one non-major round per
-  // member instead of a patch round and a minor round. The cost is that a patch
-  // cannot be taken without the minors sitting beside it.
+  // 'non-major' bucket. The cost is that a patch cannot be taken without the
+  // minors sitting beside it.
   //
   // Majors still separate on their own, without a setting here.
   // separateMajorMinor defaults to true and generateBranchName prefixes their
-  // slug with 'major-', so every member has at most two routine branches:
-  // 'renovate/<member>' and 'renovate/major-<member>'.
+  // slug with 'major-'. Together with the grouping below that gives two routine
+  // npm branches: 'renovate/dependencies' and 'renovate/major-dependencies'.
 
   // The manifest is the source of truth and the lockfile is the derived
   // artifact, so a bump rewrites the range in package.json and lets the
@@ -77,75 +76,52 @@
   },
 
   packageRules: [
-    // Labels only. Grouping is decided by the workspace rules below.
+    // Labels only. Grouping is decided by the rules below.
     { matchUpdateTypes: ['patch'], addLabels: ['dependencies', 'patch'] },
     { matchUpdateTypes: ['minor'], addLabels: ['dependencies', 'minor'] },
     { matchUpdateTypes: ['major'], addLabels: ['dependencies', 'major'] },
 
-    // One rolling PR per workspace member per update type, so a PR only ever
-    // touches one package and its CI stays scoped to that package.
+    // One group for every npm dependency in the workspace, split only by
+    // major versus everything else. Two rolling PRs: 'renovate/dependencies'
+    // and 'renovate/major-dependencies'.
     //
-    // Grouping by path rather than by package name is what retired the old
-    // per-family rules. Every peer-coupled family lives entirely inside one
-    // member: react, fumadocs and tailwind only in docs, @nestjs only in
-    // packages/nest. Grouping the member therefore keeps the family in lockstep
-    // for free, and there is no list of family names to keep up to date.
+    // This replaced grouping by workspace member, which split by path. That
+    // read well but multiplied the work: measured against a real round, 50
+    // upgrade entries covered only 23 distinct packages, because anything used
+    // in more than one member appeared once per member. typescript landed in
+    // four PRs, @types/node in four, eslint and prettier in three each, and
+    // every one of those PRs edited the same root pnpm-lock.yaml and rebased
+    // against its siblings. Grouping by manager collapses each package to one
+    // entry.
     //
-    // @typescript-eslint is the one package in all three members. The coupling
-    // that matters is plugin with parser inside a single member, and that still
-    // holds. Versions may drift between members, which is harmless because each
-    // is an independent dev toolchain.
+    // The cost, so it is not rediscovered as a surprise: a PR now spans the
+    // whole workspace, so CI runs everything and one failing package blocks the
+    // batch. That is the trade for the duplication going away.
     //
-    // Majors are separated from patches but bundled with each other: every
-    // major inside a member shares one branch, so a docs round could carry the
-    // react, fumadocs and tailwind majors together. That is deliberate rather
-    // than a side effect. Those three are one frontend stack and a fumadocs
-    // major usually wants the react and tailwind majors anyway, and the nest
-    // majors have to move together regardless. Splitting them per package is
-    // what the retired ungrouped-major rule did, and scoped CI is worth more.
+    // Majors compound it, and differently. Every npm major shares
+    // 'renovate/major-dependencies', so a typescript major, an eslint major and
+    // a react major arrive together and none can be merged without the rest.
+    // That one bites on a green PR rather than a red one: a single breaking
+    // change you are not ready for holds the others until you are, on a rolling
+    // branch that keeps being rewritten. The escape is to give that package its
+    // own groupName in a temporary rule appended to the end of this array, then
+    // delete the rule once it has landed. The end matters: placed above the npm
+    // rule it would be overwritten and silently do nothing.
     //
     // Renovate does the major separation itself: generateBranchName prefixes the
     // slug with 'major-' whenever separateMajorMinor is set, which it is by
-    // default. So each member lands on 'renovate/<member>' and
-    // 'renovate/major-<member>' and nothing here has to ask for that.
+    // default, so nothing here has to ask for it. No {{updateType}} template in
+    // the name, because generateBranchConfig takes upgrades[0] as the branch
+    // config after sorting by fileReplacePosition then depName, so a templated
+    // name would report whichever dependency sorted first rather than anything
+    // about the branch. Renovate appends ' (major)' to the major branch itself.
     //
-    // The names carry no {{updateType}}. Patch and minor now share a branch, and
-    // generateBranchConfig sorts the upgrades by fileReplacePosition then depName
-    // before taking upgrades[0] as the branch config, so a templated name would
-    // report whichever dependency happened to sort first rather than anything
-    // about the branch. On a rolling PR that reads as the title flipping between
-    // 'docs minor' and 'docs patch' week to week for no information. Renovate
-    // appends ' (major)' to the major branch on its own.
-    //
-    // groupSlug is pinned so 'packages/nest' does not collapse to 'packagesnest':
-    // slugify strips '/' rather than replacing it. The other three pins are
-    // no-ops kept for symmetry, so nobody has to work out why only one member
-    // has one.
+    // No groupSlug pin is needed now: 'dependencies' slugifies to itself. The
+    // member names needed pins because slugify strips '/' from 'packages/nest'.
     {
-      matchFileNames: ['package.json'],
+      matchManagers: ['npm'],
       matchUpdateTypes: ['patch', 'minor', 'major'],
-      groupName: 'neogma',
-      groupSlug: 'neogma',
-    },
-    {
-      matchFileNames: ['docs/**'],
-      matchUpdateTypes: ['patch', 'minor', 'major'],
-      groupName: 'docs',
-      groupSlug: 'docs',
-    },
-    {
-      matchFileNames: ['packages/nest/**'],
-      matchUpdateTypes: ['patch', 'minor', 'major'],
-      groupName: 'packages/nest',
-      groupSlug: 'packages-nest',
-    },
-    {
-      // Not workspace members, but they carry their own lockfiles and three of
-      // them are built in CI, so they group like any other member.
-      matchFileNames: ['examples/**'],
-      matchUpdateTypes: ['patch', 'minor', 'major'],
-      groupName: 'examples',
-      groupSlug: 'examples',
+      groupName: 'dependencies',
     },
     {
       // Label every workflow bump, including the majors the next rule skips.
