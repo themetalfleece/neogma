@@ -89,5 +89,5 @@
     "url": "https://github.com/themetalfleece/neogma/issues"
   },
   "homepage": "https://github.com/themetalfleece/neogma#readme",
-  "packageManager": "pnpm@11.9.0"
+  "packageManager": "pnpm@12.4.2"
 }
