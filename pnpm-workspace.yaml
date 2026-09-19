@@ -7,10 +7,19 @@ packages:
 
 # Dependencies that are explicitly allowed to run install/build scripts.
 # pnpm 11+ blocks lifecycle scripts by default; list trusted packages here.
+# An entry set to false is an explicit refusal rather than an omission: pnpm
+# skips the script and the install still succeeds. Omitting a package that has
+# one instead fails the install with ERR_PNPM_IGNORED_BUILDS, so every package
+# with a build script needs a verdict here either way.
 allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  # jest-haste-map depends on this from jest 30.5 onwards. Its install script
+  # only builds from source when no prebuilt binary matches, and the prebuilt
+  # @parcel/watcher-<platform> packages cover every platform we run on, so the
+  # module loads without it. Declined rather than trusted.
+  '@parcel/watcher': false
 
 # Wait three days after a version is published before installing it, so a
 # freshly compromised release is not picked up on the day it lands. The value
