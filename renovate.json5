@@ -29,10 +29,11 @@
   // getRangeStrategy falls through to 'update-lockfile' for any simple range
   // under the default 'auto', which produces lockfile-only PRs.
   //
-  // Two rules at the end of packageRules carve out the three places this must
-  // not reach: published peer ranges, the engines floor, and the security
-  // floors in pnpm-workspace.yaml. Check a new '>=' range against that list
-  // before assuming bump is safe for it.
+  // Three rules at the end of packageRules carve out the four places this must
+  // not reach: published peer ranges, the engines floor, the security floors in
+  // pnpm-workspace.yaml, and the workflow's node-version channel. Check any new
+  // '>=' range, or any value that names a channel rather than a version,
+  // against that list before assuming bump is safe for it.
   rangeStrategy: 'bump',
 
   // Never pull a release that is less than three days old, so we are not the
@@ -153,6 +154,26 @@
       // satisfies it, which is what holds both floors still.
       matchDepTypes: ['peerDependencies', 'engines'],
       rangeStrategy: 'widen',
+    },
+    {
+      // The Node channel the exampleApps job runs on. 'node-version: 24' in
+      // run-tests.yml names a channel rather than a version: the runner
+      // resolves it to the newest 24 at run time, which is the point of
+      // writing it that way.
+      //
+      // This is the one place the top-level 'bump' reaches outside the npm
+      // manager. github-actions exports no getRangeStrategy, so the manager
+      // hands back whatever is configured instead of resolving the default
+      // 'auto' to 'replace', and setup-node's node-version is given node
+      // versioning, which delegates getNewValue to npm. Its first bump branch
+      // returns the bare version for an operator-less range, so '24' becomes
+      // '24.21.0': the job stops tracking the channel and every Node 24 patch
+      // opens a PR. Under 'replace' the same call returns '24', which equals
+      // currentValue, so lookup drops the update and no PR is opened. A major
+      // still lands, because 'replace' would return '26'.
+      matchManagers: ['github-actions'],
+      matchPackageNames: ['actions/node-versions'],
+      rangeStrategy: 'replace',
     },
     {
       // The security floors in pnpm-workspace.yaml. Kept out of the routine
