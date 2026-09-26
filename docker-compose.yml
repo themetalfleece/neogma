@@ -1,6 +1,6 @@
 services:
   neo4j:
-    image: neo4j:5.26.29-enterprise
+    image: neo4j:5.26.30-enterprise
     container_name: neogma-neo4j
     ports:
       - "7474:7474"  # HTTP
