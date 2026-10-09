@@ -40,7 +40,7 @@
   // first to install a freshly published (or freshly compromised) version.
   // This only covers versions Renovate picks itself. Lock file maintenance
   // hands regeneration to pnpm, which does its own resolving, so the matching
-  // floor lives in pnpm-workspace.yaml. Both halves are needed.
+  // floor lives in every pnpm-workspace.yaml. Both halves are needed.
   minimumReleaseAge: '3 days',
 
   // Grouped PRs are rolling: a newer version rewrites the existing branch
@@ -71,9 +71,16 @@
   // Refreshes the lockfiles weekly, which is how transitive patches arrive
   // without touching any manifest. It has its own schedule rather than
   // inheriting the top-level one.
+  //
+  // minimumReleaseAge is cleared because it cannot apply here. A refresh has no
+  // single release, so it carries no releaseTimestamp, and under the default
+  // minimumReleaseAgeBehaviour of 'timestamp-required' Renovate treats a
+  // missing timestamp as pending forever: renovate/stability-days never leaves
+  // yellow. The floor for this PR is pnpm's own, in each pnpm-workspace.yaml.
   lockFileMaintenance: {
     enabled: true,
     schedule: ['* 8-11 * * 6'],
+    minimumReleaseAge: null,
   },
 
   packageRules: [
