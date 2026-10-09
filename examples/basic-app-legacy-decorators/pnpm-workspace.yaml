@@ -1,3 +1,8 @@
 # Standalone workspace boundary — prevents this example from inheriting
 # the root pnpm-workspace.yaml and polluting the root lockfile.
 packages: []
+
+# Same three-day release-age floor as the root pnpm-workspace.yaml, which this
+# file stops us inheriting. Keep the values in step; the root explains both.
+minimumReleaseAge: 4320
+minimumReleaseAgeStrict: false
