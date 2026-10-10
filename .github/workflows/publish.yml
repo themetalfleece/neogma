@@ -13,6 +13,10 @@ on:
           - minor
           - major
 
+# Default for jobs without their own block. publishPackage overrides it to push and publish.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
