@@ -78,6 +78,35 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  docs:
+    runs-on: ubuntu-latest
+    name: Docs (lint & build)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The docs lint script passes --fix, which would hide fixable errors here.
+      - name: Lint docs
+        working-directory: docs
+        run: pnpm exec eslint --quiet "**/*.{ts,tsx}"
+
+      # next build type-checks, matching the docs Docker image.
+      - name: Build docs
+        run: pnpm docs:build
+
   exampleApps:
     runs-on: ubuntu-latest
     name: Example apps (build & typecheck)
