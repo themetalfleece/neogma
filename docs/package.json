@@ -11,7 +11,6 @@
     "format": "prettier --write \"**/*.{ts,tsx,css,json,mdx}\""
   },
   "dependencies": {
-    "@orama/orama": "^3.1.18",
     "fumadocs-core": "^16.16.2",
     "fumadocs-mdx": "^15.4.6",
     "fumadocs-ui": "^16.16.2",
