@@ -16,7 +16,7 @@ importers:
         version: link:../..
     devDependencies:
       '@types/node':
-        specifier: ^26.6.2
+        specifier: ^26.6.4
         version: 26.6.4
       typescript:
         specifier: ^6.0.3
