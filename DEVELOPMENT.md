@@ -145,3 +145,12 @@ pnpm test --watch
 pnpm build                                  # build the library first
 pnpm --filter @neogma-examples/basic-app start
 ```
+
+## Dependency updates (Renovate)
+
+`renovate.json5` carries the reasoning for every rule inline; read it before changing the config.
+
+- **Routine updates** arrive weekly: one `dependencies` PR for npm minors and patches, one `github actions` PR, and a weekly lock file refresh. Nothing automerges.
+- **Majors wait for approval.** Each one is listed on the Dependency Dashboard issue and opens a PR only after you tick its box there. Packages that must move together (jest, nest, react, typescript-eslint, fumadocs, the Node runtime, ...) still share one PR.
+- **Security fixes skip all of this** and open immediately, majors included.
+- **Validate config changes** with `npx --package renovate -- renovate-config-validator --strict renovate.json5`.
