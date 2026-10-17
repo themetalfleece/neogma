@@ -165,6 +165,15 @@
       minimumReleaseAgeBehaviour: 'timestamp-optional',
     },
     {
+      // Docker Hub reports a tag's age as tag_last_pushed, and official images
+      // (neo4j, node) are rebuilt and re-pushed under the same tag whenever
+      // their base image changes. Each re-push restarts the three days, so a
+      // stability check can stay pending for good. The age cannot be measured
+      // here, so the floor is dropped.
+      matchDatasources: ['docker'],
+      minimumReleaseAge: null,
+    },
+    {
       // A major never rides in a group with unrelated packages, so one breaking
       // change cannot hold the others back. It also waits for a tick on the
       // dependency dashboard issue, so the weekly batch is the routine groups
@@ -193,9 +202,14 @@
       // Node moves as one unit across .nvmrc (which the publish workflows
       // read) and the docs Dockerfile, so neither runs ahead of the other.
       // Majors in this group still wait for the dashboard tick.
+      //
+      // No floor for either half. The Dockerfile tag cannot be aged (see the
+      // docker rule), and a floor left on .nvmrc alone would hold that half
+      // back as pending while the Dockerfile half opened the PR without it.
       matchManagers: ['nvm', 'dockerfile'],
       matchDepNames: ['node'],
       groupName: 'node runtime',
+      minimumReleaseAge: null,
     },
     {
       // Support declarations we publish, not versions we track. Both are '>='
