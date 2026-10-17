@@ -11,12 +11,12 @@
     "format": "prettier --write \"**/*.{ts,tsx,css,json,mdx}\""
   },
   "dependencies": {
-    "fumadocs-core": "^16.17.3",
+    "fumadocs-core": "^16.17.5",
     "fumadocs-mdx": "^15.4.7",
-    "fumadocs-ui": "^16.17.3",
-    "next": "^16.4.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "fumadocs-ui": "^16.17.5",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -25,7 +25,7 @@
     "@types/react-dom": "^19.3.0",
     "@typescript-eslint/eslint-plugin": "^8.71.2",
     "@typescript-eslint/parser": "^8.71.2",
-    "eslint": "^10.12.0",
+    "eslint": "^10.13.0",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
