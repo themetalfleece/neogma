@@ -57,6 +57,10 @@
   // This only covers versions Renovate picks itself. Lock file maintenance
   // hands regeneration to pnpm, which does its own resolving, so the matching
   // floor lives in every pnpm-workspace.yaml. Both halves are needed.
+  //
+  // The floor delays rather than blocks: Renovate walks candidates newest-first
+  // and takes the first one old enough, so a too-young release yields the
+  // previous mature version instead of nothing.
   minimumReleaseAge: '3 days',
 
   // Grouped PRs are rolling: a newer version rewrites the existing branch
@@ -92,7 +96,8 @@
   // single release, so it carries no releaseTimestamp, and under the default
   // minimumReleaseAgeBehaviour of 'timestamp-required' Renovate treats a
   // missing timestamp as pending forever: renovate/stability-days never leaves
-  // yellow. The floor for this PR is pnpm's own, in each pnpm-workspace.yaml.
+  // yellow. The floor for this PR is pnpm's own, in each pnpm-workspace.yaml,
+  // which is strict, so a refresh fails rather than take a fresh version.
   lockFileMaintenance: {
     enabled: true,
     schedule: ['* 8-11 * * 6'],
@@ -147,6 +152,17 @@
       matchManagers: ['github-actions'],
       matchUpdateTypes: ['minor', 'patch', 'digest', 'pinDigest'],
       groupName: 'github actions',
+    },
+    {
+      // A digest update never carries a releaseTimestamp: only a version
+      // update copies one from its release. Under the default
+      // 'timestamp-required' the branch's renovate/stability-days check then
+      // stays pending forever, which is what held the first pinning PR.
+      // 'timestamp-optional' lets the branch check pass. The floor still
+      // holds, because lookup ages a digest against the newest release its tag
+      // matches and withholds the update until that release is three days old.
+      matchUpdateTypes: ['digest', 'pinDigest'],
+      minimumReleaseAgeBehaviour: 'timestamp-optional',
     },
     {
       // A major never rides in a group with unrelated packages, so one breaking
@@ -239,7 +255,17 @@
 
   // Security fixes do not wait for the Saturday window or the release-age
   // delay. Sitting on a known-exploitable advisory is worse than the tail risk
-  // of a fresh publish the advisory itself told us to install.
+  // of a fresh publish the advisory itself told us to install. Renovate's own
+  // vulnerabilityAlerts defaults already clear both; they are restated here so
+  // the intent survives a change upstream.
+  //
+  // pnpm's strict floor does not hold the fixed package back. On every security
+  // PR Renovate appends '<name>@<version>' to minimumReleaseAgeExclude in that
+  // workspace's pnpm-workspace.yaml, whatever the version's age, so a fix under
+  // three days old still installs. There is no setting to stop it, and
+  // reviewing that line is the manual approval. Only the fixed package is
+  // excluded: a fresh transitive dependency of the fix still fails to resolve,
+  // and the PR arrives with an artifact error naming it.
   //
   // rangeStrategy is raised from Renovate's default of 'update-lockfile', which
   // would pin the patched version in the lockfile and leave an overrides entry

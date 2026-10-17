@@ -26,20 +26,26 @@ allowBuilds:
 # is in minutes. pnpm 11 already applies a one-day floor of its own, so this
 # raises it to three to match Renovate. Renovate's floor only covers versions
 # Renovate picks itself, and its weekly lockfile refresh hands resolution to
-# pnpm, so this is the half that guards the regenerated lockfile. Use
-# minimumReleaseAgeExclude if a package ever needs to bypass it.
+# pnpm, so this is the half that guards the regenerated lockfile.
 minimumReleaseAge: 4320
 
-# Strict mode off narrows what the floor does, it does not weaken it. The floor
-# is applied on every resolution either way: pnpm picks the newest version that
-# clears it. Strict only governs the corner where nothing in range clears it at
-# all, and there it aborts the install. That corner is the security path, where
-# Renovate takes a patch published hours ago, so aborting would block the fix.
-# With strict off pnpm uses the immature version and records it in a
-# minimumReleaseAgeExclude list it adds to this file, so the fallback shows up
-# in the diff instead of passing unnoticed. Configuring minimumReleaseAge at all
-# turns strict on by default, so this line has to be explicit.
-minimumReleaseAgeStrict: false
+# On, so the floor is never bypassed silently. When nothing in range is three
+# days old, the install fails instead of taking the fresh version, and that
+# holds for lock file maintenance as much as for a person. With strict off,
+# pnpm would record the fallback in minimumReleaseAgeExclude, but Renovate
+# commits only the lockfile, so on a Renovate PR nobody would ever see it. A
+# --frozen-lockfile install never checks release age, so CI cannot catch it
+# afterwards either.
+#
+# A version younger than the floor gets in only by being named, as an exact
+# name@version (never a bare name, which exempts every future version), in a
+# minimumReleaseAgeExclude list here. That is the manual approval for a same-day
+# fix; the ERR_PNPM_NO_MATURE_MATCHING_VERSION error lists every version that
+# needs it. Renovate writes the entry for the fixed package itself on every
+# security PR, so only a fresh transitive dependency of the fix still needs one.
+# Setting minimumReleaseAge turns strict on by default; it is written out so
+# nobody turns it off thinking it is redundant.
+minimumReleaseAgeStrict: true
 
 # Override vulnerable transitive dependencies to patched versions.
 overrides:
