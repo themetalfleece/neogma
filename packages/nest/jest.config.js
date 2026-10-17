@@ -10,10 +10,12 @@ module.exports = {
         diagnostics: { warnOnly: false },
       },
     ],
-    '^.+\\.mjs$': '<rootDir>/../../jest.transformer.mjs.js',
+    // typebox ships ESM as .mjs, NestJS 12 ships ESM as .js. Both are compiled
+    // to CommonJS so Jest's CJS runtime can load them.
+    '^.+\\.m?js$': '<rootDir>/../../jest.transformer.mjs.js',
   },
   transformIgnorePatterns: [
-    'node_modules[\\\\/](?!(?:.*[\\\\/])?typebox[\\\\/])',
+    'node_modules[\\\\/](?!(?:.*[\\\\/])?(?:typebox|@nestjs[\\\\/][^\\\\/]+)[\\\\/])',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'mjs', 'js', 'json'],
 };
