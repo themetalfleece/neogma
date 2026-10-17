@@ -1,7 +1,26 @@
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
 
-  extends: ['config:recommended'],
+  // pinGitHubActionDigests rewrites every `uses:` tag to the commit it points
+  // at, keeping the tag as a comment. Whoever controls an action can move its
+  // tag; a digest cannot be moved, and Renovate keeps the digests current. The
+  // publish workflows hold the npm credentials, so they are what this protects.
+  extends: ['config:recommended', 'helpers:pinGitHubActionDigests'],
+
+  // Read advisories from osv.dev as well as GitHub. Renovate's default source
+  // is Dependabot alerts, which needs the app to be granted read access to
+  // them; if that grant is missing or revoked the security path goes quiet
+  // with no visible failure. osv.dev needs no permission, so together a
+  // missing grant degrades coverage instead of removing it.
+  osvVulnerabilityAlerts: true,
+
+  // Lists the advisories still open against the tree on the dependency
+  // dashboard, so the standing set has a home.
+  dependencyDashboardOSVVulnerabilitySummary: 'unresolved',
+
+  // Renovate opens a PR when a setting here is renamed or deprecated upstream,
+  // rather than silently ignoring it.
+  configMigration: true,
 
   // Saturday morning, Athens time. Renovate cron needs '*' for the minute
   // field, and it needs a window rather than an instant, so this is 08:00
@@ -17,10 +36,7 @@
   // 'non-major' bucket. The cost is that a patch cannot be taken without the
   // minors sitting beside it.
   //
-  // Majors still separate on their own, without a setting here.
-  // separateMajorMinor defaults to true and generateBranchName prefixes their
-  // slug with 'major-'. Together with the grouping below that gives two routine
-  // npm branches: 'renovate/dependencies' and 'renovate/major-dependencies'.
+  // Majors are handled separately: see the major rule in packageRules.
 
   // The manifest is the source of truth and the lockfile is the derived
   // artifact, so a bump rewrites the range in package.json and lets the
@@ -89,9 +105,8 @@
     { matchUpdateTypes: ['minor'], addLabels: ['dependencies', 'minor'] },
     { matchUpdateTypes: ['major'], addLabels: ['dependencies', 'major'] },
 
-    // One group for every npm dependency in the workspace, split only by
-    // major versus everything else. Two rolling PRs: 'renovate/dependencies'
-    // and 'renovate/major-dependencies'.
+    // One rolling PR, 'renovate/dependencies', for every minor and patch npm
+    // update in the workspace. Majors stay out of it: see the major rule below.
     //
     // This replaced grouping by workspace member, which split by path. That
     // read well but multiplied the work: measured against a real round, 50
@@ -106,29 +121,16 @@
     // whole workspace, so CI runs everything and one failing package blocks the
     // batch. That is the trade for the duplication going away.
     //
-    // Majors compound it, and differently. Every npm major shares
-    // 'renovate/major-dependencies', so a typescript major, an eslint major and
-    // a react major arrive together and none can be merged without the rest.
-    // That one bites on a green PR rather than a red one: a single breaking
-    // change you are not ready for holds the others until you are, on a rolling
-    // branch that keeps being rewritten. The escape is to give that package its
-    // own groupName in a temporary rule appended to the end of this array, then
-    // delete the rule once it has landed. The end matters: placed above the npm
-    // rule it would be overwritten and silently do nothing.
-    //
-    // Renovate does the major separation itself: generateBranchName prefixes the
-    // slug with 'major-' whenever separateMajorMinor is set, which it is by
-    // default, so nothing here has to ask for it. No {{updateType}} template in
-    // the name, because generateBranchConfig takes upgrades[0] as the branch
-    // config after sorting by fileReplacePosition then depName, so a templated
-    // name would report whichever dependency sorted first rather than anything
-    // about the branch. Renovate appends ' (major)' to the major branch itself.
+    // No {{updateType}} template in the name, because generateBranchConfig
+    // takes upgrades[0] as the branch config after sorting by
+    // fileReplacePosition then depName, so a templated name would report
+    // whichever dependency sorted first rather than anything about the branch.
     //
     // No groupSlug pin is needed now: 'dependencies' slugifies to itself. The
     // member names needed pins because slugify strips '/' from 'packages/nest'.
     {
       matchManagers: ['npm'],
-      matchUpdateTypes: ['patch', 'minor', 'major'],
+      matchUpdateTypes: ['patch', 'minor'],
       groupName: 'dependencies',
     },
     {
@@ -137,11 +139,47 @@
       addLabels: ['ci'],
     },
     {
-      // Only minor and patch group, so an actions/checkout v7 to v8 jump gets
-      // its own PR instead of riding along with a pnpm/action-setup patch.
+      // Everything but majors, so an actions/checkout v7 to v8 jump gets its
+      // own PR instead of riding along with a pnpm/action-setup patch. The
+      // digest types come from pinGitHubActionDigests: a floating 'v7' tag
+      // moves on every v7 release, which arrives as a digest update, and the
+      // one-off pinning arrives as pinDigest.
       matchManagers: ['github-actions'],
-      matchUpdateTypes: ['minor', 'patch'],
+      matchUpdateTypes: ['minor', 'patch', 'digest', 'pinDigest'],
       groupName: 'github actions',
+    },
+    {
+      // A major never rides in a group with unrelated packages, so one breaking
+      // change cannot hold the others back. It also waits for a tick on the
+      // dependency dashboard issue, so the weekly batch is the routine groups
+      // rather than a wall of majors. Security majors still open on their own,
+      // because vulnerabilityAlerts turns approval back off.
+      //
+      // No groupName here, on purpose. With the npm rule above limited to minor
+      // and patch, a major falls back to the groups config:recommended already
+      // defines for packages that only work at matching versions:
+      // group:monorepos (eslint, jest, nest, nextjs, react, tailwindcss,
+      // typescript-eslint, ...) plus group:recommended's react types and
+      // ts-jest/@types/jest with jest. Setting groupName: null would erase
+      // those too, and each family would then need restating by hand.
+      matchUpdateTypes: ['major'],
+      dependencyDashboardApproval: true,
+    },
+    {
+      // fumadocs-core and fumadocs-ui release in lockstep but have no monorepo
+      // preset, so a major would otherwise split them into two PRs that each
+      // fail CI. Majors only: below that, both already share 'dependencies'.
+      matchPackageNames: ['fumadocs-core', 'fumadocs-ui'],
+      matchUpdateTypes: ['major'],
+      groupName: 'fumadocs',
+    },
+    {
+      // Node moves as one unit across .nvmrc (which the publish workflows
+      // read) and the docs Dockerfile, so neither runs ahead of the other.
+      // Majors in this group still wait for the dashboard tick.
+      matchManagers: ['nvm', 'dockerfile'],
+      matchDepNames: ['node'],
+      groupName: 'node runtime',
     },
     {
       // Support declarations we publish, not versions we track. Both are '>='
