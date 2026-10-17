@@ -60,7 +60,10 @@
   //
   // The floor delays rather than blocks: Renovate walks candidates newest-first
   // and takes the first one old enough, so a too-young release yields the
-  // previous mature version instead of nothing.
+  // previous mature version instead of nothing. If no candidate is old enough,
+  // the update waits under "Pending Status Checks" on the dependency dashboard.
+  // Don't force it from there: that skips this floor, but pnpm's floor still
+  // applies, so the lockfile update fails and CI breaks on the install step.
   minimumReleaseAge: '3 days',
 
   // Grouped PRs are rolling: a newer version rewrites the existing branch
