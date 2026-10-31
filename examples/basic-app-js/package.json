@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "neogma": "link:../../",
-    "dotenv": "^18.0.8"
+    "dotenv": "^18.0.9"
   }
 }
