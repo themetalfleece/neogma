@@ -42,16 +42,16 @@
     "clone": "^2.1.2",
     "neo4j-driver": "^6.3.0",
     "revalidator": "^0.3.1",
-    "typebox": "^1.4.4"
+    "typebox": "^1.4.6"
   },
   "devDependencies": {
     "@types/clone": "^2.1.4",
     "@types/revalidator": "^0.3.12",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.6",
-    "@typescript-eslint/eslint-plugin": "^8.72.1",
-    "@typescript-eslint/parser": "^8.72.1",
-    "dotenv": "^18.0.9",
+    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/parser": "^8.72.2",
+    "dotenv": "^18.0.10",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",
@@ -89,5 +89,5 @@
     "url": "https://github.com/themetalfleece/neogma/issues"
   },
   "homepage": "https://github.com/themetalfleece/neogma#readme",
-  "packageManager": "pnpm@12.17.0"
+  "packageManager": "pnpm@12.18.0"
 }
