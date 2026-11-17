@@ -1,310 +1,102 @@
 {
-  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
-
-  // pinGitHubActionDigests rewrites every `uses:` tag to the commit it points
-  // at, keeping the tag as a comment. Whoever controls an action can move its
-  // tag; a digest cannot be moved, and Renovate keeps the digests current. The
-  // publish workflows hold the npm credentials, so they are what this protects.
-  extends: ['config:recommended', 'helpers:pinGitHubActionDigests'],
-
-  // Read advisories from osv.dev as well as GitHub. Renovate's default source
-  // is Dependabot alerts, which needs the app to be granted read access to
-  // them; if that grant is missing or revoked the security path goes quiet
-  // with no visible failure. osv.dev needs no permission, so together a
-  // missing grant degrades coverage instead of removing it.
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended", "helpers:pinGitHubActionDigests"],
   osvVulnerabilityAlerts: true,
-
-  // Lists the advisories still open against the tree on the dependency
-  // dashboard, so the standing set has a home.
-  dependencyDashboardOSVVulnerabilitySummary: 'unresolved',
-
-  // Renovate opens a PR when a setting here is renamed or deprecated upstream,
-  // rather than silently ignoring it.
+  dependencyDashboard: {
+    osvVulnerabilitySummary: "unresolved",
+  },
   configMigration: true,
-
-  // Saturday morning, Athens time. Renovate cron needs '*' for the minute
-  // field, and it needs a window rather than an instant, so this is 08:00
-  // through 11:59 every Saturday.
-  timezone: 'Europe/Athens',
-  schedule: ['* 8-11 * * 6'],
-
-  // Nothing merges on its own. Every PR waits for a human.
+  timezone: "Europe/Athens",
+  schedule: ["* 8-11 * * 6"],
   automerge: false,
-
-  // separateMinorPatch is left at its default of false, so patch folds into the
-  // minor bump rather than opening a second PR. getBucket puts both in one
-  // 'non-major' bucket. The cost is that a patch cannot be taken without the
-  // minors sitting beside it.
-  //
-  // Majors are handled separately: see the major rule in packageRules.
-
-  // The manifest is the source of truth and the lockfile is the derived
-  // artifact, so a bump rewrites the range in package.json and lets the
-  // lockfile follow. Without this Renovate leaves manifests alone whenever the
-  // new version already satisfies the existing range: the npm manager's
-  // getRangeStrategy falls through to 'update-lockfile' for any simple range
-  // under the default 'auto', which produces lockfile-only PRs.
-  //
-  // Three rules at the end of packageRules carve out the four places this must
-  // not reach: published peer ranges, the engines floor, the security floors in
-  // pnpm-workspace.yaml, and the workflow's node-version channel. Check any new
-  // '>=' range, or any value that names a channel rather than a version,
-  // against that list before assuming bump is safe for it.
-  rangeStrategy: 'bump',
-
-  // Never pull a release that is less than three days old, so we are not the
-  // first to install a freshly published (or freshly compromised) version.
-  // This only covers versions Renovate picks itself. Lock file maintenance
-  // hands regeneration to pnpm, which does its own resolving, so the matching
-  // floor lives in every pnpm-workspace.yaml. Both halves are needed.
-  //
-  // The floor delays rather than blocks: Renovate walks candidates newest-first
-  // and takes the first one old enough, so a too-young release yields the
-  // previous mature version instead of nothing. If no candidate is old enough,
-  // the update waits under "Pending Status Checks" on the dependency dashboard.
-  // Don't force it from there: that skips this floor, but pnpm's floor still
-  // applies, so the lockfile update fails and CI breaks on the install step.
-  minimumReleaseAge: '3 days',
-
-  // Grouped PRs are rolling: a newer version rewrites the existing branch
-  // rather than opening a second PR. Rebasing onto main as well means an open
-  // PR is never green against a stale base. The default 'auto' degrades to
-  // 'conflicted' on a repo with no automerge, which only rebases too late.
-  rebaseWhen: 'behind-base-branch',
-
-  // Everything arrives in one weekly window, so an hourly throttle would only
-  // spread the same batch across the morning. The concurrent limit stays at
-  // its default of 10.
+  rangeStrategy: "bump",
+  minimumReleaseAge: "3 days",
+  rebaseWhen: "behind-base-branch",
   prHourlyLimit: 0,
-
-  // config:recommended pulls in :ignoreModulesAndTests, which ignores
-  // **/examples/**. This is that list with examples removed: the example apps
-  // have their own committed lockfiles and three of them are built in CI, so
-  // they need updates like anything else.
   ignorePaths: [
-    '**/node_modules/**',
-    '**/bower_components/**',
-    '**/vendor/**',
-    '**/__tests__/**',
-    '**/test/**',
-    '**/tests/**',
-    '**/__fixtures__/**',
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
   ],
-
-  // Refreshes the lockfiles weekly, which is how transitive patches arrive
-  // without touching any manifest. It has its own schedule rather than
-  // inheriting the top-level one.
-  //
-  // minimumReleaseAge is cleared because it cannot apply here. A refresh has no
-  // single release, so it carries no releaseTimestamp, and under the default
-  // minimumReleaseAgeBehaviour of 'timestamp-required' Renovate treats a
-  // missing timestamp as pending forever: renovate/stability-days never leaves
-  // yellow. The floor for this PR is pnpm's own, in each pnpm-workspace.yaml,
-  // which is strict, so a refresh fails rather than take a fresh version.
   lockFileMaintenance: {
     enabled: true,
-    schedule: ['* 8-11 * * 6'],
+    schedule: ["* 8-11 * * 6"],
     minimumReleaseAge: null,
   },
-
   packageRules: [
-    // Labels only. Grouping is decided by the rules below.
-    { matchUpdateTypes: ['patch'], addLabels: ['dependencies', 'patch'] },
-    { matchUpdateTypes: ['minor'], addLabels: ['dependencies', 'minor'] },
-    { matchUpdateTypes: ['major'], addLabels: ['dependencies', 'major'] },
-
-    // One rolling PR, 'renovate/dependencies', for every minor and patch npm
-    // update in the workspace. Majors stay out of it: see the major rule below.
-    //
-    // This replaced grouping by workspace member, which split by path. That
-    // read well but multiplied the work: measured against a real round, 50
-    // upgrade entries covered only 23 distinct packages, because anything used
-    // in more than one member appeared once per member. typescript landed in
-    // four PRs, @types/node in four, eslint and prettier in three each, and
-    // every one of those PRs edited the same root pnpm-lock.yaml and rebased
-    // against its siblings. Grouping by manager collapses each package to one
-    // entry.
-    //
-    // The cost, so it is not rediscovered as a surprise: a PR now spans the
-    // whole workspace, so CI runs everything and one failing package blocks the
-    // batch. That is the trade for the duplication going away.
-    //
-    // No {{updateType}} template in the name, because generateBranchConfig
-    // takes upgrades[0] as the branch config after sorting by
-    // fileReplacePosition then depName, so a templated name would report
-    // whichever dependency sorted first rather than anything about the branch.
-    //
-    // No groupSlug pin is needed now: 'dependencies' slugifies to itself. The
-    // member names needed pins because slugify strips '/' from 'packages/nest'.
     {
-      matchManagers: ['npm'],
-      matchUpdateTypes: ['patch', 'minor'],
-      groupName: 'dependencies',
+      matchUpdateTypes: ["patch"],
+      addLabels: ["dependencies", "patch"],
     },
     {
-      // Label every workflow bump, including the majors the next rule skips.
-      matchManagers: ['github-actions'],
-      addLabels: ['ci'],
+      matchUpdateTypes: ["minor"],
+      addLabels: ["dependencies", "minor"],
     },
     {
-      // Everything but majors, so an actions/checkout v7 to v8 jump gets its
-      // own PR instead of riding along with a pnpm/action-setup patch. The
-      // digest types come from pinGitHubActionDigests: a floating 'v7' tag
-      // moves on every v7 release, which arrives as a digest update, and the
-      // one-off pinning arrives as pinDigest.
-      matchManagers: ['github-actions'],
-      matchUpdateTypes: ['minor', 'patch', 'digest', 'pinDigest'],
-      groupName: 'github actions',
+      matchUpdateTypes: ["major"],
+      addLabels: ["dependencies", "major"],
     },
     {
-      // A digest update never carries a releaseTimestamp: only a version
-      // update copies one from its release. Under the default
-      // 'timestamp-required' the branch's renovate/stability-days check then
-      // stays pending forever, which is what held the first pinning PR.
-      // 'timestamp-optional' lets the branch check pass. The floor still
-      // holds, because lookup ages a digest against the newest release its tag
-      // matches and withholds the update until that release is three days old.
-      matchUpdateTypes: ['digest', 'pinDigest'],
-      minimumReleaseAgeBehaviour: 'timestamp-optional',
+      matchManagers: ["npm"],
+      matchUpdateTypes: ["patch", "minor"],
+      groupName: "dependencies",
     },
     {
-      // Docker Hub reports a tag's age as tag_last_pushed, and official images
-      // (neo4j, node) are rebuilt and re-pushed under the same tag whenever
-      // their base image changes. Each re-push restarts the three days, so a
-      // stability check can stay pending for good. The age cannot be measured
-      // here, so the floor is dropped.
-      matchDatasources: ['docker'],
+      matchManagers: ["github-actions"],
+      addLabels: ["ci"],
+    },
+    {
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["minor", "patch", "digest", "pinDigest"],
+      groupName: "github actions",
+    },
+    {
+      matchUpdateTypes: ["digest", "pinDigest"],
+      minimumReleaseAgeBehaviour: "timestamp-optional",
+    },
+    {
+      matchDatasources: ["docker"],
       minimumReleaseAge: null,
     },
     {
-      // A major never rides in a group with unrelated packages, so one breaking
-      // change cannot hold the others back. It also waits for a tick on the
-      // dependency dashboard issue, so the weekly batch is the routine groups
-      // rather than a wall of majors. Security majors still open on their own,
-      // because vulnerabilityAlerts turns approval back off.
-      //
-      // No groupName here, on purpose. With the npm rule above limited to minor
-      // and patch, a major falls back to the groups config:recommended already
-      // defines for packages that only work at matching versions:
-      // group:monorepos (eslint, jest, nest, nextjs, react, tailwindcss,
-      // typescript-eslint, ...) plus group:recommended's react types and
-      // ts-jest/@types/jest with jest. Setting groupName: null would erase
-      // those too, and each family would then need restating by hand.
-      matchUpdateTypes: ['major'],
+      matchUpdateTypes: ["major"],
       dependencyDashboardApproval: true,
     },
     {
-      // fumadocs-core and fumadocs-ui release in lockstep but have no monorepo
-      // preset, so a major would otherwise split them into two PRs that each
-      // fail CI. Majors only: below that, both already share 'dependencies'.
-      matchPackageNames: ['fumadocs-core', 'fumadocs-ui'],
-      matchUpdateTypes: ['major'],
-      groupName: 'fumadocs',
+      matchPackageNames: ["fumadocs-core", "fumadocs-ui"],
+      matchUpdateTypes: ["major"],
+      groupName: "fumadocs",
     },
     {
-      // Node moves as one unit across .nvmrc (which the publish workflows
-      // read) and the docs Dockerfile, so neither runs ahead of the other.
-      // Majors in this group still wait for the dashboard tick.
-      //
-      // No floor for either half. The Dockerfile tag cannot be aged (see the
-      // docker rule), and a floor left on .nvmrc alone would hold that half
-      // back as pending while the Dockerfile half opened the PR without it.
-      matchManagers: ['nvm', 'dockerfile'],
-      matchDepNames: ['node'],
-      groupName: 'node runtime',
+      matchManagers: ["nvm", "dockerfile"],
+      matchDepNames: ["node"],
+      groupName: "node runtime",
       minimumReleaseAge: null,
     },
     {
-      // Support declarations we publish, not versions we track. Both are '>='
-      // floors that say "works with at least this", and the top-level 'bump'
-      // would rewrite them on every release into "requires at least whatever
-      // shipped last", quietly dropping support for versions that still work.
-      //
-      //   peerDependencies  packages/nest, '@nestjs/common: >=10.0.0' and friends
-      //   engines           the root manifest, 'node: >=22.13.0'
-      //
-      // engines.node is a live dependency, not inert text: the npm manager
-      // gives it the node-version datasource, so bump really would raise it,
-      // and CI still runs the test matrix at Node 22. Neither is spared by
-      // default: getRangeStrategy returns an explicit strategy on its first
-      // branch, ahead of every check that would otherwise have caught them.
-      // 'widen' hands the range back untouched while the new version still
-      // satisfies it, which is what holds both floors still.
-      matchDepTypes: ['peerDependencies', 'engines'],
-      rangeStrategy: 'widen',
+      matchDepTypes: ["peerDependencies", "engines"],
+      rangeStrategy: "widen",
     },
     {
-      // The Node channel the exampleApps job runs on. 'node-version: 24' in
-      // run-tests.yml names a channel rather than a version: the runner
-      // resolves it to the newest 24 at run time, which is the point of
-      // writing it that way.
-      //
-      // This is the one place the top-level 'bump' reaches outside the npm
-      // manager. github-actions exports no getRangeStrategy, so the manager
-      // hands back whatever is configured instead of resolving the default
-      // 'auto' to 'replace', and setup-node's node-version is given node
-      // versioning, which delegates getNewValue to npm. Its first bump branch
-      // returns the bare version for an operator-less range, so '24' becomes
-      // '24.21.0': the job stops tracking the channel and every Node 24 patch
-      // opens a PR. Under 'replace' the same call returns '24', which equals
-      // currentValue, so lookup drops the update and no PR is opened. A major
-      // still lands, because 'replace' would return '26'.
-      matchManagers: ['github-actions'],
-      matchPackageNames: ['actions/node-versions'],
-      rangeStrategy: 'replace',
+      matchManagers: ["github-actions"],
+      matchPackageNames: ["actions/node-versions"],
+      rangeStrategy: "replace",
     },
     {
-      // The security floors in pnpm-workspace.yaml. Kept out of the routine
-      // groups so a change to a pin is always reviewed on its own, and last in
-      // the list so it wins the group name back.
-      //
-      // rangeStrategy is the load-bearing part now that the top level is
-      // 'bump'. Bumping '>=2.2.0' would rewrite the floor on every release and
-      // change it from "at least this" to "at least whatever shipped last",
-      // which is not what a floor means. This keeps the manifest entry still
-      // and lets the lockfile move.
-      matchDepTypes: ['pnpm-workspace.overrides', 'overrides', 'resolutions'],
-      groupName: 'dependency overrides',
-      addLabels: ['dependencies', 'override'],
-      rangeStrategy: 'update-lockfile',
+      matchDepTypes: ["pnpm-workspace.overrides", "overrides", "resolutions"],
+      groupName: "dependency overrides",
+      addLabels: ["dependencies", "override"],
+      rangeStrategy: "update-lockfile",
     },
   ],
-
-  // Security fixes do not wait for the Saturday window or the release-age
-  // delay. Sitting on a known-exploitable advisory is worse than the tail risk
-  // of a fresh publish the advisory itself told us to install. Renovate's own
-  // vulnerabilityAlerts defaults already clear both; they are restated here so
-  // the intent survives a change upstream.
-  //
-  // pnpm's strict floor does not hold the fixed package back. On every security
-  // PR Renovate appends '<name>@<version>' to minimumReleaseAgeExclude in that
-  // workspace's pnpm-workspace.yaml, whatever the version's age, so a fix under
-  // three days old still installs. There is no setting to stop it, and
-  // reviewing that line is the manual approval. Only the fixed package is
-  // excluded: a fresh transitive dependency of the fix still fails to resolve,
-  // and the PR arrives with an artifact error naming it.
-  //
-  // rangeStrategy is raised from Renovate's default of 'update-lockfile', which
-  // would pin the patched version in the lockfile and leave an overrides entry
-  // like '>=2.2.0' still claiming a vulnerable version is acceptable. A floor
-  // that no longer matches the advisory is the one thing those entries exist to
-  // get right, so an advisory moves the floor and routine updates do not.
-  //
-  // Renovate applies this whole block as `force`, which beats every
-  // packageRule, so during a security fix the peerDependencies carve-out moves
-  // too. That is the intended trade rather than an oversight: a published peer
-  // range pointing at a vulnerable version should not stay put, and there is no
-  // way to carve out within `force`.
-  //
-  // The engines carve-out is not reachable this way, so it is absolute. Node
-  // versions come from the node-version datasource, which appears in neither
-  // Renovate's OSV ecosystem map nor its Dependabot one, so engines.node never
-  // gets a vulnerability rule for `force` to override. That floor moves only by
-  // hand.
   vulnerabilityAlerts: {
-    schedule: ['at any time'],
+    schedule: ["at any time"],
     minimumReleaseAge: null,
-    rangeStrategy: 'bump',
-    addLabels: ['security'],
+    rangeStrategy: "bump",
+    addLabels: ["security"],
   },
 }
