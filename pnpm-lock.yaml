@@ -282,7 +282,7 @@ importers:
         specifier: ^26.6.10
         version: 26.6.10
       '@types/react':
-        specifier: ^19.3.1
+        specifier: ^19.3.2
         version: 19.3.2
       '@types/react-dom':
         specifier: ^19.3.0
@@ -312,10 +312,10 @@ importers:
   packages/nest:
     devDependencies:
       '@nestjs/common':
-        specifier: ^12.6.0
+        specifier: ^12.6.1
         version: 12.6.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
-        specifier: ^12.6.0
+        specifier: ^12.6.1
         version: 12.6.1(@nestjs/common@12.6.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@types/jest':
         specifier: ^30.0.0

@@ -27,8 +27,8 @@
     "neogma": ">=2.0.0"
   },
   "devDependencies": {
-    "@nestjs/common": "^12.6.0",
-    "@nestjs/core": "^12.6.0",
+    "@nestjs/common": "^12.6.1",
+    "@nestjs/core": "^12.6.1",
     "@types/node": "^26.6.10",
     "@typescript-eslint/eslint-plugin": "^8.74.0",
     "@typescript-eslint/parser": "^8.74.0",
