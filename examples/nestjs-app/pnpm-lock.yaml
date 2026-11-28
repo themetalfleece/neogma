@@ -12,13 +12,13 @@ importers:
         specifier: link:../../packages/nest
         version: link:../../packages/nest
       '@nestjs/common':
-        specifier: ^12.6.0
+        specifier: ^12.6.1
         version: 12.6.1(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core':
-        specifier: ^12.6.0
+        specifier: ^12.6.1
         version: 12.6.1(@nestjs/common@12.6.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.6.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/platform-express':
-        specifier: ^12.6.0
+        specifier: ^12.6.1
         version: 12.6.1(@nestjs/common@12.6.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.6.1)(rxjs@7.8.2)
       dotenv:
         specifier: ^18.0.10
@@ -37,7 +37,7 @@ importers:
         specifier: ^12.0.15
         version: 12.0.15(@types/node@26.6.10)
       '@nestjs/testing':
-        specifier: ^12.6.0
+        specifier: ^12.6.1
         version: 12.6.1(@nestjs/common@12.6.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.6.1)(@nestjs/platform-express@12.6.1)
       '@types/node':
         specifier: ^26.6.10
