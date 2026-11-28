@@ -24,7 +24,7 @@
   "devDependencies": {
     "@nestjs/cli": "^12.0.15",
     "@nestjs/testing": "^12.6.0",
-    "@types/node": "^26.6.7",
+    "@types/node": "^26.6.10",
     "typescript": "^6.0.3"
   }
 }
